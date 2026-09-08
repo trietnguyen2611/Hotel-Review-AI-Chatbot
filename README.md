@@ -63,10 +63,11 @@ flowchart LR
 Hotel-Review-AI-Chatbot/
 ├── .gitignore                                 # Danh sách loại trừ file nặng, cache, môi trường ảo
 ├── README.md                                  # Tài liệu tổng quan đề tài và hướng dẫn
+├── requirements.txt                           # Danh sách các thư viện phụ thuộc của dự án
 ├── Project.ipynb                              # Notebook chính triển khai đồ án nghiên cứu
-├── code mẫu.ipynb                             # Notebook tham khảo quy trình phân tích và mô hình
-└── Data (Dataset, Data Frame, Chart Images)/  # Thư mục chứa dữ liệu và ảnh trực quan
-    └── tripadvisor_review_hotel_dataset.csv   # Dataset gốc đánh giá khách sạn (~705 MB)
+└── Data/                                      # Thư mục chứa tập dữ liệu và CSDL SQLite
+    ├── tripadvisor_review_hotel_dataset.csv   # Dataset gốc đánh giá khách sạn (~705 MB)
+    └── chatbot.db                             # CSDL SQLite lưu trữ bảng dữ liệu
 ```
 
 ---
@@ -78,10 +79,17 @@ Hotel-Review-AI-Chatbot/
 - Jupyter Notebook / JupyterLab / VS Code (có cài tiện ích Python và Jupyter)
 
 ### 2. Cài đặt các thư viện cần thiết
-Cài đặt các gói thư viện phụ thuộc bằng `pip`:
+> **💡 Lưu ý:** Notebook `Project.ipynb` đã tích hợp sẵn ô mã lệnh tự động kiểm tra và cài đặt toàn bộ thư viện từ `requirements.txt` vào môi trường ảo (`.venv`). Bạn chỉ cần mở và chạy notebook!
+
+Nếu muốn cài đặt thủ công từ dòng lệnh Terminal:
 
 ```bash
-pip install pandas numpy matplotlib seaborn scikit-learn nltk
+# Kích hoạt môi trường ảo (nếu có)
+source .venv/bin/activate    # Trên macOS/Linux
+# .venv\Scripts\activate     # Trên Windows
+
+# Cài đặt thư viện từ file requirements.txt
+pip install -r requirements.txt
 ```
 
 ### 3. Chuẩn bị tập dữ liệu

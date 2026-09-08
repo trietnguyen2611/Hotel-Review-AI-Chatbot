@@ -9,6 +9,10 @@
 *.zip
 *.tar.gz
 *.7z
+*.db
+*.sqlite
+*.sqlite3
+charts_img/
 
 # Python
 __pycache__/
