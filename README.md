@@ -1,6 +1,6 @@
 # AI2002 - Review Chatbot for Hotel Question Answering
 
-> **Đề tài nghiên cứu khoa học:** Xây dựng hệ thống Chatbot thông minh hỗ trợ trả lời câu hỏi và tư vấn khách sạn dựa trên tập dữ liệu đánh giá thực tế từ TripAdvisor.  
+> **Đề tài nghiên cứu khoa học:** Joint Fine-Grained Opinion Extraction and Overall Rating Prediction from Real-World Hotel Reviews - Xây dựng hệ thống Chatbot thông minh hỗ trợ trả lời câu hỏi và tư vấn khách sạn dựa trên tập dữ liệu đánh giá thực tế từ TripAdvisor.  
 > **Khóa học:** AI2002  
 > **Nhóm thực hiện:** Group 5  
 
@@ -10,7 +10,7 @@
 
 Trong thời đại số, đánh giá trực tuyến (online customer reviews) là nguồn dữ liệu vô giá đối với người dùng trước khi quyết định đặt phòng khách sạn. Tuy nhiên, việc phải đọc hàng trăm đến hàng nghìn bài đánh giá dài dòng và phân tán để tìm câu trả lời cho các thắc mắc cụ thể (ví dụ: *"Phòng khách sạn này có cách âm tốt không?"*, *"Bữa sáng tại khách sạn có phong phú không?"*, *"Vị trí có thuận tiện đến trung tâm không?"*) gây tốn nhiều thời gian và công sức.
 
-Dự án **Review Chatbot for Hotel Question Answering** được phát triển nhằm giải quyết bài toán trên thông qua việc:
+Dự án được phát triển nhằm giải quyết bài toán trên thông qua việc:
 - Tự động hóa quá trình phân tích và khai phá các khía cạnh dịch vụ (*aspect-based opinion mining*) từ tập dữ liệu lớn các đánh giá khách sạn.
 - Xây dựng cơ chế truy xuất thông tin ngữ nghĩa và trả lời câu hỏi thông minh (*Question Answering System*), hỗ trợ khách hàng đưa ra quyết định đặt phòng nhanh chóng và chính xác.
 
