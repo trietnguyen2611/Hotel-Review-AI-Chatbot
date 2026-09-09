@@ -1,4 +1,4 @@
-# AI2002 - Review Chatbot for Hotel Question Answering
+# DAP391m - AI2002 - Group 5 - Hotel Question Answering Chatbot
 
 > **Đề tài nghiên cứu khoa học:** Joint Fine-Grained Opinion Extraction and Overall Rating Prediction from Real-World Hotel Reviews - Xây dựng hệ thống Chatbot thông minh hỗ trợ trả lời câu hỏi và tư vấn khách sạn dựa trên tập dữ liệu đánh giá thực tế từ TripAdvisor.  
 > **Khóa học:** AI2002  
