@@ -38,4 +38,4 @@ Dự án sử dụng bộ dữ liệu đánh giá khách sạn quy mô lớn thu
 ---
 
 ## Bản quyền (License)
-Dự án được phát triển phục vụ mục đích nghiên cứu học thuật trong môn học DAP391m của Trường Đại Học FPT TP.HCM.
+Dự án được phát triển phục vụ nghiên cứu học thuật trong môn học DAP391m của Trường Đại Học FPT TP.HCM.
