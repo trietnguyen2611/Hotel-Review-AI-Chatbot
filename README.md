@@ -26,9 +26,9 @@ Dự án được phát triển nhằm giải quyết bài toán trên thông qu
 
 Dự án sử dụng bộ dữ liệu đánh giá khách sạn quy mô lớn thu thập từ **TripAdvisor** (`tripadvisor_review_hotel_dataset.csv`) với quy mô **~782,584 bản ghi** và **25 trường thông tin** chi tiết:
 
-| Nhóm thông tin | Các trường dữ liệu chính | Mô tả mục đích |
+| Thông tin | Các trường dữ liệu chính | Mô tả |
 | :--- | :--- | :--- |
-| **Thực thể khách sạn** | `hotel_name`, `hotel_province`, `hotel_address`, `hotel_star` | Định danh khách sạn, khu vực địa lý và phân khúc sao |
+| **Khách sạn** | `hotel_name`, `hotel_province`, `hotel_address`, `hotel_star` | Định danh khách sạn, khu vực địa lý và phân khúc sao |
 | **Điểm số & Khía cạnh** | `normalized_score`, `Value`, `Rooms`, `Location`, `Cleanliness`, `Service`, `Sleep_Quality` | Đánh giá định lượng tổng quan và chi tiết từng khía cạnh dịch vụ |
 | **Văn bản đánh giá (NLP)** | `normalized_title`, `normalized_content`, `Word_count`, `language` | Dữ liệu văn bản dùng để trích xuất đặc trưng, huấn luyện mô hình hỏi đáp |
 | **Bối cảnh lưu trú** | `trip_type`, `Date`, `month`, `year` | Phân khúc chuyến đi (công tác, cặp đôi, gia đình) và thời gian trải nghiệm |
