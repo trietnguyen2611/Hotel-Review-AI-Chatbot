@@ -33,7 +33,7 @@ Dự án sử dụng bộ dữ liệu đánh giá khách sạn quy mô lớn thu
 | **Văn bản đánh giá (NLP)** | `normalized_title`, `normalized_content`, `Word_count`, `language` | Dữ liệu văn bản dùng để trích xuất đặc trưng, huấn luyện mô hình hỏi đáp |
 | **Bối cảnh lưu trú** | `trip_type`, `Date`, `month`, `year` | Phân khúc chuyến đi (công tác, cặp đôi, gia đình) và thời gian trải nghiệm |
 
-> *Lưu ý:* Do dung lượng file dataset vượt quá 100 MB, file được lưu trữ cục bộ trong thư mục `Data (Dataset, Data Frame, Chart Images)/` và được cấu hình bỏ qua bởi `.gitignore` theo quy định của GitHub, nếu cần tải về vui lòng liên hệ [EMAIL_ADDRESS].
+> *Lưu ý:* Do dung lượng file dataset vượt quá 100 MB, file được lưu trữ cục bộ trong thư mục `Data` và được cấu hình bỏ qua bởi `.gitignore` theo quy định của GitHub, nếu cần tải về vui lòng liên hệ [EMAIL_ADDRESS].
 
 ---
 
