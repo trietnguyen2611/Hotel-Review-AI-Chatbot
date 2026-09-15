@@ -12,6 +12,9 @@
 *.db
 *.sqlite
 *.sqlite3
+*.jsonl
+*.json
+Data/
 charts_img/
 
 # Python
