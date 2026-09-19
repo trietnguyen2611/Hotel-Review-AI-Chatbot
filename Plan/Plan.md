@@ -11,6 +11,7 @@
 ## 🎯 1. Mục tiêu, Định vị & Câu chuyện Khoa học
 *   **Trọng tâm**: Trả lời câu hỏi kết hợp hiểu biết aspect/opinion với global rating như thế nào[cite: 1], và cách xử lý review chứa nhiều polarity hoặc đánh giá mâu thuẫn[cite: 1].
 *   **Tên đề xuất (Đã chốt)**: Joint Fine-Grained Opinion Extraction and Overall Rating Prediction from Real-World Hotel Reviews[cite: 1].
+*   **Định vị ứng dụng hạ nguồn (Downstream Application)**: Động cơ cốt lõi phục vụ hệ thống **Chatbot Hỏi Đáp Chi Tiết Khách Sạn Dựa Trên Reviews (Review-Based Hotel QA)** — *Tuyệt đối KHÔNG PHẢI hệ thống gợi ý / đề xuất khách sạn (Non-Recommendation).* Mô hình tập trung khai phá sâu ý kiến theo khía cạnh (aspect-based opinion mining) để trả lời chính xác các thắc mắc thực tế của khách hàng (cách âm, vệ sinh, ẩm thực, dịch vụ...).
 
 | Research Question (RQ) / Giả thuyết (H) | Bằng chứng cần có |
 | :--- | :--- |
