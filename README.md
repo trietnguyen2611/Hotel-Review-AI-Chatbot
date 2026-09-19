@@ -66,7 +66,7 @@ graph TD
 
 ## 📊 3. Bộ Dữ Liệu & Chuẩn Hóa Định Dạng (Dataset & JSONL Schema)
 
-Dự án sử dụng bộ dữ liệu đánh giá thực tế thu thập từ **TripAdvisor** với quy mô **~782,584 bài đánh giá** và **25 trường thông tin**.
+Dự án sử dụng bộ dữ liệu đánh giá thực tế thu thập từ **TripAdvisor** với quy mô **~782,584 bài đánh giá** và **29 trường thông tin** (bao gồm 4 trường định danh mới: `review_id`, `hotel_id`, `hotel_region`, `tripadvisor_hotel_id`).
 
 ### Chuẩn hóa dữ liệu 100% bằng JSON Lines (`.jsonl`)
 Để phục vụ tối ưu cho các mô hình học sâu NLP (PyTorch, Hugging Face Transformers) và bảo tồn trọn vẹn cấu trúc lồng nhau của bài toán trích xuất khía cạnh (ASTE / ABSA), **dự án đã loại bỏ hoàn toàn các file CSV trung gian** và chuyển sang định dạng JSON Lines:
@@ -74,7 +74,7 @@ Dự án sử dụng bộ dữ liệu đánh giá thực tế thu thập từ **
 | File dữ liệu | Định dạng | Mục đích sử dụng |
 | :--- | :---: | :--- |
 | `Data/dts_raw/tripadvisor_review_hotel_dataset.parquet` | Parquet / Snappy | Dữ liệu gốc quy mô lớn, nạp siêu tốc vào RAM |
-| `Data/train/reviews_filtered.jsonl` | JSONL | Dữ liệu sạch sau 6 bước lọc (ngôn ngữ, độ dài, trùng lặp, định danh Tên + Địa chỉ) |
+| `Data/train/reviews_filtered.jsonl` | JSONL | Dữ liệu sạch sau 6 bước lọc + gắn định danh (`review_id`, `hotel_id`, `hotel_region`, URL sạch) |
 | `Data/train/features.jsonl` | JSONL | Tập dữ liệu tích hợp 10 đặc trưng phân tích chất lượng và ngữ cảnh review |
 | `Data/train/reviews_qa.jsonl` | JSONL | **Corpus huấn luyện Chatbot QA**: Mỗi dòng là 1 review hoàn chỉnh kèm metadata, khía cạnh và features |
 | `Data/db/chatbot_v2.db` | SQLite 3 | CSDL quan hệ gồm 3 bảng (`hotels`, `reviews`, `hotel_summaries`) phục vụ Chatbot truy vấn thời gian thực |
