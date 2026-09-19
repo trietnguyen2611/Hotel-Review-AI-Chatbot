@@ -14,8 +14,8 @@
 *.sqlite3
 *.jsonl
 *.json
-Data/
-charts_img/
+
+
 
 # Python
 __pycache__/
