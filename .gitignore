@@ -1,4 +1,4 @@
-# Data files (GitHub limit is 100MB; datasets should not be pushed to git)
+# Data files
 *.csv
 *.tsv
 *.parquet
