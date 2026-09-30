@@ -54,3 +54,4 @@ ENV/
 ._*
 .Spotlight-V100
 .Trashes
+data/dataset/hotel_review/
