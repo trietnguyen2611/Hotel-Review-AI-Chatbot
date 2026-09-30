@@ -1,4 +1,4 @@
-# Aspect-Based Question Answering Chatbot for Hotel Reviews
+# Aspect-Based Q&A Chatbot for Hotel Reviews
 
 ## Overview
 This repository contains the research and development code for a Question Answering Chatbot focused on hotel reviews. Unlike broad, multi-task sentiment models, this system is specifically designed around manually labeled aspect and sentiment data to provide accurate and context-aware responses to user queries.
@@ -27,5 +27,3 @@ To train the aspect extraction and intent classification models using a GPU envi
 * **Google Colab:** Open `Training_Colab.ipynb`, upload the `TripAdvisor_EN.json` file to the `Data/dataset/` directory in your Colab workspace, and run the cells.
 * **Kaggle:** Open `Training_Kaggle.ipynb`, upload the dataset via Kaggle's interface, update the dataset path variable in the notebook to match your dataset name, and run the cells.
 
-## Notes
-The large unannotated CSV and Parquet datasets have been removed from this repository to optimize storage and training performance. The model relies strictly on the high-quality, manually annotated `TripAdvisor_EN.json` file.
