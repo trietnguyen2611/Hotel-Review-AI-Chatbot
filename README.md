@@ -1,16 +1,21 @@
-# Cross-Aspect Leakage in Ordinal Rationalization of Hotel Reviews
+# Xây dựng hệ thống Chatbot hỏi đáp thông tin khách sạn dựa trên phân tích đánh giá đa khía cạnh
+## Development of an Aspect-Based Review QA Chatbot for Hotel Services
+**DAP391m - AI2002 - Group 5**
 
 ## Overview
-This research project focuses on Selective Rationalization for hotel reviews. The goal is to read a hotel review, predict a 1-5 score for three specific aspects (Location, Service, and Cleanliness), and simultaneously extract the text rationale (evidence) for each score. 
+This project develops an intelligent, evidence-grounded **Aspect-Based Review Question Answering (QA) Chatbot** for hotel services. The system extracts and analyzes customer reviews across fine-grained aspects (**Service, Facility, Amenity, Experience, Loyalty, Branding, Location, Cleanliness**) annotated with sentiment polarities (Positive, Neutral, Negative) from **`TripAdvisor_EN.json`** and large-scale hotel review benchmarks.
 
-The main contribution is extending traditional binary rationalization to ordinal 5-level ratings, analyzing cross-aspect leakage, and proposing improvements to the PLMR model (adding ordinal loss and overlap penalty) to keep rationales faithful to their specific aspects.
+The core AI engine combines:
+1. **Aspect-Based Knowledge Base:** Indexes human-annotated review rationales and sentiment polarities to provide factual, evidence-backed answers.
+2. **Selective Rationalization & Rating Prediction:** An aspect-disentangled model (PLMR with Weighted CORN Loss and Overlap Penalty) to predict satisfaction ratings and extract faithful rationale spans while mitigating cross-aspect leakage.
+3. **Conversational QA Interface:** Answers multi-aspect user inquiries with customer satisfaction percentages and real positive/negative review quotations.
 
 ## Project Structure
-* `Data/`: Directory for datasets. You will need the standard `HotelReview` benchmark and the original 5-level rating dataset (Wang et al., KDD 2010).
-* `Project.ipynb`: Main notebook for local environment setup, dataset merging (mapping 5-level labels to the benchmark), exploratory data analysis, and checking the pipeline.
-* `Training_Colab.ipynb`: Training notebook configured for Google Colab environments to train RNP, MGR, MRD, and PLMR models.
-* `Training_Kaggle.ipynb`: Training notebook configured for Kaggle environments.
-* `Plan/`: Contains the core research plan (`Research_Plan.md`).
+* `data/dataset/`: Directory for datasets including `TripAdvisor_EN.json` (9,990 fine-grained labeled reviews) and hotel review benchmarks.
+* `Project.ipynb`: Core notebook for data preprocessing, EDA, rationale F1 evaluation, cross-aspect leakage analysis, and the Aspect-Based Hotel Review AI Chatbot engine.
+* `Training_Colab.ipynb`: Training notebook configured for Google Colab GPU environments to train aspect generator and predictor models.
+* `Training_Kaggle.ipynb`: Training notebook configured for Kaggle GPU environments.
+* `plan/`: Contains the research plan (`Research_Plan.md`).
 * `requirements.txt`: Python dependencies.
 
 ## Getting Started
