@@ -16,3 +16,7 @@ datasets>=2.14.0
 tqdm>=4.65.0
 # High-Performance Data Processing
 pyarrow>=15.0.0
+
+# Database & Query
+duckdb>=0.9.0
+pandasql>=0.7.3
