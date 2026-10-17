@@ -137,6 +137,7 @@
             elements.sidebarBackdrop.addEventListener('click', () => {
                 closeMobileSidebar();
             });
+        }
     }
 
     function closeMobileSidebar() {
@@ -614,19 +615,6 @@
         }
     });
 
-    // Suggestion chips delegation
-    document.addEventListener('click', (e) => {
-        const chip = e.target.closest('.suggestion-chip');
-        if (chip) {
-            const query = chip.getAttribute('data-query');
-            if (query) {
-                elements.promptInput.value = query;
-                elements.sendBtn.disabled = false;
-                elements.chatForm.dispatchEvent(new Event('submit'));
-            }
-        }
-    });
-
     // -------------------------------------------------------------------------
     // Chat Submission & Rendering
     // -------------------------------------------------------------------------
@@ -641,7 +629,7 @@
         // Auto-title if still default
         if (conv.title === 'New Conversation' || !conv.title) {
             const cleanTitle = query.replace(/\s+/g, ' ').trim();
-            conv.title = cleanTitle.length > 34 ? cleanTitle.slice(0, 34) + '...' : cleanTitle;
+            conv.title = cleanTitle.length > 60 ? cleanTitle.slice(0, 60) + '...' : cleanTitle;
             elements.activeChatTitle.textContent = conv.title;
         }
 
@@ -967,6 +955,7 @@
     loadConversations();
     renderConversationLists();
     renderActiveConversationMessages();
+    initModelSelector();
     checkHealth();
 
 })();
