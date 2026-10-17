@@ -79,11 +79,21 @@ CITY_MAP = {
     'hoi an': 'hoian'
 }
 
+def clean_vietnamese_text(text: str) -> str:
+    """Normalize Vietnamese text to clean ASCII/English, stripping combining diacritics."""
+    if not text:
+        return ''
+    text = str(text).replace('Đ', 'D').replace('đ', 'd')
+    norm = unicodedata.normalize('NFKD', text)
+    ascii_text = ''.join(c for c in norm if not unicodedata.combining(c))
+    ascii_text = ascii_text.replace('\xa0', ' ').strip()
+    return ascii_text
+
 def normalize_text(text: str) -> str:
     """Normalize English text by stripping diacritics and noise words."""
     if not text:
         return ''
-    text = unicodedata.normalize('NFKD', str(text)).encode('ASCII', 'ignore').decode('utf-8').lower()
+    text = clean_vietnamese_text(text).lower()
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
     text = re.sub(r'\b(khach\s*san|khu\s*nghi\s*duong|ks|hotel|resort|the)\b', ' ', text)
     for k, v in CITY_MAP.items():
@@ -94,16 +104,17 @@ def clean_display_name(raw: str) -> str:
     """Produce a clean, capitalized English title for display."""
     if not raw:
         return 'Hotel'
-    text = unicodedata.normalize('NFKD', raw).encode('ASCII', 'ignore').decode('utf-8')
-    text = re.sub(r'^(khach\s*san|khu\s*nghi\s*duong|ks|hotel|resort)\s+', '', text, flags=re.IGNORECASE).strip()
+    ascii_name = clean_vietnamese_text(raw)
+    text = re.sub(r'^(khach\s*san|khu\s*nghi\s*duong|ks|hotel|resort|the)\s+', '', ascii_name, flags=re.IGNORECASE).strip()
     text = re.sub(r'\s*\.*$', '', text)
     words = text.split()
     capitalized = ' '.join(w.capitalize() for w in words)
-    # Tidy city names
     capitalized = re.sub(r'\bHa Noi\b', 'Hanoi', capitalized, flags=re.IGNORECASE)
     capitalized = re.sub(r'\bDa Nang\b', 'Da Nang', capitalized, flags=re.IGNORECASE)
     capitalized = re.sub(r'\bPhu Quoc\b', 'Phu Quoc', capitalized, flags=re.IGNORECASE)
-    return capitalized or raw
+    capitalized = re.sub(r'\bSai Gon\b', 'Ho Chi Minh City', capitalized, flags=re.IGNORECASE)
+    capitalized = re.sub(r'\bNha Trang\b', 'Nha Trang', capitalized, flags=re.IGNORECASE)
+    return capitalized or ascii_name or 'Hotel'
 
 # ---------------------------------------------------------------------------
 # Knowledge Base & Ingestion
@@ -655,20 +666,22 @@ def parse_multipart_file(headers, rfile, content_len: int) -> Tuple[Optional[str
         return 'model.pt', data
 
     body = rfile.read(content_len)
-    delimiter = b'--' + boundary
-    parts = body.split(delimiter)
+    
+    # RFC 2046: Initial boundary starts with --boundary, delimiter between parts is \r\n--boundary
+    init_delim = b'--' + boundary
+    if body.startswith(init_delim):
+        body = body[len(init_delim):]
+        if body.startswith(b'\r\n'):
+            body = body[2:]
+
+    delim = b'\r\n--' + boundary
+    parts = body.split(delim)
     for part in parts:
         if b'Content-Disposition:' in part:
             header_end = part.find(b'\r\n\r\n')
             if header_end != -1:
                 headers_part = part[:header_end].decode('utf-8', errors='ignore')
                 file_content = part[header_end + 4:]
-                if file_content.endswith(b'\r\n'):
-                    file_content = file_content[:-2]
-                if file_content.endswith(b'--'):
-                    file_content = file_content[:-2]
-                if file_content.endswith(b'\r\n'):
-                    file_content = file_content[:-2]
 
                 fn_match = re.search(r'filename="([^"]+)"', headers_part)
                 filename = fn_match.group(1) if fn_match else 'model.pt'
@@ -746,6 +759,11 @@ class QAChatHandler(BaseHTTPRequestHandler):
             try:
                 data = json.loads(body)
             except Exception:
+                self.send_response(400)
+                self.end_headers()
+                return
+
+            if not isinstance(data, dict):
                 self.send_response(400)
                 self.end_headers()
                 return
