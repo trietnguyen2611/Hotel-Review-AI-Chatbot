@@ -1,0 +1,602 @@
+[
+  {
+    "id": "1",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "wait staff were very slow, slow to hand out menus then very slow to take our orders.",
+    "original_id": "VLytJlP_XF",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "2",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "Check in and out easy",
+    "original_id": "aXd49Bm9MZ",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "3",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "great service",
+    "original_id": "s6pRLSCYbv",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "4",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "team who is ready to help you 24 hours in every issue or question",
+    "original_id": "BiCcXPwUiD",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "5",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "Catered for literally our every need, not only with our stay, but with advice for the rest of our travels.",
+    "original_id": "lOOboILzQm",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "6",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "The speed of service was hit or miss, even with a large number of staff",
+    "original_id": "2pyBU8FxsR",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "7",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "Breakfast was extensive, but we found the food on the warming grills to be barely warm",
+    "original_id": "RirYCQ3X5B",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "8",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "The brakfast is local and you can try all kinds of soups.",
+    "original_id": "SvJxWA4U0H",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "9",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "and the food was average",
+    "original_id": "rRcvuumtn8",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "10",
+    "aspect": "Service",
+    "aspect_detail": "",
+    "original_review": "The only small criticism of the hotel would be the spa - the staff are not terribly friendly, and the treatments are expensive",
+    "original_id": "G_hNZYg3Ju",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "11",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "Our room was clean",
+    "original_id": "avpQOrGxKr",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "12",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "beds were so comfortable",
+    "original_id": "5Df4GtwG6b",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "13",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "Territory: hotel is very new and it feels everywhere",
+    "original_id": "ZE2hv1rDes",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "14",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "looking beautiful green well-groomed territory, lively pergolas, cozy restaurants and lounges, clean swimming deep pool, well equipped gym, it is your place",
+    "original_id": "al-ggdyhif",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "15",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "Our mattress appeared to have a dip in it",
+    "original_id": "ckaikMOPyC",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "16",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "I liked the bathroom glass wall, though my partner was not so sure.",
+    "original_id": "5HsL7SMtyo",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "17",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "The rooms are small but clean.",
+    "original_id": "1QPDpRu--k",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "18",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "Cons: Gross shower area (bugs in tub and mold on curtains and very low&old shower head)",
+    "original_id": "XN4nzv-Rpu",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "19",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "The standard was old and felt slightly dirty",
+    "original_id": "U_6D1_xio8",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "20",
+    "aspect": "Facility",
+    "aspect_detail": "",
+    "original_review": "There is plenty of hot water in the room and you have a safe to keep your things",
+    "original_id": "9zdPyMfUN7",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "21",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "Overall though we are happy we stayed here",
+    "original_id": "AwC9NMz6JM",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "22",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "I would thank hotel team and specially management for great staying.",
+    "original_id": "cDVwdH8sIQ",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "23",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "you find a hotel as paradise - very clean",
+    "original_id": "gEkwFfWe-s",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "24",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "Pleasant things are expecting you everywhere starting first minute entering the hotel",
+    "original_id": "bU7PzIioN7",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "25",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "The location is very central but there is absolutely no noise",
+    "original_id": "0cUnDlwadq",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "26",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "I think this rooms should not be priced at $21",
+    "original_id": "eeVT1eo72Z",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "27",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "Nothing wrong with customer service but also not the most forthcoming with respect to costs",
+    "original_id": "lewAi6jCz1",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "28",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "This is not uncommon for hotels of this price bracket",
+    "original_id": "5fwRuCOu_x",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "29",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "We arrived at 530am and had to pay for a further full nights stay even though the room was ready or wait until 3pm, I think a 50% charge would have been adequate or the offer of a meal or drinks etc - very disappointing for Hilton",
+    "original_id": "a_h4VBUj1Q",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "30",
+    "aspect": "Experience",
+    "aspect_detail": "",
+    "original_review": "you get used to it quite quickly when you are in the room, but it sticks to all your belongings once you leave the place",
+    "original_id": "dr4CGeVacJ",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "31",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "Location is excellent for exploring the Old Quarter.",
+    "original_id": "87nktnu8-v",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "32",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "This is a very decent and welcoming guesthouse in Saigon which is located centrally in the main backpacker district",
+    "original_id": "dW4OSq7ouI",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "33",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "Main sights to be discovered are also within walking distance",
+    "original_id": "DILM4h7FM5",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "34",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "The hotel is located across the river, right in the center of Hoi An Ancient city.",
+    "original_id": "yBS8rrRc75",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "35",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "This hotel is small and in the heart of the Old Quarter",
+    "original_id": "VAbLwywQ07",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "36",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "The hotel was so nice by a river.",
+    "original_id": "kVSvOU-8r5",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "37",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "the spa services were below average",
+    "original_id": "ROddVDNlkn",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "38",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "the room safe did not work",
+    "original_id": "lQZve1d7Kg",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "39",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "The resort itself is approximately a 10-15 minute cab ride from the hustle and bustle of Nha Trang which is good if you want to escape the riff raff",
+    "original_id": "jfA6tg66eb",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "40",
+    "aspect": "Amenity",
+    "aspect_detail": "",
+    "original_review": "This hotel is a bit further out from city center (tax would cost a little more.)",
+    "original_id": "jWXVjkqyMt",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "41",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "Highly recommend to anyone",
+    "original_id": "_6ooCoMtoG",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "42",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "If you, like me was deliberating on a stay here, this hotel is a steal for its rates",
+    "original_id": "4H7kBrV4Fh",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "43",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "We would definitely recommand this place to everyone",
+    "original_id": "DMUwJKAcnp",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "44",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "I will come back to Sun Set Hoi An Hotel in the future",
+    "original_id": "-sQh5690Qf",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "45",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "With all of that being said it’s ok for a quick stop for a night but don’t plan your whole trip here",
+    "original_id": "3xe7H6As84",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "46",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "We stayed in four different hotels during our stay and all were better than this one.",
+    "original_id": "zopopnQvrS",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "47",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "Would recommend if the hotel will be upgraded",
+    "original_id": "_1X5DuuL-W",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "48",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "No disturbances for either me or my friends and I think this place is just going to get better.",
+    "original_id": "Du6DEOxP70",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "49",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "bad and bitter expérience never again",
+    "original_id": "lMQruK87Qq",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "50",
+    "aspect": "Loyalty",
+    "aspect_detail": "",
+    "original_review": "I have stayed at many better resorts and wouldn't rush back here",
+    "original_id": "1NKrtjIyEg",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "51",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "We stayed at the Grand Premium Room in the Opera Wing and absolutely loved it",
+    "original_id": "gcEnU0jsQw",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "52",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "The hotel is sure 5 stars",
+    "original_id": "s22v0wBisB",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "53",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "We spent two nights at the hotel and it is the perfect place to stay in Hanoi",
+    "original_id": "qD7kLho9VJ",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "54",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "It has the quality of a 5 star hotel",
+    "original_id": "5yPZYILV76",
+    "sentiment": "Positive",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "55",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "This palce is as good as it looks in the pics, and was probably the nicest place we stayed on our Vietnam holiday, usually stay in Hotels and no regrets staying here",
+    "original_id": "lYHBma-cVd",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "56",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "The homestay family is unbelievably sweet",
+    "original_id": "YNN9_TJ3Y_",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "57",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "The villa itself was totally different from what I have seen from the pictures of the website",
+    "original_id": "PPRk8zEZkG",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "58",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "Overall, the Paragon Hotel was very nice, but I am only giving it three stars",
+    "original_id": "dpWEWoqOOs",
+    "sentiment": "Neutral",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "59",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "One thing though is the hotel probably needs to put a bigger sign",
+    "original_id": "muO7CUWqG3",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  },
+  {
+    "id": "60",
+    "aspect": "Branding",
+    "aspect_detail": "",
+    "original_review": "Something more noticeable as we did not realize the hotel was already right in front of us",
+    "original_id": "TSjQuQY4pq",
+    "sentiment": "Negative",
+    "question_en": "",
+    "answer_en": ""
+  }
+]

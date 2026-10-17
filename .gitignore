@@ -1,7 +1,5 @@
 # Data files
-*.csv
 *.tsv
-*.parquet
 *.feather
 *.h5
 *.pkl
@@ -12,8 +10,6 @@
 *.db
 *.sqlite
 *.sqlite3
-*.jsonl
-*.json
 
 
 # Python
@@ -54,7 +50,6 @@ ENV/
 ._*
 .Spotlight-V100
 .Trashes
-data/dataset/hotel_review/
+
 
 .agents/
-data/chart_img/
