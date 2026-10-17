@@ -332,40 +332,19 @@ html, body {
     min-width: 0;
     flex: 1;
     overflow: hidden;
-    position: relative;
     display: flex;
     align-items: center;
 }
 
 .conv-item-title {
-    display: inline-block;
+    display: block;
+    width: 100%;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 0.82rem;
     line-height: 1.3;
-    will-change: transform;
-}
-
-/* Marquee / Scrolling effect for long conversation titles */
-.conv-item-title.is-long {
-    text-overflow: clip;
-    animation: convTitleMarquee var(--marquee-duration, 6s) cubic-bezier(0.45, 0.05, 0.55, 0.95) 1s infinite alternate;
-    animation-play-state: paused;
-}
-
-.conv-item:hover .conv-item-title.is-long,
-.conv-item.active .conv-item-title.is-long {
-    animation-play-state: running;
-}
-
-@keyframes convTitleMarquee {
-    0%, 18% {
-        transform: translateX(0);
-    }
-    82%, 100% {
-        transform: translateX(calc(-1 * var(--marquee-distance, 40px)));
-    }
 }
 
 /* Inline Rename Input */

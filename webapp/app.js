@@ -128,8 +128,6 @@
                 // Desktop Collapse/Expand
                 const collapsed = elements.appLayout.classList.toggle('sidebar-collapsed');
                 localStorage.setItem(STORAGE_SIDEBAR_COLLAPSED_KEY, collapsed);
-                // Re-evaluate marquee after sidebar transition
-                setTimeout(updateMarqueeOverflow, 300);
             }
         });
 
@@ -324,36 +322,6 @@
         if (currentConv && elements.activeChatTitle) {
             elements.activeChatTitle.textContent = currentConv.title || 'New Conversation';
         }
-
-        // Calculate marquee overflow for long titles
-        updateMarqueeOverflow();
-    }
-
-    // -------------------------------------------------------------------------
-    // Marquee / Scrolling Effect for Long Titles
-    // -------------------------------------------------------------------------
-    function updateMarqueeOverflow() {
-        requestAnimationFrame(() => {
-            const items = document.querySelectorAll('.conv-item');
-            items.forEach(item => {
-                const wrap = item.querySelector('.conv-item-title-wrap');
-                const titleSpan = item.querySelector('.conv-item-title');
-                if (!wrap || !titleSpan) return;
-
-                // Check horizontal overflow
-                const overflow = titleSpan.scrollWidth - wrap.clientWidth;
-                if (overflow > 4) {
-                    titleSpan.classList.add('is-long');
-                    titleSpan.style.setProperty('--marquee-distance', `${overflow + 14}px`);
-                    const duration = Math.max(4.5, (overflow + 14) / 16);
-                    titleSpan.style.setProperty('--marquee-duration', `${duration.toFixed(1)}s`);
-                } else {
-                    titleSpan.classList.remove('is-long');
-                    titleSpan.style.removeProperty('--marquee-distance');
-                    titleSpan.style.removeProperty('--marquee-duration');
-                }
-            });
-        });
     }
 
     // -------------------------------------------------------------------------
@@ -460,7 +428,6 @@
     elements.recentList.addEventListener('click', handleConvListClick);
     elements.recentList.addEventListener('keydown', handleConvListKeydown);
     elements.newChatBtn.addEventListener('click', handleNewChat);
-    window.addEventListener('resize', updateMarqueeOverflow);
 
     // -------------------------------------------------------------------------
     // Project Model Selection (from folder model/)
