@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hotel Aspect AI QA Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-wrapper">
+                    <div class="brand-icon-box">
+                        <!-- Hotel Building SVG -->
+                        <svg class="svg-icon" viewBox="0 0 24 24">
+                            <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h1>Hotel AI Studio</h1>
+                        <span>Conversational Aspect QA</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                <!-- Model Status -->
+                <div>
+                    <div class="sidebar-section-title">Active Model Checkpoint</div>
+                    <div class="model-status-card">
+                        <div class="model-header-row">
+                            <div class="model-indicator">
+                                <span class="pulse-dot"></span>
+                                <span id="modelStatusLabel">Seq2Seq Engine</span>
+                            </div>
+                            <span class="model-badge" id="modelTypeBadge">Ready</span>
+                        </div>
+                        <div class="model-details-text" id="modelDetailsText">
+                            Fine-tuned Seq2Seq architecture with Feature 10 recency weighting enabled.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Upload Section -->
+                <div>
+                    <div class="sidebar-section-title">Model Weights Management</div>
+                    <div class="upload-dropzone" id="uploadDropzone" title="Click or drag model.pt here to upload">
+                        <!-- Upload Cloud SVG -->
+                        <svg class="svg-icon svg-icon-lg upload-icon" viewBox="0 0 24 24">
+                            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9M8 16l4-4 4 4"/>
+                        </svg>
+                        <div class="upload-dropzone-title">Upload model.pt</div>
+                        <div class="upload-dropzone-sub">Drop checkpoint or click to browse</div>
+                        <div class="upload-progress-bar" id="uploadProgressBar">
+                            <div class="upload-progress-fill" id="uploadProgressFill"></div>
+                        </div>
+                    </div>
+                    <input type="file" id="modelFileInput" accept=".pt,.bin,.safetensors">
+                </div>
+
+                <!-- Dataset Knowledge Base Stats -->
+                <div>
+                    <div class="sidebar-section-title">Knowledge Base Index</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value" id="statHotelsCount">2,622</span>
+                            <span class="stat-label">Properties</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">6</span>
+                            <span class="stat-label">Aspects</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">&lambda; = 0.03</span>
+                            <span class="stat-label">Time Decay</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">Top-4</span>
+                            <span class="stat-label">Multi-Review</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <!-- Clear / Reset Chat Button -->
+                <button class="action-btn" id="newChatBtn">
+                    <!-- Refresh SVG -->
+                    <svg class="svg-icon" viewBox="0 0 24 24">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M3 21v-5h5"/>
+                    </svg>
+                    <span>New Conversation</span>
+                </button>
+
+                <!-- Light / Dark Mode Switch -->
+                <div class="theme-switch-row">
+                    <span class="theme-switch-label">
+                        <span id="themeLabelText">Dark Mode</span>
+                    </span>
+                    <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light and Dark Mode">
+                        <!-- Sun Icon (for switching to light) -->
+                        <svg class="svg-icon icon-sun" id="sunIcon" viewBox="0 0 24 24" style="display: none;">
+                            <circle cx="12" cy="12" r="5"/>
+                            <line x1="12" y1="1" x2="12" y2="3"/>
+                            <line x1="12" y1="21" x2="12" y2="23"/>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                            <line x1="1" y1="12" x2="3" y2="12"/>
+                            <line x1="21" y1="12" x2="23" y2="12"/>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        </svg>
+                        <!-- Moon Icon (for switching to dark) -->
+                        <svg class="svg-icon icon-moon" id="moonIcon" viewBox="0 0 24 24">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <!-- Header -->
+            <header class="chat-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar">
+                        <!-- Menu / Sidebar SVG -->
+                        <svg class="svg-icon" viewBox="0 0 24 24">
+                            <line x1="3" y1="12" x2="21" y2="12"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+                    <div class="header-title-block">
+                        <h2>Hotel Conversational Intelligence</h2>
+                        <p>Ask about ratings, amenities, service quality, location, or past guest consensus</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="live-badge">
+                        <!-- Sparkle / AI Vector SVG -->
+                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                        </svg>
+                        <span>Active Session</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Messages Scroll Area (with Scroll Fade Mask) -->
+            <div class="messages-container" id="messagesContainer">
+                <div class="messages-content-wrap" id="messagesList">
+                    <!-- Welcome Hero -->
+                    <div class="welcome-hero" id="welcomeHero">
+                        <div class="welcome-logo">
+                            <!-- Hotel AI Sparkle SVG -->
+                            <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24">
+                                <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/>
+                            </svg>
+                        </div>
+                        <h3>Welcome to Hotel QA Studio</h3>
+                        <p>Explore customer reviews, aspect-level sentiments, location maps, and hotel classifications across 2,622 verified properties.</p>
+                        
+                        <div class="chips-container">
+                            <button class="suggestion-chip" data-query="How is the service at Pullman Hanoi?">
+                                <!-- Star SVG -->
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                                <span>Pullman Hanoi service</span>
+                            </button>
+                            <button class="suggestion-chip" data-query="Where is InterContinental Danang located?">
+                                <!-- Pin SVG -->
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                <span>InterContinental Danang location</span>
+                            </button>
+                            <button class="suggestion-chip" data-query="How many stars does Sofitel Legend Metropole have?">
+                                <!-- Building SVG -->
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                    <path d="M6 22V2h12v20M2 22h20M9 6h1M9 10h1M9 14h1M9 18h1M14 6h1M14 10h1M14 14h1M14 18h1"/>
+                                </svg>
+                                <span>Sofitel Metropole stars</span>
+                            </button>
+                            <button class="suggestion-chip" data-query="How are the amenities and breakfast at Vinpearl Resort Nha Trang?">
+                                <!-- Sparkle SVG -->
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                                </svg>
+                                <span>Vinpearl Nha Trang amenities</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Frosted Glass Prompt Bar -->
+            <div class="prompt-bar-container">
+                <form class="prompt-bar-glass" id="chatForm">
+                    <textarea 
+                        class="prompt-input-area" 
+                        id="promptInput" 
+                        placeholder="Ask about a hotel (e.g., 'How is the service at Pullman Hanoi?')" 
+                        rows="1"
+                        autocomplete="off"
+                    ></textarea>
+                    <div class="prompt-actions">
+                        <button type="submit" class="send-btn" id="sendBtn" aria-label="Send query" disabled>
+                            <!-- Send Paper Airplane SVG -->
+                            <svg class="svg-icon" viewBox="0 0 24 24">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

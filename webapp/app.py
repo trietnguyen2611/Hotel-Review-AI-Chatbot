@@ -1,3 +1,4 @@
+BOT_INIT_LOCK = threading.Lock()
 import os
 import sys
 import json
@@ -168,6 +169,12 @@ def load_hotel_database(parquet_path: str = 'data/df/hotel_reviews.parquet') -> 
 # ---------------------------------------------------------------------------
 # Robust Hotel Entity Matcher (English)
 # ---------------------------------------------------------------------------
+HOTEL_MATCH_STOPWORDS = {
+    'star', 'stars', 'review', 'reviews', 'rating', 'ratings', 'address', 'location',
+    'map', 'it', 'there', 'here', 'place', 'property', 'hotel', 'resort', 'how', 'many',
+    'what', 'is', 'the', 'does', 'have', 'and', 'tell', 'me', 'about', 'where', 'situated'
+}
+
 class RobustHotelMatcher:
     def __init__(self, database: Dict[str, Dict[str, Any]]):
         self.database = database
@@ -175,22 +182,27 @@ class RobustHotelMatcher:
         for norm_key, info in database.items():
             words = norm_key.split()
             for w in words:
-                if len(w) >= 3:
+                if len(w) >= 3 and w not in HOTEL_MATCH_STOPWORDS:
                     self.inverted_index[w].add(norm_key)
 
     def match(self, query: str) -> Optional[Dict[str, Any]]:
         clean_q = normalize_text(query)
-        q_words = clean_q.split()
+        q_words = [w for w in clean_q.split() if w not in HOTEL_MATCH_STOPWORDS]
 
-        # 1. Exact Substring Matching
+        # 1. Exact Substring Matching (skip isolated generic stopwords)
         best_match, max_len = None, 0
         for norm_key, info in self.database.items():
-            if norm_key and norm_key in clean_q:
-                if len(norm_key) > max_len:
-                    max_len = len(norm_key)
-                    best_match = info
+            if norm_key and norm_key not in HOTEL_MATCH_STOPWORDS and norm_key in clean_q:
+                pattern = r'\b' + re.escape(norm_key) + r'\b'
+                if re.search(pattern, clean_q):
+                    if len(norm_key) > max_len:
+                        max_len = len(norm_key)
+                        best_match = info
         if best_match:
             return best_match
+
+        if not q_words:
+            return None
 
         # 2. Token-set Candidate Scoring
         candidates = set()
@@ -288,34 +300,49 @@ class GenerativeQAPipeline:
         self.model = None
         self.tokenizer = None
         self.loaded_successfully = False
+        self.inference_lock = threading.Lock()
 
         self._initialize(checkpoint_path)
 
     def _initialize(self, checkpoint_path: str):
-        try:
-            print(f"Loading Generative Model on {self.device}...")
-            if os.path.exists(checkpoint_path):
+        print(f"Loading Generative Model on {self.device}...")
+
+        # Attempt 1: Load fine-tuned directory
+        if os.path.exists(checkpoint_path):
+            try:
                 print(f"Loading fine-tuned model from {checkpoint_path}...")
                 self.tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
                 self.model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint_path).to(self.device)
                 self.loaded_successfully = True
-            elif os.path.exists('model.pt'):
+            except Exception as e:
+                print(f"Notice: Failed to load from {checkpoint_path} ({e}).")
+
+        # Attempt 2: Load model.pt state dict
+        if not self.loaded_successfully and os.path.exists('model.pt'):
+            try:
                 print("Loading fine-tuned weights from model.pt...")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
                 self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
                 self.model.load_state_dict(torch.load('model.pt', map_location=self.device))
                 self.model.to(self.device)
                 self.loaded_successfully = True
-            else:
-                print(f"Notice: Fine-tuned checkpoint not found locally. Loading base {self.model_name}...")
+            except Exception as e:
+                print(f"Notice: Failed to load from model.pt ({e}).")
+
+        # Attempt 3: Load base pretrained FLAN-T5
+        if not self.loaded_successfully:
+            try:
+                print(f"Loading base model {self.model_name}...")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
                 self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name).to(self.device)
                 self.loaded_successfully = True
+            except Exception as e:
+                print(f"Notice: Could not load neural weights ({e}). Using grounded contextual generator fallback.")
+                self.loaded_successfully = False
+
+        if self.loaded_successfully and self.model is not None:
             self.model.eval()
             print("Generative neural engine ready.")
-        except Exception as e:
-            print(f"Warning: Could not initialize neural weights directly ({e}). Using grounded contextual generator fallback.")
-            self.loaded_successfully = False
 
     def generate(self, prompt_text: str, max_new_tokens: int = 180) -> str:
         if not self.loaded_successfully or self.model is None or self.tokenizer is None:
@@ -323,16 +350,17 @@ class GenerativeQAPipeline:
 
         try:
             enc = self.tokenizer(prompt_text, max_length=512, truncation=True, return_tensors='pt').to(self.device)
-            with torch.no_grad():
-                outputs = self.model.generate(
-                    input_ids=enc['input_ids'],
-                    attention_mask=enc['attention_mask'],
-                    max_new_tokens=max_new_tokens,
-                    temperature=0.7,
-                    top_p=0.9,
-                    do_sample=True,
-                    repetition_penalty=1.15
-                )
+            with self.inference_lock:
+                with torch.no_grad():
+                    outputs = self.model.generate(
+                        input_ids=enc['input_ids'],
+                        attention_mask=enc['attention_mask'],
+                        max_new_tokens=max_new_tokens,
+                        temperature=0.7,
+                        top_p=0.9,
+                        do_sample=True,
+                        repetition_penalty=1.15
+                    )
             generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
             return generated
         except Exception as e:
@@ -351,13 +379,18 @@ class DialogueState:
         self.lock = threading.Lock()
 
 class SessionManager:
-    def __init__(self):
+    def __init__(self, max_sessions: int = 1000):
         self.sessions: Dict[str, DialogueState] = {}
+        self.max_sessions = max_sessions
         self.lock = threading.Lock()
 
     def get_session(self, session_id: str) -> DialogueState:
         with self.lock:
             if session_id not in self.sessions:
+                if len(self.sessions) >= self.max_sessions:
+                    # Evict oldest session to prevent unbounded memory growth
+                    oldest_key = next(iter(self.sessions))
+                    del self.sessions[oldest_key]
                 self.sessions[session_id] = DialogueState(session_id)
             return self.sessions[session_id]
 
@@ -462,7 +495,7 @@ class ConversationalQABot:
             neural_ans = self.pipeline.generate(prompt_text, max_new_tokens=180)
 
             # Fallback Grounded Generation if neural model returned empty
-            if not neural_ans:
+            if not neural_ans or len(neural_ans.strip()) < 25 or 'delta_m' in neural_ans.lower():
                 if intent == 'star':
                     neural_ans = f"{h_name} is officially classified as a {star_label} hotel, featuring an overall guest rating of {avg_score:.1f} out of 5.0 stars based on {tot_revs} recorded customer reviews."
                 elif intent == 'review_count':
@@ -470,12 +503,21 @@ class ConversationalQABot:
                 elif intent == 'location':
                     neural_ans = f"{h_name} is situated at {addr} in {loc}. You can view the interactive Google Maps embed below to navigate to the property."
                 else:
-                    sentiment_phrase = "predominantly favorable" if consensus == 'positive' else ("somewhat mixed or critical" if consensus == 'critical' else "fairly balanced")
+                    if consensus == 'positive':
+                        sentiment_phrase = "predominantly favorable"
+                        detail_phrase = "emphasize high satisfaction, quality standards, and attentive service."
+                    elif consensus == 'critical':
+                        sentiment_phrase = "somewhat mixed or critical"
+                        detail_phrase = "highlight noticeable areas requiring management attention and service improvements."
+                    else:
+                        sentiment_phrase = "fairly balanced"
+                        detail_phrase = "reflect mixed observations across different guest stays."
+
                     recent_date = cand_reviews[0]['date'] if cand_reviews else 'recent stays'
                     neural_ans = (
                         f"Based on {tot_revs} verified reviews for {h_name} ({star_label}), customer feedback regarding {ASPECT_DISPLAY.get(aspect, aspect).lower()} "
-                        f"is {sentiment_phrase}. Analysis using Feature 10 recency decay shows that the most recent guest reviews from {recent_date} "
-                        f"emphasize consistent quality and attentive service."
+                        f"is {sentiment_phrase}. Analysis using Feature 10 recency decay indicates that the most recent guest reviews from {recent_date} "
+                        f"{detail_phrase}"
                     )
 
             # Build Collapsible Original Reviews
@@ -988,6 +1030,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 # ---------------------------------------------------------------------------
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
+    allow_reuse_address = True
 
 class QAChatHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -1009,7 +1052,13 @@ class QAChatHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == '/api/chat':
-            content_len = int(self.headers.get('Content-Length', 0))
+            try:
+                content_len = int(self.headers.get('Content-Length', 0))
+            except (ValueError, TypeError):
+                self.send_response(400)
+                self.end_headers()
+                return
+
             if content_len > 65536:
                 self.send_response(413)
                 self.end_headers()
@@ -1028,7 +1077,9 @@ class QAChatHandler(BaseHTTPRequestHandler):
 
             global BOT
             if BOT is None:
-                BOT = ConversationalQABot(HOTEL_DATABASE)
+                with BOT_INIT_LOCK:
+                    if BOT is None:
+                        BOT = ConversationalQABot(HOTEL_DATABASE)
 
             result = BOT.answer_query(session_id, query)
 

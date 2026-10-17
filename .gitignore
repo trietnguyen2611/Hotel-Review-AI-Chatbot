@@ -55,3 +55,8 @@ ENV/
 .agents/
 
 model/
+# Large Model Checkpoints
+*.pt
+*.bin
+*.safetensors
+hotel_aspect_qa_model/
