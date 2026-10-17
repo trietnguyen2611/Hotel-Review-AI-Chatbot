@@ -495,7 +495,7 @@
         }
 
         elements.modelDropdownList.innerHTML = models.map(m => {
-            const isActive = m.is_active || (m.name === activeName);
+            const isActive = m.active || m.is_active || (m.name === activeName);
             return `
                 <button type="button" class="model-dropdown-item ${isActive ? 'active' : ''}" data-model-name="${escapeHtml(m.name)}">
                     <div class="model-item-info">
@@ -524,7 +524,7 @@
 
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.detail || `HTTP ${res.status}`);
+                throw new Error(errData.error || errData.detail || errData.message || `HTTP ${res.status}`);
             }
 
             const data = await res.json();
@@ -956,6 +956,5 @@
     renderConversationLists();
     renderActiveConversationMessages();
     initModelSelector();
-    checkHealth();
 
 })();

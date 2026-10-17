@@ -17,7 +17,12 @@ from typing import List, Dict, Any, Tuple, Optional
 
 import torch
 import torch.nn as nn
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModel
+
+try:
+    from safetensors.torch import load_file as safetensors_load_file
+except ImportError:
+    safetensors_load_file = None
 
 BOT_INIT_LOCK = threading.Lock()
 
@@ -345,14 +350,97 @@ class MultiReviewRetriever:
         }
 
 # ---------------------------------------------------------------------------
-# Generative QA Pipeline (FLAN-T5 Seq2Seq)
+# Multi-Task BERT & Generative QA Pipelines
 # ---------------------------------------------------------------------------
+class BertMultiTaskQA(nn.Module):
+    """
+    Multi-Task Extractive BERT QA model (modelv1.pt checkpoint)
+    Backbone: bert-base-uncased with Aspect, Sentiment, and Extractive Span Heads.
+    """
+    def __init__(self, base_name: str = 'bert-base-uncased'):
+        super().__init__()
+        self.bert = AutoModel.from_pretrained(base_name)
+        hidden_size = self.bert.config.hidden_size  # 768
+        self.feature_proj = nn.Sequential(
+            nn.Linear(10, 64),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(64, hidden_size)
+        )
+        self.qa_outputs = nn.Linear(hidden_size, 2)
+        self.aspect_classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, 384),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(384, 6)
+        )
+        self.sentiment_classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, 384),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(384, 3)
+        )
+        self.has_answer_classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, 1)
+        )
+
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None):
+        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+        sequence_output = outputs[0]
+        pooled_output = outputs[1]
+
+        qa_logits = self.qa_outputs(sequence_output)
+        start_logits, end_logits = qa_logits.split(1, dim=-1)
+        start_logits = start_logits.squeeze(-1)
+        end_logits = end_logits.squeeze(-1)
+
+        aspect_logits = self.aspect_classifier(pooled_output)
+        sentiment_logits = self.sentiment_classifier(pooled_output)
+        has_answer_logits = self.has_answer_classifier(pooled_output)
+
+        return {
+            'start_logits': start_logits,
+            'end_logits': end_logits,
+            'aspect_logits': aspect_logits,
+            'sentiment_logits': sentiment_logits,
+            'has_answer_logits': has_answer_logits
+        }
+
+
+def clean_state_dict(raw_state_dict):
+    """
+    Cleans PyTorch checkpoints by stripping DataParallel ('module.')
+    and wrapper ('model.') prefixes, and unboxing nested dict containers.
+    """
+    if not isinstance(raw_state_dict, dict):
+        return raw_state_dict
+
+    for key in ['state_dict', 'model_state_dict', 'model']:
+        if key in raw_state_dict and isinstance(raw_state_dict[key], dict):
+            raw_state_dict = raw_state_dict[key]
+            break
+
+    cleaned = {}
+    for k, v in raw_state_dict.items():
+        clean_k = k
+        if clean_k.startswith('module.'):
+            clean_k = clean_k[7:]
+        if clean_k.startswith('model.'):
+            clean_k = clean_k[6:]
+        cleaned[clean_k] = v
+    return cleaned
+
+
 class GenerativeQAPipeline:
     def __init__(self, checkpoint_path: str = 'hotel_aspect_qa_model', model_name: str = 'google/flan-t5-base'):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model_name = model_name
         self.model = None
         self.tokenizer = None
+        self.model_type = 'seq2seq'  # 'seq2seq' or 'extractive_bert'
         self.loaded_successfully = False
         self.active_model_name = 'model_v2.pt'
         self.inference_lock = threading.Lock()
@@ -362,105 +450,130 @@ class GenerativeQAPipeline:
     def _initialize(self, checkpoint_path: str):
         print(f"Loading Generative Model on {self.device}...")
 
-        # Attempt 1: Load fine-tuned directory
-        if os.path.exists(checkpoint_path):
-            try:
-                print(f"Loading fine-tuned model from {checkpoint_path}...")
-                self.tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
-                self.model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint_path).to(self.device)
-                self.loaded_successfully = True
-                self.active_model_name = os.path.basename(checkpoint_path)
-            except Exception as e:
-                print(f"Notice: Failed to load from {checkpoint_path} ({e}).")
-
-        # Attempt 2: Load model/model_v2.pt or model.pt state dict
-        cand_pt = None
-        for p in [os.path.join('model', 'model_v2.pt'), 'model.pt', os.path.join('model', 'modelv1.pt')]:
+        # Priority 1: Search for fine-tuned checkpoints in order
+        cand_candidates = [
+            os.path.join(BASE_DIR, 'model', 'model_v2.pt'),
+            os.path.join(BASE_DIR, checkpoint_path),
+            checkpoint_path,
+            os.path.join(BASE_DIR, 'model.pt'),
+            os.path.join(BASE_DIR, 'model', 'modelv1.pt')
+        ]
+        for p in cand_candidates:
             if os.path.exists(p):
-                cand_pt = p
-                break
+                if self.reload_model(p):
+                    return
 
-        if not self.loaded_successfully and cand_pt:
-            try:
-                print(f"Loading fine-tuned weights from {cand_pt}...")
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-                self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
-                self.model.load_state_dict(torch.load(cand_pt, map_location=self.device))
-                self.model.to(self.device)
-                self.loaded_successfully = True
-                self.active_model_name = os.path.basename(cand_pt)
-            except Exception as e:
-                print(f"Notice: Failed to load from {cand_pt} ({e}).")
-
-        # Attempt 3: Load base pretrained FLAN-T5
+        # Priority 2: Fallback to base pretrained FLAN-T5
         if not self.loaded_successfully:
             try:
-                print(f"Loading base model {self.model_name}...")
+                print(f"Loading base pretrained model {self.model_name}...")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
                 self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name).to(self.device)
+                self.model.eval()
+                self.model_type = 'seq2seq'
                 self.loaded_successfully = True
                 self.active_model_name = 'FLAN-T5 Base'
+                print(f"Base generative neural engine ready: {self.active_model_name}")
             except Exception as e:
-                print(f"Notice: Could not load neural weights ({e}). Using grounded contextual generator fallback.")
+                print(f"Notice: Could not load base neural weights ({e}). Grounded contextual generator will act as fallback.")
                 self.loaded_successfully = False
-
-        if self.loaded_successfully and self.model is not None:
-            self.model.eval()
-            print(f"Generative neural engine ready. Active model: {self.active_model_name}")
 
     def reload_model(self, custom_model_path: str = 'model.pt') -> bool:
         """Dynamically reload new weights into memory with thread safety."""
         with self.inference_lock:
             try:
                 print(f"Reloading custom model weights from {custom_model_path}...")
-                if self.tokenizer is None:
-                    self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+                if not os.path.exists(custom_model_path):
+                    print(f"Notice: Path {custom_model_path} does not exist.")
+                    return False
 
-                if custom_model_path.endswith('.pt') and os.path.exists(custom_model_path):
-                    state_dict = torch.load(custom_model_path, map_location=self.device)
-                    if self.model is None:
-                        self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
-                    self.model.load_state_dict(state_dict)
-                    self.model.to(self.device)
-                    self.model.eval()
-                    self.loaded_successfully = True
-                    self.active_model_name = os.path.basename(custom_model_path)
-                    print(f"Successfully reloaded weights from {custom_model_path}.")
-                    return True
-                elif os.path.isdir(custom_model_path):
+                # 1. Directory format (HuggingFace saved folder)
+                if os.path.isdir(custom_model_path):
                     self.tokenizer = AutoTokenizer.from_pretrained(custom_model_path)
                     self.model = AutoModelForSeq2SeqLM.from_pretrained(custom_model_path).to(self.device)
                     self.model.eval()
+                    self.model_type = 'seq2seq'
                     self.loaded_successfully = True
                     self.active_model_name = os.path.basename(custom_model_path)
                     print(f"Successfully reloaded model directory from {custom_model_path}.")
                     return True
+
+                # 2. Checkpoint file (.pt, .bin, .safetensors)
+                state_dict = None
+                if custom_model_path.endswith('.safetensors'):
+                    if safetensors_load_file is not None:
+                        state_dict = safetensors_load_file(custom_model_path, device=str(self.device))
+                    else:
+                        raise RuntimeError("safetensors package is required to load .safetensors checkpoint")
+                else:
+                    state_dict = torch.load(custom_model_path, map_location=self.device)
+
+                cleaned_dict = clean_state_dict(state_dict)
+
+                # Architecture detection: BERT vs Seq2Seq (FLAN-T5)
+                is_bert = any(k.startswith('bert.') or 'qa_outputs.weight' in k or 'aspect_classifier.1.weight' in k for k in cleaned_dict.keys())
+
+                if is_bert:
+                    print(f"Detected Extractive Multi-Task BERT architecture in {custom_model_path}")
+                    self.tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+                    bert_m = BertMultiTaskQA('bert-base-uncased')
+                    missing, unexpected = bert_m.load_state_dict(cleaned_dict, strict=False)
+                    print(f"Loaded BERT state_dict. Missing keys: {len(missing)}, Unexpected keys: {len(unexpected)}")
+                    self.model = bert_m.to(self.device)
+                    self.model.eval()
+                    self.model_type = 'extractive_bert'
+                else:
+                    print(f"Detected Generative Seq2Seq (FLAN-T5) architecture in {custom_model_path}")
+                    self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+                    t5_m = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
+                    missing, unexpected = t5_m.load_state_dict(cleaned_dict, strict=False)
+                    print(f"Loaded T5 state_dict. Missing keys: {len(missing)}, Unexpected keys: {len(unexpected)}")
+                    self.model = t5_m.to(self.device)
+                    self.model.eval()
+                    self.model_type = 'seq2seq'
+
+                self.loaded_successfully = True
+                self.active_model_name = os.path.basename(custom_model_path)
+                print(f"Successfully reloaded {self.model_type} weights from {custom_model_path}.")
+                return True
             except Exception as e:
-                print(f"Failed to reload model: {e}")
+                import traceback
+                traceback.print_exc()
+                print(f"Failed to reload model {custom_model_path}: {e}")
                 return False
-        return False
 
     def generate(self, prompt_text: str, max_new_tokens: int = 180) -> str:
         if not self.loaded_successfully or self.model is None or self.tokenizer is None:
             return ""
 
         try:
-            enc = self.tokenizer(prompt_text, max_length=512, truncation=True, return_tensors='pt').to(self.device)
             with self.inference_lock:
-                with torch.no_grad():
-                    outputs = self.model.generate(
-                        input_ids=enc['input_ids'],
-                        attention_mask=enc['attention_mask'],
-                        max_new_tokens=max_new_tokens,
-                        temperature=0.7,
-                        top_p=0.9,
-                        do_sample=True,
-                        repetition_penalty=1.15
-                    )
-            generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
-            return generated
+                if self.model_type == 'extractive_bert':
+                    inputs = self.tokenizer(prompt_text, max_length=512, truncation=True, return_tensors='pt').to(self.device)
+                    with torch.no_grad():
+                        out = self.model(**inputs)
+                        start_idx = torch.argmax(out['start_logits'], dim=-1).item()
+                        end_idx = torch.argmax(out['end_logits'], dim=-1).item()
+                        if 0 <= start_idx <= end_idx < inputs['input_ids'].shape[1] and (end_idx - start_idx) < 70:
+                            extracted = self.tokenizer.decode(inputs['input_ids'][0][start_idx:end_idx+1], skip_special_tokens=True).strip()
+                            if extracted and len(extracted) > 3:
+                                return extracted
+                    return ""
+                else:
+                    enc = self.tokenizer(prompt_text, max_length=512, truncation=True, return_tensors='pt').to(self.device)
+                    with torch.no_grad():
+                        outputs = self.model.generate(
+                            input_ids=enc['input_ids'],
+                            attention_mask=enc['attention_mask'],
+                            max_new_tokens=max_new_tokens,
+                            temperature=0.7,
+                            top_p=0.9,
+                            do_sample=True,
+                            repetition_penalty=1.15
+                        )
+                    return self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
         except Exception as e:
-            print(f"Generation error: {e}")
+            print(f"Neural generation notice: {e}")
             return ""
 
 # ---------------------------------------------------------------------------
@@ -579,31 +692,6 @@ class ConversationalQABot:
             # Neural Generation with fallback
             neural_ans = self.pipeline.generate(prompt)
 
-            if not neural_ans:
-                # Grounded Natural Language Synthesis
-                if intent == 'star':
-                    neural_ans = f"{h_name} is officially classified as a {star_label} property, featuring an overall guest rating of {avg_score:.1f} out of 5.0 stars based on {tot_revs} recorded customer reviews."
-                elif intent == 'review_count':
-                    neural_ans = f"Our database includes {tot_revs} verified customer reviews for {h_name}. Guest satisfaction stands at an average score of {avg_score:.1f}/5.0."
-                elif intent == 'location':
-                    neural_ans = f"{h_name} is situated at {addr} in {loc}. You can view the interactive Google Maps embed below to navigate to the property."
-                else:
-                    if consensus == 'positive':
-                        sentiment_phrase = "predominantly favorable"
-                        detail_phrase = "emphasize high satisfaction, quality standards, and attentive service."
-                    elif consensus == 'critical':
-                        sentiment_phrase = "somewhat mixed or critical"
-                        detail_phrase = "highlight noticeable areas requiring management attention and service improvements."
-                    else:
-                        sentiment_phrase = "fairly balanced"
-                        detail_phrase = "reflect mixed observations across different guest stays."
-
-                    recent_date = cand_reviews[0]['date'] if cand_reviews else 'recent stays'
-                    neural_ans = (
-                        f"Based on {tot_revs} verified reviews for {h_name} ({star_label}), customer feedback regarding {ASPECT_DISPLAY.get(aspect, aspect).lower()} "
-                        f"is {sentiment_phrase}. Analysis using Feature 10 recency decay indicates that the most recent guest reviews from {recent_date} "
-                        f"{detail_phrase}"
-                    )
 
             # Format original reviews data
             original_reviews_data = []
@@ -744,7 +832,8 @@ class QAChatHandler(BaseHTTPRequestHandler):
                             'name': fname,
                             'path': f"model/{fname}",
                             'size_mb': size_mb,
-                            'active': is_active
+                            'active': is_active,
+                            'is_active': is_active
                         })
 
             # Check root model.pt if exists
@@ -754,7 +843,8 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     'name': 'model.pt',
                     'path': 'model.pt',
                     'size_mb': round(os.path.getsize(root_model) / (1024 * 1024), 1),
-                    'active': active_m == 'model.pt'
+                    'active': active_m == 'model.pt',
+                    'is_active': active_m == 'model.pt'
                 })
 
             if not any(m['active'] for m in models) and models:
@@ -908,16 +998,16 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 model_name = data.get('model_name') or data.get('name') or data.get('model_path')
                 if not model_name:
                     self.send_response(400)
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
                     self.end_headers()
                     self.wfile.write(json.dumps({'error': 'Missing model_name parameter'}).encode('utf-8'))
                     return
 
-                # Target search
+                # Strict sanitization against path traversal: only basename
                 clean_name = os.path.basename(model_name)
                 candidate_paths = [
                     os.path.join(BASE_DIR, 'model', clean_name),
-                    os.path.join(BASE_DIR, clean_name),
-                    os.path.join(BASE_DIR, model_name)
+                    os.path.join(BASE_DIR, clean_name)
                 ]
                 target_path = None
                 for p in candidate_paths:
@@ -927,8 +1017,9 @@ class QAChatHandler(BaseHTTPRequestHandler):
 
                 if not target_path:
                     self.send_response(404)
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
                     self.end_headers()
-                    self.wfile.write(json.dumps({'error': f'Model {model_name} not found in model/ directory'}).encode('utf-8'))
+                    self.wfile.write(json.dumps({'error': f'Model {clean_name} not found in model/ directory'}).encode('utf-8'))
                     return
 
                 if BOT is None:

@@ -351,6 +351,7 @@ html, body {
 .conv-item-title.is-long {
     text-overflow: clip;
     animation: convTitleMarquee var(--marquee-duration, 6s) cubic-bezier(0.45, 0.05, 0.55, 0.95) 1s infinite alternate;
+    animation-play-state: paused;
 }
 
 .conv-item:hover .conv-item-title.is-long,
@@ -894,42 +895,6 @@ html, body {
     text-wrap: pretty;
 }
 
-/* Suggestion Chips */
-.chips-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 10px;
-    max-width: 680px;
-}
-
-.suggestion-chip {
-    padding: 8px 14px;
-    border-radius: var(--radius-pill);
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition-property: background-color, border-color, color, transform;
-    transition-duration: 150ms;
-    transition-timing-function: ease-out;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.suggestion-chip:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--primary);
-    color: var(--text-primary);
-}
-
-.suggestion-chip:active {
-    transform: scale(0.96);
-}
 
 /* --------------------------------------------------------------------------
    Message Rows & Bubbles
