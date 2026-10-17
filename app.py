@@ -18,27 +18,73 @@ from transformers import BertModel, BertTokenizerFast
 ASPECTS = ['Service', 'Facility', 'Experience', 'Amenity', 'Loyalty', 'Branding']
 SENTIMENTS = ['Positive', 'Negative', 'Neutral']
 
+ASPECT_TRANSLATIONS = {
+    'Service': {'en': 'Customer Service & Staff', 'vi': 'Dịch vụ & Nhân viên'},
+    'Facility': {'en': 'Rooms & Facilities', 'vi': 'Cơ sở vật chất & Phòng ốc'},
+    'Experience': {'en': 'Overall Guest Experience', 'vi': 'Trải nghiệm tổng quan'},
+    'Amenity': {'en': 'Amenities & Dining', 'vi': 'Tiện ích, Ẩm thực & Bể bơi'},
+    'Loyalty': {'en': 'Guest Loyalty & Recommendation', 'vi': 'Sự trung thành & Đề xuất'},
+    'Branding': {'en': 'Brand Prestige & Reputation', 'vi': 'Uy tín & Thương hiệu'}
+}
+
+SENTIMENT_TRANSLATIONS = {
+    'Positive': {'en': 'Positive (Praise)', 'vi': 'Tích cực (Khen ngợi)'},
+    'Negative': {'en': 'Negative (Complaint)', 'vi': 'Tiêu cực (Phàn nàn)'},
+    'Neutral': {'en': 'Neutral (Mixed / Factual)', 'vi': 'Trung tính (Khách quan)'}
+}
+
 ASPECT_KEYWORDS = {
-    'Service': ['service', 'staff', 'employee', 'waiter', 'reception', 'check-in', 'checkout', 'attitude', 'helpful', 'friendly', 'slow', 'manager', 'hospitality', 'phục vụ', 'nhân viên', 'lễ tân', 'thái độ'],
-    'Facility': ['facility', 'room', 'bed', 'bathroom', 'shower', 'clean', 'dirty', 'air conditioner', 'ac', 'tv', 'balcony', 'sheet', 'towel', 'maintenance', 'cơ sở vật chất', 'phòng', 'giường', 'vệ sinh', 'nhà tắm'],
-    'Experience': ['experience', 'stay', 'trip', 'atmosphere', 'vibe', 'view', 'vacation', 'noise', 'quiet', 'overall', 'general', 'trải nghiệm', 'kỳ nghỉ', 'không khí', 'yên tĩnh', 'ấn tượng'],
-    'Amenity': ['amenity', 'amenities', 'pool', 'swimming pool', 'gym', 'fitness', 'breakfast', 'buffet', 'food', 'restaurant', 'spa', 'wifi', 'parking', 'bể bơi', 'hồ bơi', 'ăn sáng', 'tiện ích', 'nhà hàng'],
-    'Loyalty': ['loyalty', 'recommend', 'return', 'come back', 'again', 'visit again', 'book again', 'next trip', 'worth', 'quay lại', 'giới thiệu', 'đáng giá', 'trở lại'],
-    'Branding': ['brand', 'branding', 'reputation', 'star', 'pullman', 'marriott', 'muong thanh', 'luxury', 'advertised', 'photos', 'standard', 'thương hiệu', 'danh tiếng', 'tiêu chuẩn', 'sao']
+    'Service': [
+        'service', 'staff', 'employee', 'waiter', 'reception', 'check-in', 'checkout', 'attitude', 'helpful', 'friendly', 'slow', 'hospitality',
+        'phục vụ', 'nhân viên', 'lễ tân', 'thái độ', 'chu đáo', 'nhiệt tình', 'tiếp đón', 'hỗ trợ'
+    ],
+    'Facility': [
+        'facility', 'room', 'bed', 'bathroom', 'shower', 'clean', 'dirty', 'air conditioner', 'ac', 'tv', 'balcony', 'sheet', 'towel', 'maintenance',
+        'cơ sở vật chất', 'phòng', 'giường', 'vệ sinh', 'nhà tắm', 'vòi sen', 'tiện nghi', 'thoáng mát', 'rộng rãi'
+    ],
+    'Experience': [
+        'experience', 'stay', 'trip', 'atmosphere', 'vibe', 'view', 'vacation', 'noise', 'quiet', 'overall', 'general',
+        'trải nghiệm', 'kỳ nghỉ', 'không khí', 'yên tĩnh', 'ấn tượng', 'hài lòng', 'cảnh quan', 'nghỉ dưỡng'
+    ],
+    'Amenity': [
+        'amenity', 'amenities', 'pool', 'swimming pool', 'gym', 'fitness', 'breakfast', 'buffet', 'food', 'restaurant', 'spa', 'wifi', 'parking',
+        'bể bơi', 'hồ bơi', 'ăn sáng', 'tiện ích', 'nhà hàng', 'món ăn', 'ẩm thực', 'buffet', 'phòng gym'
+    ],
+    'Loyalty': [
+        'loyalty', 'recommend', 'return', 'come back', 'again', 'visit again', 'book again', 'next trip', 'worth',
+        'quay lại', 'giới thiệu', 'đáng giá', 'trở lại', 'ủng hộ', 'đặt phòng tiếp'
+    ],
+    'Branding': [
+        'brand', 'branding', 'reputation', 'star', 'pullman', 'marriott', 'muong thanh', 'luxury', 'advertised', 'photos', 'standard',
+        'thương hiệu', 'danh tiếng', 'tiêu chuẩn', 'sao', 'đẳng cấp', 'quảng cáo', 'uy tín'
+    ]
 }
 
 LOCATION_KEYWORDS = [
     'where', 'location', 'address', 'located', 'situated', 'map', 'directions', 'find',
-    'ở đâu', 'địa chỉ', 'vị trí', 'nằm ở', 'nằm tại', 'chỗ nào'
+    'ở đâu', 'địa chỉ', 'vị trí', 'nằm ở', 'nằm tại', 'chỗ nào', 'tọa lạc'
 ]
 
 COREFERENCE_PRONOUNS = [
     'it', 'this hotel', 'that hotel', 'the hotel', 'here', 'there', 'the property',
-    'khách sạn này', 'khách sạn đó', 'chỗ này', 'chỗ đó', 'nó', 'ở đây', 'nơi này'
+    'khách sạn này', 'khách sạn đó', 'chỗ này', 'chỗ đó', 'nó', 'ở đây', 'nơi này', 'ks này', 'ks đó'
 ]
 
+VIETNAMESE_MARKERS = [
+    'không', 'thế nào', 'ở đâu', 'ra sao', 'có', 'cho tôi', 'của', 'và', 'là', 'như',
+    'khách sạn', 'phòng', 'nhân viên', 'dịch vụ', 'ăn sáng', 'bể bơi', 'đẹp', 'sạch'
+]
+
+def is_vietnamese_query(text: str) -> bool:
+    t_lower = text.lower()
+    # Check for Vietnamese diacritics
+    if re.search(r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', t_lower):
+        return True
+    # Check for common marker words
+    return any(re.search(r'\b' + re.escape(w) + r'\b', t_lower) for w in VIETNAMESE_MARKERS)
+
 # ---------------------------------------------------------------------------
-# Model Architecture (Exact match with Training_Kaggle.ipynb)
+# Multilingual Model Architecture (Exact match with Training_Kaggle.ipynb)
 # ---------------------------------------------------------------------------
 class FeatureDenseMLP(nn.Module):
     def __init__(self, in_features=10, hidden_dim=64, out_dim=768, dropout_rate=0.2):
@@ -55,7 +101,7 @@ class FeatureDenseMLP(nn.Module):
 
 
 class HotelAspectQA_BERT(nn.Module):
-    def __init__(self, model_name="bert-base-uncased", num_aspects=6, num_sentiments=3, feature_dim=10, dropout_rate=0.2):
+    def __init__(self, model_name="bert-base-multilingual-cased", num_aspects=6, num_sentiments=3, feature_dim=10, dropout_rate=0.2):
         super().__init__()
         self.bert = BertModel.from_pretrained(model_name)
         hidden_size = self.bert.config.hidden_size
@@ -131,7 +177,7 @@ def load_hotel_database():
             break
 
     if not data_file:
-        print("[Warning] Dataset file not found in default paths. HOTEL_DATABASE empty.")
+        print("[Warning] Dataset file not found in default paths. HOTEL_DATABASE is empty.")
         return
 
     print(f"Loading hotel knowledge base from: {data_file}...")
@@ -205,14 +251,14 @@ class DialogueState:
 
 
 class ConversationalQABot:
-    def __init__(self, model_path="model.pt"):
+    def __init__(self, model_path="model/model.pt"):
         self.device = torch.device('cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu'))
         self.state = DialogueState()
         self.model_loaded = False
         self.model_path = model_path
-        self.model_name = "bert-base-uncased"
+        self.model_name = "bert-base-multilingual-cased"
 
-        print(f"Initializing BERT Tokenizer ({self.model_name})...")
+        print(f"Initializing Multilingual BERT Tokenizer ({self.model_name})...")
         self.tokenizer = BertTokenizerFast.from_pretrained(self.model_name)
 
         print("Initializing Model Architecture...")
@@ -222,23 +268,38 @@ class ConversationalQABot:
         self.model.eval()
 
     def load_checkpoint(self, path):
-        if path and os.path.exists(path):
+        # Check candidate locations
+        search_paths = [
+            path,
+            os.path.join("model", os.path.basename(path)),
+            "model/model.pt",
+            "model.pt",
+            "../model/model.pt"
+        ]
+        resolved_path = None
+        for p in search_paths:
+            if p and os.path.exists(p) and os.path.isfile(p):
+                resolved_path = p
+                break
+
+        if resolved_path:
             try:
-                checkpoint = torch.load(path, map_location=self.device)
+                checkpoint = torch.load(resolved_path, map_location=self.device)
                 if 'model_state_dict' in checkpoint:
                     self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
                 elif isinstance(checkpoint, dict):
                     self.model.load_state_dict(checkpoint, strict=False)
                 self.model_loaded = True
-                self.model_path = path
-                print(f"Successfully loaded checkpoint: {path}")
-                return True, f"Loaded weights from {path}"
+                self.model_path = resolved_path
+                print(f"Successfully loaded checkpoint: {resolved_path}")
+                return True, f"Loaded weights from {resolved_path}"
             except Exception as e:
-                print(f"Error loading checkpoint {path}: {e}")
+                print(f"Error loading checkpoint {resolved_path}: {e}")
                 return False, str(e)
         else:
             self.model_loaded = False
-            return False, f"Checkpoint not found at '{path}' (Running on base initialization)"
+            self.model_path = path or "model/model.pt"
+            return False, f"Checkpoint not found at '{path}'. Place model.pt into 'model/' folder."
 
     def resolve_hotel_entity(self, query):
         q_clean = query.strip().lower()
@@ -248,7 +309,7 @@ class ConversationalQABot:
         if is_coref and self.state.active_hotel_key:
             return self.state.active_hotel_key, True
 
-        # Search matching hotel names in HOTEL_DATABASE
+        # Search exact match in HOTEL_DATABASE
         best_match = None
         max_overlap = 0
 
@@ -261,7 +322,7 @@ class ConversationalQABot:
         if best_match:
             return best_match, False
 
-        # Substring fuzzy match
+        # Substring token match
         for h_key in HOTEL_DATABASE.keys():
             tokens = [t for t in h_key.split() if len(t) > 3 and t not in ['hotel', 'resort', 'spa']]
             if tokens and any(t in q_clean for t in tokens):
@@ -293,16 +354,17 @@ class ConversationalQABot:
         return 'aspect_qa', self.state.active_aspect or 'Experience'
 
     def answer_query(self, user_query):
+        is_vi = is_vietnamese_query(user_query)
         hotel_key, was_coref = self.resolve_hotel_entity(user_query)
         intent, target_aspect = self.detect_intent_and_aspect(user_query)
 
         if not hotel_key:
-            # First hotel in DB as a friendly default if user didn't mention any hotel
             if HOTEL_DATABASE:
                 hotel_key = next(iter(HOTEL_DATABASE))
             else:
+                msg = "Vui lòng đề cập tên khách sạn để trích xuất đánh giá chính xác." if is_vi else "Please mention a hotel name so I can retrieve verified reviews."
                 return {
-                    "text": "Please mention a hotel name so I can retrieve verified guest reviews and information.",
+                    "text": msg,
                     "hotel": None,
                     "aspect": None,
                     "sentiment": None,
@@ -319,11 +381,17 @@ class ConversationalQABot:
 
         # Handle Location Intent
         if intent == 'location':
-            star_desc = f"{target_hotel['star']}-star" if target_hotel['star'] else "Standard"
-            reply_text = (
-                f"**{target_hotel['hotel_name']}** ({star_desc}, Rated {target_hotel['score']:.1f}/5.0) is located at:\n"
-                f"📍 `{target_hotel['hotel_address']}`"
-            )
+            star_desc = f"{target_hotel['star']} sao" if is_vi else f"{target_hotel['star']}-star"
+            if is_vi:
+                reply_text = (
+                    f"**{target_hotel['hotel_name']}** ({star_desc}, Đánh giá {target_hotel['score']:.1f}/5.0) tọa lạc tại:\n"
+                    f"📍 `{target_hotel['hotel_address']}`"
+                )
+            else:
+                reply_text = (
+                    f"**{target_hotel['hotel_name']}** ({star_desc}, Rated {target_hotel['score']:.1f}/5.0) is located at:\n"
+                    f"📍 `{target_hotel['hotel_address']}`"
+                )
             return {
                 "text": reply_text,
                 "hotel": target_hotel['hotel_name'],
@@ -337,8 +405,9 @@ class ConversationalQABot:
         # Retrieve relevant review for Aspect QA
         reviews = target_hotel.get('reviews', [])
         if not reviews:
+            msg = f"Chưa có đánh giá chi tiết cho **{target_hotel['hotel_name']}**." if is_vi else f"No detailed reviews available for **{target_hotel['hotel_name']}**."
             return {
-                "text": f"No detailed reviews available for **{target_hotel['hotel_name']}**.",
+                "text": msg,
                 "hotel": target_hotel['hotel_name'],
                 "aspect": target_aspect,
                 "sentiment": "Neutral",
@@ -347,11 +416,11 @@ class ConversationalQABot:
                 "context_applied": was_coref
             }
 
-        # Rank reviews by keyword match for the target aspect
+        # Select most relevant review for the target aspect
         best_review = reviews[0]
         max_matches = -1
         kws = ASPECT_KEYWORDS.get(target_aspect, [])
-        for r in reviews[:15]:
+        for r in reviews[:20]:
             cnt = sum(1 for kw in kws if kw in r['text'].lower())
             if cnt > max_matches:
                 max_matches = cnt
@@ -360,7 +429,7 @@ class ConversationalQABot:
         context_text = best_review['text']
         dense_feat_vec = best_review['features']
 
-        # Run Neural Inference
+        # Neural Inference with Multilingual BERT
         inputs = self.tokenizer(
             user_query,
             context_text,
@@ -391,11 +460,11 @@ class ConversationalQABot:
         pred_aspect = ASPECTS[preds['aspect_logits'][0].argmax(-1).item()]
         pred_sentiment = SENTIMENTS[preds['sentiment_logits'][0].argmax(-1).item()]
 
-        # Extract Answer Span
+        # Extract Evidence Span from raw review text
         start_idx = torch.argmax(start_logits).item()
         end_idx = torch.argmax(end_logits).item()
 
-        if 0 < start_idx <= end_idx < len(offset_mapping) and (end_idx - start_idx) < 50:
+        if 0 < start_idx <= end_idx < len(offset_mapping) and (end_idx - start_idx) < 60:
             char_s = offset_mapping[start_idx][0]
             char_e = offset_mapping[end_idx][1]
             if char_e > char_s:
@@ -405,13 +474,25 @@ class ConversationalQABot:
         else:
             answer_span = context_text[:140] + "..."
 
-        coref_note = " *(Context dynamically resolved from prior turn)*" if was_coref else ""
-        formatted_response = (
-            f"Based on guest evaluations for **{target_hotel['hotel_name']}**{coref_note}:\n\n"
-            f"> \"{answer_span}\"\n\n"
-            f"• **Aspect:** {pred_aspect}\n"
-            f"• **Guest Sentiment:** {pred_sentiment} (Confidence: {has_ans_prob*100:.1f}%)"
-        )
+        aspect_label = ASPECT_TRANSLATIONS.get(pred_aspect, {}).get('vi' if is_vi else 'en', pred_aspect)
+        sentiment_label = SENTIMENT_TRANSLATIONS.get(pred_sentiment, {}).get('vi' if is_vi else 'en', pred_sentiment)
+
+        if is_vi:
+            coref_note = " *(Đã liên kết ngữ cảnh từ câu trước)*" if was_coref else ""
+            formatted_response = (
+                f"Trích xuất từ đánh giá gốc của khách hàng về **{target_hotel['hotel_name']}**{coref_note}:\n\n"
+                f"> \"{answer_span}\"\n\n"
+                f"• **Khía cạnh đánh giá:** {aspect_label}\n"
+                f"• **Cảm xúc ghi nhận:** {sentiment_label} (Độ tin cậy: {has_ans_prob*100:.1f}%)"
+            )
+        else:
+            coref_note = " *(Context linked from prior turn)*" if was_coref else ""
+            formatted_response = (
+                f"Extracted evidence from guest reviews for **{target_hotel['hotel_name']}**{coref_note}:\n\n"
+                f"> \"{answer_span}\"\n\n"
+                f"• **Aspect Domain:** {aspect_label}\n"
+                f"• **Guest Sentiment:** {sentiment_label} (Confidence: {has_ans_prob*100:.1f}%)"
+            )
 
         return {
             "text": formatted_response,
@@ -423,7 +504,7 @@ class ConversationalQABot:
             "context_applied": was_coref
         }
 
-# Global Instance
+# Global Bot Instance
 BOT = None
 
 # ---------------------------------------------------------------------------
@@ -561,9 +642,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             gap: 16px;
         }
 
-        /* ------------------------------------------------------------- */
-        /* Floating Glass Sidebar (Full Integration, No Top Bar)        */
-        /* ------------------------------------------------------------- */
+        /* Floating Glass Sidebar (Zero Top Bar, Clean & Minimal) */
         aside.floating-sidebar {
             width: 340px;
             min-width: 320px;
@@ -643,7 +722,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             transform: translateY(-1px);
         }
 
-        /* Sidebar Card Container */
+        /* Sidebar Section */
         .sidebar-section {
             display: flex;
             flex-direction: column;
@@ -798,41 +877,14 @@ HTML_PAGE = r"""<!DOCTYPE html>
             gap: 4px;
         }
 
-        /* Suggestion Prompts */
-        .suggestions-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .suggestion-item {
-            background: var(--bg-glass-card);
-            border: 1px solid var(--border-glass);
-            border-radius: 12px;
-            padding: 8px 12px;
-            font-size: 0.76rem;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: left;
-            line-height: 1.35;
-        }
-        .suggestion-item:hover {
-            color: var(--text-primary);
-            border-color: var(--accent-primary);
-            background: var(--bg-glass-card-hover);
-            transform: translateX(2px);
-        }
-
-        /* Reset Button */
+        /* Sidebar Footer */
         .sidebar-footer {
             margin-top: auto;
             padding-top: 12px;
             border-top: 1px solid var(--border-glass-subtle);
         }
 
-        /* ------------------------------------------------------------- */
-        /* Floating Main Chat Canvas                                    */
-        /* ------------------------------------------------------------- */
+        /* Floating Main Chat Canvas */
         main.floating-chat-canvas {
             flex: 1;
             height: 100%;
@@ -848,7 +900,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             overflow: hidden;
         }
 
-        /* Message Scroll View with Fade Masks */
+        /* Message Scroll View with Edge Fade Mask */
         .chat-messages-container {
             flex: 1;
             overflow-y: auto;
@@ -858,7 +910,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
             gap: 20px;
             scroll-behavior: smooth;
             
-            /* Scroll Edge Fading Mask */
             mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
         }
@@ -870,7 +921,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             border-radius: 6px;
         }
 
-        /* Message Bubbles (Floating Cards) */
+        /* Message Bubbles */
         .chat-row {
             display: flex;
             gap: 14px;
@@ -930,7 +981,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
             max-width: 70%;
         }
 
-        /* Rich Response Card Details */
         .qa-card-meta {
             margin-top: 14px;
             padding-top: 12px;
@@ -976,22 +1026,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             border-color: rgba(168, 85, 247, 0.3);
         }
 
-        .quote-evidence {
-            margin: 10px 0;
-            padding: 10px 14px;
-            background: rgba(0, 0, 0, 0.15);
-            border-left: 3px solid var(--accent-primary);
-            border-radius: 0 10px 10px 0;
-            font-style: italic;
-            color: var(--text-secondary);
-        }
-        [data-theme="light"] .quote-evidence {
-            background: rgba(0, 0, 0, 0.04);
-        }
-
-        /* ------------------------------------------------------------- */
-        /* Floating Pill Input Bar                                       */
-        /* ------------------------------------------------------------- */
+        /* Floating Pill Input Bar */
         .floating-input-wrapper {
             position: absolute;
             bottom: 24px;
@@ -1054,7 +1089,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             transform: none;
         }
 
-        /* Typing Dots Animation */
+        /* Typing Dots */
         .typing-dots {
             display: flex;
             align-items: center;
@@ -1075,7 +1110,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             40% { transform: scale(1); opacity: 1; }
         }
 
-        /* SVG Icon Utilities */
+        /* SVG Icons */
         .icon-svg {
             width: 18px;
             height: 18px;
@@ -1090,15 +1125,13 @@ HTML_PAGE = r"""<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <!-- Ambient Background Blobs -->
     <div class="ambient-orb orb-top-left"></div>
     <div class="ambient-orb orb-bottom-right"></div>
     <div class="ambient-orb orb-center"></div>
 
     <div class="app-layout">
-        <!-- Floating Glass Sidebar (Full Integration, No Top Bar) -->
+        <!-- Floating Glass Sidebar -->
         <aside class="floating-sidebar">
-            <!-- Brand -->
             <div class="brand-header">
                 <div class="brand-title-wrap">
                     <div class="brand-logo-icon">
@@ -1111,7 +1144,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
                         <div class="brand-subtitle">Hotel Intelligence</div>
                     </div>
                 </div>
-                <!-- Theme Toggle Button -->
                 <button class="theme-toggle-btn" id="theme-btn" title="Toggle Light/Dark Theme">
                     <svg class="icon-svg" id="theme-icon-moon" viewBox="0 0 24 24">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
@@ -1134,7 +1166,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             <div class="sidebar-section">
                 <div class="section-label">
                     <svg class="icon-svg sm" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
-                    Model Checkpoint
+                    Model Checkpoint (model/)
                 </div>
                 <div class="glass-card">
                     <div class="status-badge-row">
@@ -1145,7 +1177,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                         <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);" id="model-device-text">CUDA/CPU</span>
                     </div>
                     <div class="input-group">
-                        <input type="text" class="glass-input" id="checkpoint-path-input" value="model.pt" placeholder="Path to model.pt">
+                        <input type="text" class="glass-input" id="checkpoint-path-input" value="model/model.pt" placeholder="model/model.pt">
                         <button class="glass-btn" id="load-model-btn" title="Load Weights">
                             <svg class="icon-svg sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             Load
@@ -1180,29 +1212,20 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- Suggested Multi-Turn Queries -->
+            <!-- Bilingual Capability Card -->
             <div class="sidebar-section">
                 <div class="section-label">
-                    <svg class="icon-svg sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    Quick Multi-Turn Prompts
+                    <svg class="icon-svg sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    Bilingual Intelligence
                 </div>
-                <div class="suggestions-list">
-                    <button class="suggestion-item" onclick="sendSuggested('Where is Muong Thanh hotel located?')">
-                        <strong>Turn 1:</strong> Where is Muong Thanh hotel located?
-                    </button>
-                    <button class="suggestion-item" onclick="sendSuggested('How are the rooms in that hotel?')">
-                        <strong>Turn 2:</strong> How are the rooms in that hotel? <em>(Context)</em>
-                    </button>
-                    <button class="suggestion-item" onclick="sendSuggested('How is the customer service there?')">
-                        <strong>Turn 3:</strong> How is the customer service there? <em>(Context)</em>
-                    </button>
-                    <button class="suggestion-item" onclick="sendSuggested('How is the breakfast and amenities at Pullman Hanoi?')">
-                        <strong>Turn 4:</strong> How is the breakfast at Pullman Hanoi?
-                    </button>
+                <div class="glass-card" style="font-size: 0.78rem; line-height: 1.45; color: var(--text-secondary);">
+                    <div>Native support for both <strong>English</strong> and <strong>Tiếng Việt</strong>.</div>
+                    <div style="margin-top: 4px; font-size: 0.72rem; color: var(--text-muted);">
+                        Asks in Vietnamese or English $\to$ directly extracts verified evidence from raw reviews.
+                    </div>
                 </div>
             </div>
 
-            <!-- Clear Context Footer -->
             <div class="sidebar-footer">
                 <button class="glass-btn glass-btn-secondary" id="clear-btn" style="width: 100%; justify-content: center;">
                     <svg class="icon-svg sm" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
@@ -1213,31 +1236,26 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
         <!-- Floating Main Chat Canvas -->
         <main class="floating-chat-canvas">
-            <!-- Scrollable Message List with Edge Fade -->
             <div class="chat-messages-container" id="chat-box">
-                <!-- Welcome Bot Card -->
                 <div class="chat-row bot">
                     <div class="avatar-box bot">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                     </div>
                     <div class="bubble-content">
-                        <strong>Welcome to AspectQA Hotel Intelligence</strong>
+                        <strong>AspectQA Hotel Intelligence</strong>
                         <p style="margin-top: 6px; color: var(--text-secondary);">
-                            I am a multi-task conversational QA system trained across all <strong>2,622 hotels</strong> in Vietnam.
-                            Ask me anything about hotel locations or the 6 core review aspects:
-                            <em>Service, Facility, Experience, Amenity, Loyalty,</em> and <em>Branding</em>.
+                            Ask questions in either <strong>English</strong> or <strong>Tiếng Việt</strong> about any of the <strong>2,622 hotels</strong> in Vietnam.
                         </p>
                         <p style="margin-top: 6px; font-size: 0.8rem; color: var(--text-muted);">
-                            Feel free to use contextual references like <em>"that hotel"</em>, <em>"there"</em>, or <em>"it"</em> across consecutive turns.
+                            The system retrieves original guest reviews and extracts exact evidence spans across the 6 core aspect domains. Contextual pronouns (<em>"khách sạn đó"</em>, <em>"that hotel"</em>, <em>"there"</em>) are resolved across multi-turn dialogue.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <!-- Floating Pill Input Bar -->
             <div class="floating-input-wrapper">
                 <form class="floating-input-bar" id="chat-form">
-                    <input type="text" class="prompt-input" id="prompt-input" placeholder="Ask about any hotel or aspect (e.g. 'How are the rooms at Muong Thanh?')..." autocomplete="off">
+                    <input type="text" class="prompt-input" id="prompt-input" placeholder="Type your question in English or Tiếng Việt..." autocomplete="off">
                     <button type="submit" class="send-btn" id="send-btn" title="Send Query">
                         <svg class="icon-svg" viewBox="0 0 24 24">
                             <line x1="22" y1="2" x2="11" y2="13"/>
@@ -1249,7 +1267,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
         </main>
     </div>
 
-    <!-- Frontend Interaction Logic -->
     <script>
         const chatBox = document.getElementById('chat-box');
         const chatForm = document.getElementById('chat-form');
@@ -1287,7 +1304,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
             }
         }
 
-        // Fetch System Status
         async function updateStatus() {
             try {
                 const res = await fetch('/api/status');
@@ -1300,7 +1316,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     modelText.textContent = 'Active: ' + (data.model_path.split('/').pop() || 'model.pt');
                 } else {
                     modelBadge.className = 'status-badge untrained';
-                    modelText.textContent = 'Base Init (No .pt)';
+                    modelText.textContent = 'Awaiting model/model.pt';
                 }
             } catch (err) {
                 console.error('Failed to get status:', err);
@@ -1308,9 +1324,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
         }
         updateStatus();
 
-        // Load Model Checkpoint
         loadModelBtn.addEventListener('click', async () => {
-            const path = checkpointInput.value.trim() || 'model.pt';
+            const path = checkpointInput.value.trim() || 'model/model.pt';
             loadModelBtn.disabled = true;
             try {
                 const res = await fetch('/api/load_model', {
@@ -1328,7 +1343,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
             }
         });
 
-        // Reset Dialogue
         clearBtn.addEventListener('click', async () => {
             await fetch('/api/clear', {method: 'POST'});
             chatBox.innerHTML = `
@@ -1338,23 +1352,18 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     </div>
                     <div class="bubble-content">
                         <strong>Dialogue State Reset</strong>
-                        <p style="margin-top: 4px; color: var(--text-secondary);">Context memory cleared. You may start a fresh conversation with any of the 2,622 hotels.</p>
+                        <p style="margin-top: 4px; color: var(--text-secondary);">Context memory cleared. You may ask about any hotel in English or Vietnamese.</p>
                     </div>
                 </div>
             `;
         });
 
-        // Chat Form Submission
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const text = promptInput.value.trim();
             if (!text) return;
             handleSend(text);
         });
-
-        window.sendSuggested = function(text) {
-            handleSend(text);
-        };
 
         async function handleSend(text) {
             promptInput.value = '';
@@ -1419,19 +1428,14 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
             let metaHtml = '';
             if (data.aspect) {
-                metaHtml += `<span class="meta-tag aspect">Aspect: ${data.aspect}</span>`;
+                metaHtml += `<span class="meta-tag aspect">Domain: ${data.aspect}</span>`;
             }
             if (data.sentiment) {
                 const sCls = data.sentiment.toLowerCase();
                 metaHtml += `<span class="meta-tag ${sCls}">Sentiment: ${data.sentiment}</span>`;
             }
             if (data.context_applied) {
-                metaHtml += `<span class="meta-tag coref">Context Linked</span>`;
-            }
-
-            let evidenceHtml = '';
-            if (data.evidence && data.aspect !== 'Location') {
-                evidenceHtml = `<div class="quote-evidence">"${escapeHtml(data.evidence)}"</div>`;
+                metaHtml += `<span class="meta-tag coref">Context Resolved</span>`;
             }
 
             row.innerHTML = `
@@ -1510,7 +1514,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
             payload = {
                 'hotels_indexed': len(HOTEL_DATABASE),
                 'model_loaded': BOT.model_loaded if BOT else False,
-                'model_path': BOT.model_path if BOT else 'model.pt',
+                'model_path': BOT.model_path if BOT else 'model/model.pt',
                 'device': str(BOT.device) if BOT else 'cpu',
                 'aspects': ASPECTS
             }
@@ -1551,7 +1555,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
         elif url.path == '/api/load_model':
-            m_path = body.get('model_path', 'model.pt').strip()
+            m_path = body.get('model_path', 'model/model.pt').strip()
             success, msg = BOT.load_checkpoint(m_path)
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -1571,7 +1575,6 @@ class QAChatHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def log_message(self, format, *args):
-        # Keep terminal clean
         return
 
 # ---------------------------------------------------------------------------
@@ -1586,13 +1589,13 @@ def main():
     global BOT
     parser = argparse.ArgumentParser(description="Hotel Aspect QA Conversational Web Server")
     parser.add_argument('--port', type=int, default=7860, help="Port to serve on")
-    parser.add_argument('--model', type=str, default='model.pt', help="Path to model checkpoint")
+    parser.add_argument('--model', type=str, default='model/model.pt', help="Path to model checkpoint")
     args = parser.parse_args()
 
     # Load 2,622 Hotels Knowledge Base
     load_hotel_database()
 
-    # Initialize Bot & Neural Architecture
+    # Initialize Bot & Multilingual Neural Architecture
     BOT = ConversationalQABot(model_path=args.model)
 
     active_port = args.port
@@ -1603,12 +1606,12 @@ def main():
     url = f"http://localhost:{active_port}"
 
     print("=" * 75)
-    print("🏨 ASPECT-BASED HOTEL CONVERSATIONAL QA WEB SERVER")
+    print("🏨 ASPECT-BASED HOTEL CONVERSATIONAL QA WEB SERVER (BILINGUAL EN/VI)")
     print("=" * 75)
     print(f" Web UI URL : {url}")
     print(f" Hardware   : {BOT.device}")
     print(f" Knowledge  : {len(HOTEL_DATABASE):,} hotels indexed")
-    print(f" Checkpoint : {'Active (' + BOT.model_path + ')' if BOT.model_loaded else 'Initialized (Awaiting model.pt)'}")
+    print(f" Checkpoint : {'Active (' + BOT.model_path + ')' if BOT.model_loaded else 'Awaiting ' + args.model}")
     print("=" * 75)
     print("Press Ctrl+C to shut down gracefully.\n")
 
