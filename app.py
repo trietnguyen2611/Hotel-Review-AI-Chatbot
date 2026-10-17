@@ -4,10 +4,16 @@ import json
 import re
 import socket
 import argparse
+import math
+import unicodedata
+import difflib
+import threading
+import random
 import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from collections import defaultdict
+from typing import List, Dict, Any, Tuple, Optional
 import torch
 import torch.nn as nn
 from transformers import BertModel, BertTokenizerFast
@@ -36,11 +42,11 @@ SENTIMENT_TRANSLATIONS = {
 ASPECT_KEYWORDS = {
     'Service': [
         'service', 'staff', 'employee', 'waiter', 'reception', 'check-in', 'checkout', 'attitude', 'helpful', 'friendly', 'slow', 'hospitality',
-        'phục vụ', 'nhân viên', 'lễ tân', 'thái độ', 'chu đáo', 'nhiệt tình', 'tiếp đón', 'hỗ trợ'
+        'dịch vụ', 'phục vụ', 'nhân viên', 'lễ tân', 'thái độ', 'chu đáo', 'nhiệt tình', 'tiếp đón', 'hỗ trợ', 'chăm sóc'
     ],
     'Facility': [
         'facility', 'room', 'bed', 'bathroom', 'shower', 'clean', 'dirty', 'air conditioner', 'ac', 'tv', 'balcony', 'sheet', 'towel', 'maintenance',
-        'cơ sở vật chất', 'phòng', 'giường', 'vệ sinh', 'nhà tắm', 'vòi sen', 'tiện nghi', 'thoáng mát', 'rộng rãi'
+        'cơ sở vật chất', 'phòng', 'phòng ốc', 'giường', 'vệ sinh', 'nhà tắm', 'vòi sen', 'tiện nghi', 'thoáng mát', 'rộng rãi'
     ],
     'Experience': [
         'experience', 'stay', 'trip', 'atmosphere', 'vibe', 'view', 'vacation', 'noise', 'quiet', 'overall', 'general',
@@ -55,14 +61,25 @@ ASPECT_KEYWORDS = {
         'quay lại', 'giới thiệu', 'đáng giá', 'trở lại', 'ủng hộ', 'đặt phòng tiếp'
     ],
     'Branding': [
-        'brand', 'branding', 'reputation', 'star', 'pullman', 'marriott', 'muong thanh', 'luxury', 'advertised', 'photos', 'standard',
-        'thương hiệu', 'danh tiếng', 'tiêu chuẩn', 'sao', 'đẳng cấp', 'quảng cáo', 'uy tín'
+        'brand', 'branding', 'reputation', 'luxury', 'advertised', 'photos', 'standard',
+        'thương hiệu', 'danh tiếng', 'tiêu chuẩn', 'đẳng cấp', 'quảng cáo', 'uy tín'
     ]
 }
 
 LOCATION_KEYWORDS = [
     'where', 'location', 'address', 'located', 'situated', 'map', 'directions', 'find',
     'ở đâu', 'địa chỉ', 'vị trí', 'nằm ở', 'nằm tại', 'chỗ nào', 'tọa lạc'
+]
+
+STAR_KEYWORDS = [
+    'mấy sao', 'bao nhiêu sao', 'số sao', 'chuẩn sao', 'hạng sao', 'xếp hạng sao', 'tiêu chuẩn sao', 'đạt sao',
+    'star', 'stars', 'how many stars', 'star rating', 'classification', 'hotel star', 'star level', 'xếp hạng'
+]
+
+COUNT_KEYWORDS = [
+    'bao nhiêu đánh giá', 'bao nhiêu review', 'bao nhiêu nhận xét', 'số lượng đánh giá',
+    'số lượng review', 'bao nhiêu người', 'có nhiều đánh giá', 'có nhiều review',
+    'how many reviews', 'total reviews', 'review count', 'number of reviews', 'mấy review', 'mấy đánh giá'
 ]
 
 COREFERENCE_PRONOUNS = [
@@ -75,12 +92,56 @@ VIETNAMESE_MARKERS = [
     'khách sạn', 'phòng', 'nhân viên', 'dịch vụ', 'ăn sáng', 'bể bơi', 'đẹp', 'sạch'
 ]
 
+CATEGORY_WORDS = {
+    'khach san', 'ks', 'k s', 'hotel', 'resort', 'khu nghi duong',
+    'spa', 'homestay', 'villa', 'hostel', 'nha khach', 'guesthouse',
+    'inn', 'motel', 'suite', 'suites', 'residence', 'apartment', 'can ho'
+}
+
+LOCATION_MAP = {
+    'ha noi': 'hà nội', 'hn': 'hà nội', 'hanoi': 'hà nội',
+    'ho chi minh': 'tp. hcm', 'sai gon': 'tp. hcm', 'saigon': 'tp. hcm', 'hcm': 'tp. hcm', 'tphcm': 'tp. hcm',
+    'da nang': 'đà nẵng', 'danang': 'đà nẵng',
+    'phu quoc': 'kiên giang', 'phuquoc': 'kiên giang', 'kien giang': 'kiên giang',
+    'nha trang': 'khánh hòa', 'nhatrang': 'khánh hòa', 'khanh hoa': 'khánh hòa',
+    'hoi an': 'quảng nam', 'hoian': 'quảng nam', 'quang nam': 'quảng nam',
+    'hue': 'thừa thiên huế', 'thua thien hue': 'thừa thiên huế',
+    'da lat': 'lâm đồng', 'dalat': 'lâm đồng', 'lam dong': 'lâm đồng',
+    'vung tau': 'bà rịa', 'vungtau': 'bà rịa', 'ba ria': 'bà rịa',
+    'ha long': 'quảng ninh', 'halong': 'quảng ninh', 'quang ninh': 'quảng ninh',
+    'sapa': 'lào cai', 'sa pa': 'lào cai', 'phan thiet': 'bình thuận', 'mui ne': 'bình thuận'
+}
+
+LOCATION_TOKENS = set()
+for loc_phrase in LOCATION_MAP.keys():
+    for tok in loc_phrase.split():
+        LOCATION_TOKENS.add(tok)
+
+NOISE_WORDS = {
+    'xin chao', 'chao ban', 'chao em', 'chao anh', 'chao chi', 'hello', 'hi', 'hey', 'ban la ai',
+    'cho minh hoi', 'cho hoi', 'cho em hoi', 'ban oi', 'ad oi', 'alo',
+    'review', 'danh gia', 'o dau', 'tai dau', 'o', 'tai', 'cho nao',
+    'nhu the nao', 'the nao', 'co tot khong', 'chat luong', 'dich vu',
+    'phong', 'an sang', 'be boi', 'gia phong', 'co', 'khong', 'sao', 'nao',
+    'rat', 'qua', 'lam', 'cua', 'va', 'la', 'nhung', 'voi', 'duoc', 've',
+    'ban', 'minh', 'toi', 'em', 'anh', 'chi', 'ai', 'gi', 'nay', 'do', 'kia'
+}
+
+def strip_vietnamese(text: str) -> str:
+    """Chuẩn hóa văn bản tiếng Việt: loại bỏ dấu thanh, chuyển đ/Đ -> d, xóa ký tự đặc biệt."""
+    if not text:
+        return ""
+    text = text.lower()
+    text = unicodedata.normalize('NFKD', text)
+    text = ''.join(c for c in text if not unicodedata.combining(c))
+    text = text.replace('đ', 'd').replace('Đ', 'd')
+    text = re.sub(r'[^\w\s]', ' ', text)
+    return ' '.join(text.split())
+
 def is_vietnamese_query(text: str) -> bool:
     t_lower = text.lower()
-    # Check for Vietnamese diacritics
     if re.search(r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', t_lower):
         return True
-    # Check for common marker words
     return any(re.search(r'\b' + re.escape(w) + r'\b', t_lower) for w in VIETNAMESE_MARKERS)
 
 # ---------------------------------------------------------------------------
@@ -237,16 +298,540 @@ def load_hotel_database():
         else:
             feat_vec = [0.5, 0.0, 0.5, 0.0, 0.3, 0.3, 0.0, 1.0, 1.0, 0.2]
 
+        year = int(meta.get('year', 0)) if str(meta.get('year', '')).isdigit() else 2015
+        month = int(meta.get('month', 0)) if str(meta.get('month', '')).isdigit() else 1
+        date_str = meta.get('date', f"{year}-{month:02d}")
+        rev_score = float(meta.get('score', score)) if str(meta.get('score', '')).replace('.', '', 1).isdigit() else score
+        ref_id = meta.get('ref_id', f"rev_{idx}")
+
+        m_val = year * 12 + month
+        if 'max_m' not in HOTEL_DATABASE[h_key] or m_val > HOTEL_DATABASE[h_key]['max_m']:
+            HOTEL_DATABASE[h_key]['max_m'] = m_val
+
+        present_aspects = set()
+        for ann in item.get('annotations', []):
+            for res in ann.get('result', []):
+                if res.get('from_name') == 'entities':
+                    lbls = res.get('value', {}).get('labels', [])
+                    if lbls and lbls[0] in ASPECTS:
+                        present_aspects.add(lbls[0])
+        t_low = text.lower()
+        for asp, kws in ASPECT_KEYWORDS.items():
+            if any(re.search(r'\b' + re.escape(kw) + r'\b', t_low) for kw in kws):
+                present_aspects.add(asp)
+
         HOTEL_DATABASE[h_key]['reviews'].append({
             'review_id': idx,
+            'ref_id': ref_id,
             'text': text,
-            'features': feat_vec
+            'features': feat_vec,
+            'year': year,
+            'month': month,
+            'date': date_str,
+            'score': rev_score,
+            'present_aspects': list(present_aspects),
+            'raw_features': feat_dict
         })
 
     print(f"Indexed {len(HOTEL_DATABASE):,} unique hotels with {len(items):,} reviews.")
 
+# Tự động nạp CSDL khách sạn khi module được import
+load_hotel_database()
+
 # ---------------------------------------------------------------------------
-# Conversational QA Engine
+# Robust Hotel Entity Matcher (Inverted Index + Distinctive Brand Tokens + Location Bonus)
+# ---------------------------------------------------------------------------
+class RobustHotelMatcher:
+    """Bộ nhận diện thực thể tên khách sạn siêu tốc và chính xác cao."""
+    def __init__(self, hotel_database: dict):
+        self.db = hotel_database
+        self.inverted_index = defaultdict(set)
+        self.hotel_profiles = {}
+        self.coref_patterns = [
+            'khach san nay', 'khach san do', 'cho nay', 'cho do', 'o day', 'o do',
+            'noi nay', 'ks nay', 'ks do', 'resort nay', 'resort do',
+            've no', 'tai no', 'o no', 'cua no',
+            'this hotel', 'that hotel', 'the hotel', 'here', 'there', 'about it', 'at it'
+        ]
+        self._build_index()
+
+    def _build_index(self):
+        for h_key, data in self.db.items():
+            raw_norm = strip_vietnamese(data['hotel_name'])
+            clean_brand = raw_norm
+            for cat in sorted(CATEGORY_WORDS, key=len, reverse=True):
+                clean_brand = re.sub(r'\b' + re.escape(cat) + r'\b', ' ', clean_brand)
+
+            h_loc_norm = strip_vietnamese(data.get('location', '') + ' ' + data.get('hotel_address', ''))
+            all_tokens = [t for t in clean_brand.split() if len(t) >= 2 and t not in NOISE_WORDS]
+            brand_tokens = [t for t in all_tokens if t not in LOCATION_TOKENS]
+            if not brand_tokens:
+                brand_tokens = all_tokens
+
+            self.hotel_profiles[h_key] = {
+                'hotel_name': data['hotel_name'],
+                'norm_name': raw_norm,
+                'brand_str': ' '.join(brand_tokens),
+                'brand_tokens': set(brand_tokens),
+                'location_str': h_loc_norm
+            }
+            for t in brand_tokens:
+                self.inverted_index[t].add(h_key)
+
+        # Sắp xếp hồ sơ khách sạn theo độ dài tên giảm dần để ưu tiên tên cụ thể / chi nhánh dài hơn
+        self.sorted_profiles = sorted(
+            self.hotel_profiles.items(),
+            key=lambda x: len(x[1]['norm_name']),
+            reverse=True
+        )
+
+    def match(self, query: str, active_hotel_key: Optional[str] = None) -> Tuple[Optional[str], float, bool]:
+        q_norm = strip_vietnamese(query)
+
+        # 1. Nhận diện địa danh trong câu hỏi để khử nhập nhằng (Disambiguation)
+        q_loc = None
+        for loc_phrase, canon in sorted(LOCATION_MAP.items(), key=lambda x: len(x[0]), reverse=True):
+            if re.search(r'\b' + re.escape(loc_phrase) + r'\b', q_norm):
+                q_loc = strip_vietnamese(canon)
+                break
+
+        # 2. Khớp thực thể tường minh trước (Explicit Entity Extraction)
+        # 2.1. Khớp chuỗi tên chính xác theo thứ tự dài nhất trước với word boundary
+        for h_key, prof in self.sorted_profiles:
+            if len(prof['norm_name']) >= 4 and re.search(r'\b' + re.escape(prof['norm_name']) + r'\b', q_norm):
+                if q_loc:
+                    if q_loc in prof['location_str']:
+                        return h_key, 1.0, False
+                else:
+                    return h_key, 1.0, False
+
+        # 2.2. Trích xuất token thương hiệu định danh (Brand tokens) và tìm qua Inverted Index
+        q_clean = q_norm
+        for cat in CATEGORY_WORDS:
+            q_clean = re.sub(r'\b' + re.escape(cat) + r'\b', ' ', q_clean)
+        for noise in NOISE_WORDS:
+            q_clean = re.sub(r'\b' + re.escape(noise) + r'\b', ' ', q_clean)
+
+        q_tokens = [t for t in q_clean.split() if len(t) >= 2]
+        q_brand_tokens = [t for t in q_tokens if t not in LOCATION_TOKENS]
+        if not q_brand_tokens:
+            q_brand_tokens = q_tokens
+
+        candidates = set()
+        for t in q_brand_tokens:
+            if t in self.inverted_index:
+                candidates.update(self.inverted_index[t])
+
+        if candidates:
+            best_key, best_score = None, -1e9
+            q_brand_set = set(q_brand_tokens)
+            q_brand_text = ' '.join(q_brand_tokens)
+
+            for cand_key in candidates:
+                prof = self.hotel_profiles[cand_key]
+                c_brand_tokens = prof['brand_tokens']
+                inter = len(c_brand_tokens & q_brand_set)
+                if inter == 0:
+                    continue
+
+                recall = inter / len(c_brand_tokens) if c_brand_tokens else 0
+                precision = inter / len(q_brand_set) if q_brand_set else 0
+                f1_token = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+                seq_sim = difflib.SequenceMatcher(None, q_brand_text, prof['brand_str']).ratio()
+
+                score = 0.6 * f1_token + 0.4 * seq_sim
+
+                # Thưởng/phạt địa danh để chọn đúng chi nhánh khách sạn
+                if q_loc:
+                    if q_loc in prof['location_str']:
+                        score += 0.50
+                    else:
+                        score -= 0.30
+
+                if score > best_score:
+                    best_score = score
+                    best_key = cand_key
+
+            if best_score >= 0.45:
+                return best_key, best_score, False
+
+        # 3. Chỉ khi KHÔNG tìm thấy thực thể khách sạn tường minh mới kiểm tra đại từ hồi chỉ (Coreference)
+        is_coref = any(re.search(r'\b' + re.escape(p) + r'\b', q_norm) for p in self.coref_patterns)
+        if is_coref and active_hotel_key and active_hotel_key in self.db:
+            return active_hotel_key, 1.0, True
+
+        return None, 0.0, False
+
+
+# ---------------------------------------------------------------------------
+# Multi-Review Recency-Weighted Aggregator (Feature 10 Engine)
+# ---------------------------------------------------------------------------
+class MultiReviewAggregator:
+    """Bộ tổng hợp đa đánh giá sử dụng Feature 10 (Trọng số thời gian suy giảm hàm mũ)."""
+    def __init__(self, model, tokenizer, device, lambda_decay=0.03):
+        self.model = model
+        self.tokenizer = tokenizer
+        self.device = device
+        self.lambda_decay = lambda_decay
+
+    def select_candidate_reviews(self, target_hotel: dict, target_aspect: str, top_k=4) -> List[dict]:
+        reviews = target_hotel.get('reviews', [])
+        if not reviews:
+            return []
+
+        max_m = target_hotel.get('max_m', 2015 * 12 + 1)
+        kws = ASPECT_KEYWORDS.get(target_aspect, [])
+
+        scored_reviews = []
+        for r in reviews:
+            rev_m = r.get('year', 2015) * 12 + r.get('month', 1)
+            delta_months = max(0, max_m - rev_m)
+            # Feature 10: w = exp(-lambda * delta_months)
+            w_time = math.exp(-self.lambda_decay * delta_months)
+
+            # Đếm số lượng từ khóa khía cạnh xuất hiện trong review
+            text_lower = r['text'].lower()
+            kw_hits = sum(1 for kw in kws if kw in text_lower)
+
+            # Điểm xếp hạng kết hợp độ liên quan khía cạnh và độ mới của review
+            rank_score = (kw_hits * 1.5) + (w_time * 2.0)
+            scored_reviews.append({
+                'review': r,
+                'rank_score': rank_score,
+                'recency_weight': w_time,
+                'delta_months': delta_months
+            })
+
+        scored_reviews.sort(key=lambda x: x['rank_score'], reverse=True)
+        return scored_reviews[:top_k]
+
+    def run_batched_inference(self, candidates: List[dict], user_query: str, target_hotel_name: str, target_aspect: str, is_vi: bool) -> dict:
+        if not candidates:
+            return {}
+
+        contexts = [c['review']['text'] for c in candidates]
+        dense_features = [c['review']['features'] for c in candidates]
+        weights = [c['recency_weight'] for c in candidates]
+        deltas = [c['delta_months'] for c in candidates]
+        raw_reviews = [c['review'] for c in candidates]
+
+        model_query = f"How is the {target_aspect.lower()} at {target_hotel_name}?" if is_vi else user_query
+        queries = [model_query] * len(contexts)
+
+        inputs = self.tokenizer(
+            queries,
+            contexts,
+            max_length=256,
+            truncation='only_second',
+            padding='max_length',
+            return_offsets_mapping=True,
+            return_tensors='pt'
+        )
+
+        offset_mappings = inputs.pop('offset_mapping').tolist()
+        input_ids = inputs['input_ids'].to(self.device)
+        attention_mask = inputs['attention_mask'].to(self.device)
+        token_type_ids = inputs['token_type_ids'].to(self.device) if 'token_type_ids' in inputs else None
+        feat_tensor = torch.tensor(dense_features, dtype=torch.float, device=self.device)
+
+        with torch.no_grad():
+            outputs = self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
+                dense_features=feat_tensor
+            )
+
+        start_logits = outputs['start_logits'].cpu().numpy()
+        end_logits = outputs['end_logits'].cpu().numpy()
+
+        has_ans_raw = outputs.get('has_answer_logits', outputs.get('has_ans_logits'))
+        if has_ans_raw.squeeze().dim() > 0:
+            has_ans_probs = torch.sigmoid(has_ans_raw.squeeze()).cpu().numpy().tolist()
+        else:
+            has_ans_probs = [float(torch.sigmoid(has_ans_raw.squeeze()).item())]
+        if isinstance(has_ans_probs, float):
+            has_ans_probs = [has_ans_probs]
+
+        aspect_preds = outputs['aspect_logits'].argmax(-1).cpu().numpy().tolist()
+        sentiment_preds = outputs['sentiment_logits'].argmax(-1).cpu().numpy().tolist()
+
+        review_results = []
+        for i in range(len(contexts)):
+            ctx_text = contexts[i]
+            offsets = offset_mappings[i]
+            tt = token_type_ids[i].cpu().numpy() if token_type_ids is not None else None
+            s_l, e_l = start_logits[i], end_logits[i]
+
+            best_s, best_e, best_sc = 0, 0, -1e9
+            for s in range(1, len(s_l)):
+                if tt is not None and tt[s] != 1:
+                    continue
+                for e in range(s, min(s + 40, len(e_l))):
+                    if tt is not None and tt[e] != 1:
+                        break
+                    sc = s_l[s] + e_l[e]
+                    if sc > best_sc:
+                        best_sc, best_s, best_e = sc, s, e
+
+            if best_e >= best_s and best_sc > -1e9 and best_s < len(offsets) and best_e < len(offsets):
+                cs, ce = offsets[best_s][0], offsets[best_e][1]
+                extracted_span = ctx_text[cs:ce].strip()
+                span_text = extracted_span if ce > cs and len(extracted_span) >= 3 else ctx_text[:140].strip() + "..."
+            else:
+                span_text = ctx_text[:140].strip() + "..."
+
+            sent_idx = sentiment_preds[i]
+            sent_name = SENTIMENTS[sent_idx] if sent_idx < len(SENTIMENTS) else 'Neutral'
+            sent_val = 1.0 if sent_name == 'Positive' else (-1.0 if sent_name == 'Negative' else 0.0)
+
+            review_results.append({
+                'review_id': raw_reviews[i].get('review_id'),
+                'date': raw_reviews[i].get('date', '2015-09'),
+                'year': raw_reviews[i].get('year', 2015),
+                'score': raw_reviews[i].get('score', 4.0),
+                'text': ctx_text,
+                'span': span_text,
+                'sentiment': sent_name,
+                'sentiment_val': sent_val,
+                'confidence': float(has_ans_probs[i]) if i < len(has_ans_probs) else 0.8,
+                'recency_weight': float(weights[i]),
+                'weight_pct': int(round(weights[i] * 100)),
+                'delta_months': int(deltas[i])
+            })
+
+        return self.aggregate_temporal_sentiment(review_results, is_vi)
+
+    def aggregate_temporal_sentiment(self, results: List[dict], is_vi: bool) -> dict:
+        if not results:
+            return {}
+
+        total_weight = 0.0
+        weighted_sent_sum = 0.0
+        pos_w, neg_w, neu_w = 0.0, 0.0, 0.0
+
+        for r in results:
+            eff_w = r['recency_weight'] * max(0.25, r['confidence'])
+            total_weight += eff_w
+            weighted_sent_sum += eff_w * r['sentiment_val']
+            if r['sentiment'] == 'Positive':
+                pos_w += eff_w
+            elif r['sentiment'] == 'Negative':
+                neg_w += eff_w
+            else:
+                neu_w += eff_w
+
+        s_agg = weighted_sent_sum / total_weight if total_weight > 0 else 0.0
+        pos_ratio = pos_w / total_weight if total_weight > 0 else 0.0
+        neg_ratio = neg_w / total_weight if total_weight > 0 else 0.0
+
+        # Phân tích xu hướng theo trục thời gian (sắp xếp tăng dần theo năm/tháng)
+        sorted_by_date = sorted(results, key=lambda x: (x['year'], x['date']))
+        mid = len(sorted_by_date) // 2
+        past_reviews = sorted_by_date[:mid] if mid > 0 else sorted_by_date
+        recent_reviews = sorted_by_date[mid:] if mid > 0 else sorted_by_date
+
+        past_sent = sum(r['sentiment_val'] for r in past_reviews) / len(past_reviews)
+        recent_sent = sum(r['sentiment_val'] for r in recent_reviews) / len(recent_reviews)
+
+        if recent_sent > past_sent + 0.4:
+            trend = "improving"
+            trend_label = "Cải thiện rõ rệt gần đây" if is_vi else "Notable Recent Improvement"
+        elif recent_sent < past_sent - 0.4:
+            trend = "degrading"
+            trend_label = "Có dấu hiệu suy giảm gần đây" if is_vi else "Recent Decline Noted"
+        elif pos_ratio >= 0.65:
+            trend = "stable_positive"
+            trend_label = "Đồng thuận tích cực cao" if is_vi else "Strong Positive Consensus"
+        elif neg_ratio >= 0.65:
+            trend = "stable_negative"
+            trend_label = "Phản ánh tiêu cực đồng nhất" if is_vi else "Consistent Complaints"
+        else:
+            trend = "mixed"
+            trend_label = "Ý kiến đan xen / đa chiều" if is_vi else "Mixed / Balanced Impressions"
+
+        return {
+            'aggregate_sentiment_score': round(s_agg, 3),
+            'consensus_sentiment': 'Positive' if s_agg >= 0.20 else ('Negative' if s_agg <= -0.20 else 'Neutral'),
+            'positive_ratio': round(pos_ratio, 2),
+            'negative_ratio': round(neg_ratio, 2),
+            'trend': trend,
+            'trend_label': trend_label,
+            'reviews': results
+        }
+
+
+# ---------------------------------------------------------------------------
+# Conversational Natural Language Answer Synthesizer (NLG Engine)
+# ---------------------------------------------------------------------------
+class ConversationalNLGSynthesizer:
+    """Bộ tạo câu trả lời đàm thoại tự nhiên với kho ngữ liệu biến thể linh hoạt, chống lặp khuôn mẫu."""
+    @staticmethod
+    def synthesize(target_hotel: dict, aspect: str, agg_result: dict, is_vi: bool) -> str:
+        hotel_name = target_hotel['hotel_name']
+        aspect_title = ASPECT_TRANSLATIONS.get(aspect, {}).get('vi' if is_vi else 'en', aspect)
+        overall_sent = agg_result['consensus_sentiment']
+        trend = agg_result['trend']
+        pos_pct = int(agg_result['positive_ratio'] * 100)
+        neg_pct = int(agg_result['negative_ratio'] * 100)
+        reviews = agg_result.get('reviews', [])
+
+        most_recent = max(reviews, key=lambda x: x['recency_weight']) if reviews else None
+        recent_date = most_recent['date'] if most_recent else 'Gần đây'
+        recent_score = most_recent['score'] if most_recent else 4.0
+        recent_span = most_recent.get('span', '') if most_recent else ''
+
+        raw_star = str(target_hotel.get('star', '')).replace('-star', '').replace('star', '').strip()
+        star_desc = f"{raw_star} sao" if (raw_star and raw_star != '0' and is_vi) else (f"{raw_star}-star" if raw_star else ("Tiêu chuẩn quốc tế" if is_vi else "Standard"))
+        hotel_score = target_hotel.get('score', 4.0)
+
+        total_revs = len(target_hotel.get('reviews', []))
+        aspect_rev_count = sum(1 for r in target_hotel.get('reviews', []) if aspect in r.get('present_aspects', []))
+        aspect_pct = (aspect_rev_count / total_revs * 100) if total_revs > 0 else 0
+
+        if is_vi:
+            count_variants = [
+                f"Khách sạn đạt chuẩn **{star_desc}** (đánh giá `{hotel_score:.1f}/5.0` sao), có **{aspect_rev_count}/{total_revs} bài đánh giá liên quan đến {aspect_title}** (chiếm **{aspect_pct:.1f}%** tổng số đánh giá).",
+                f"Được xếp hạng **{star_desc}** với điểm bình chọn `{hotel_score:.1f}/5.0` sao, hệ thống ghi nhận **{aspect_rev_count} trên tổng số {total_revs} phản hồi** đề cập trực tiếp đến {aspect_title} (**{aspect_pct:.1f}%**).",
+                f"Theo dữ liệu thực tế ({star_desc}, `{hotel_score:.1f}/5.0` sao), có **{aspect_rev_count}/{total_revs} lượt khách** thảo luận về khía cạnh {aspect_title} (tương đương **{aspect_pct:.1f}%** khối lượng phản hồi)."
+            ]
+            count_info = random.choice(count_variants)
+
+            if overall_sent == 'Positive':
+                pos_headlines = [
+                    f"Về khía cạnh **{aspect_title}**, khách sạn **{hotel_name}** nhận được sự hài lòng rất cao từ du khách với **{pos_pct}% phản hồi tích cực** (đã áp dụng trọng số Feature 10 ưu tiên đánh giá mới).",
+                    f"Tổng hợp ý kiến từ các đợt lưu trú gần đây tại **{hotel_name}**, khía cạnh **{aspect_title}** được đánh giá rất tốt với tỷ lệ hài lòng lên đến **{pos_pct}%**.",
+                    f"Trải nghiệm của du khách về **{aspect_title}** tại **{hotel_name}** để lại ấn tượng đậm nét với **{pos_pct}% đánh giá khen ngợi**.",
+                    f"Dữ liệu đánh giá thực tế cho thấy **{hotel_name}** ghi điểm mạnh mẽ ở khía cạnh **{aspect_title}**, đạt **{pos_pct}% ý kiến tích cực**."
+                ]
+                headline = random.choice(pos_headlines)
+
+                if trend == 'improving':
+                    trend_sentences = [
+                        "Đáng chú ý, các phản hồi trong thời gian gần đây cho thấy chất lượng dịch vụ đã có sự cải thiện và nâng cấp rõ nét so với các giai đoạn trước.",
+                        "Đặc biệt, những đánh giá gần nhất phản ánh bước chuyển biến tích cực rõ rệt về cung cách phục vụ và trải nghiệm thực tế.",
+                        "Xu hướng thời gian cho thấy khách sạn đã liên tục lắng nghe góp ý và hoàn thiện chất lượng vượt bậc trong các đợt lưu trú gần đây."
+                    ]
+                else:
+                    trend_sentences = [
+                        "Phần lớn khách lưu trú đều khen ngợi sự chuẩn mực, tính chuyên nghiệp và trải nghiệm thoải mái tại đây.",
+                        "Khách sạn duy trì phong độ phục vụ ổn định, mang đến sự an tâm và hài lòng bền vững cho du khách.",
+                        "Cộng đồng du khách nhất quán đánh giá cao tính chỉn chu, nhiệt tình và chất lượng đáng tin cậy."
+                    ]
+                trend_sentence = random.choice(trend_sentences)
+
+            elif overall_sent == 'Negative':
+                neg_headlines = [
+                    f"Đối với khía cạnh **{aspect_title}**, khách sạn **{hotel_name}** hiện còn một số vấn đề khiến khách hàng chưa hài lòng (**{neg_pct}% đánh giá phàn nàn**).",
+                    f"Ghi nhận thực tế về **{aspect_title}** tại **{hotel_name}** cho thấy mức độ hài lòng chưa cao với **{neg_pct}% phản hồi góp ý/chê trách**.",
+                    f"Về phương diện **{aspect_title}**, du khách tại **{hotel_name}** phản ánh nhiều trải nghiệm chưa đạt kỳ vọng (**{neg_pct}% ý kiến phàn nàn**)."
+                ]
+                headline = random.choice(neg_headlines)
+
+                if trend == 'degrading':
+                    trend_sentences = [
+                        "Các phản hồi gần đây ghi nhận sự sụt giảm về chất lượng phục vụ so với kỳ vọng trước đó của du khách.",
+                        "Đáng lưu ý, các đánh giá mới nhất phản ánh sự thiếu ổn định và có dấu hiệu đi xuống so với các năm trước.",
+                        "Nhiều khách hàng thời gian gần đây bày tỏ sự thất vọng vì trải nghiệm không còn tương xứng với danh tiếng."
+                    ]
+                else:
+                    trend_sentences = [
+                        "Nhiều du khách phản ánh những trải nghiệm chưa thật sự tương xứng với tiêu chuẩn khách sạn.",
+                        "Khách sạn ghi nhận một số phản hồi phê bình về khâu tổ chức và cần được cải thiện kịp thời.",
+                        "Du khách lưu ý một vài điểm trừ còn tồn đọng trong quá trình trải nghiệm dịch vụ."
+                    ]
+                trend_sentence = random.choice(trend_sentences)
+
+            else:
+                neu_headlines = [
+                    f"Về **{aspect_title}** tại **{hotel_name}**, trải nghiệm của khách lưu trú ở mức trung tính và có sự phân hóa đa chiều giữa các đợt lưu trú.",
+                    f"Ý kiến đánh giá về **{aspect_title}** ở **{hotel_name}** khá cân bằng, ghi nhận cả ưu điểm lẫn một số hạn chế nhỏ.",
+                    f"Nhìn chung, khía cạnh **{aspect_title}** tại **{hotel_name}** đáp ứng ở mức vừa phải, đan xen giữa đánh giá khen và góp ý."
+                ]
+                headline = random.choice(neu_headlines)
+                trend_sentences = [
+                    "Khách hàng ghi nhận các điểm sáng đáng giá, tuy nhiên vẫn còn một số chi tiết cần tiếp tục hoàn thiện thêm.",
+                    "Trải nghiệm thực tế phụ thuộc nhiều vào thời điểm lưu trú và loại phòng lựa chọn.",
+                    "Du khách đánh giá mức độ tương xứng cơ bản với chi phí, bên cạnh vài điểm cần nâng cấp."
+                ]
+                trend_sentence = random.choice(trend_sentences)
+
+            recency_variants = [
+                f"Ghi nhận theo đánh giá mới nhất ({recent_date}): khách cho điểm `{recent_score:.1f}/5.0` sao.",
+                f"Theo phản hồi gần đây nhất được ghi nhận ({recent_date}), khách hàng chấm điểm `{recent_score:.1f}/5.0` sao.",
+                f"Đợt lưu trú gần nhất vào tháng {recent_date} nhận được số điểm `{recent_score:.1f}/5.0` sao từ du khách."
+            ]
+            recency_note = random.choice(recency_variants)
+
+            # Nhúng câu dẫn chứng đắt giá vào câu trả lời tự nhiên
+            quote_embed = ""
+            if recent_span and len(recent_span) >= 8 and not recent_span.endswith('...'):
+                quote_embed = f"\n\n> *\"{recent_span}\"* — (Trích nhận xét từ khách lưu trú đợt {recent_date})"
+
+            answer = (
+                f"{headline}\n\n"
+                f"📊 {count_info}\n\n"
+                f"{trend_sentence} {recency_note}{quote_embed}\n\n"
+                f"• **Xu hướng trải nghiệm:** {agg_result['trend_label']} (Điểm cảm xúc trọng số: `{agg_result['aggregate_sentiment_score']:+.2f}`)"
+            )
+        else:
+            count_variants_en = [
+                f"Rated **{star_desc}** (`{hotel_score:.1f}/5.0` stars) with **{aspect_rev_count}/{total_revs} reviews mentioning {aspect_title}** (**{aspect_pct:.1f}%** of total volume).",
+                f"Holding an official **{star_desc}** standard (`{hotel_score:.1f}/5.0` rating), indexed with **{aspect_rev_count} out of {total_revs} verified reviews** focusing on {aspect_title} (**{aspect_pct:.1f}%**).",
+                f"Statistical review metrics indicate **{aspect_rev_count}/{total_revs} travelers** explicitly discussed {aspect_title} (**{aspect_pct:.1f}%** share)."
+            ]
+            count_info_en = random.choice(count_variants_en)
+
+            if overall_sent == 'Positive':
+                pos_headlines_en = [
+                    f"Regarding **{aspect_title}**, **{hotel_name}** receives strong guest satisfaction with **{pos_pct}% positive feedback** (weighted toward recent visits via Feature 10).",
+                    f"Synthesized traveler feedback highlights high acclaim for **{aspect_title}** at **{hotel_name}**, achieving a **{pos_pct}% satisfaction rating**.",
+                    f"Guests consistently praise **{aspect_title}** at **{hotel_name}**, with **{pos_pct}% of verified impressions being enthusiastic**."
+                ]
+                headline = random.choice(pos_headlines_en)
+                trend_sentence = (
+                    "Recent reviews demonstrate noticeable service upgrades and heightened attentiveness compared to earlier seasons."
+                    if trend == 'improving' else
+                    "Guests consistently praise the dependable quality and welcoming atmosphere."
+                )
+            elif overall_sent == 'Negative':
+                neg_headlines_en = [
+                    f"In terms of **{aspect_title}**, **{hotel_name}** has faced critical feedback (**{neg_pct}% dissatisfaction rate**).",
+                    f"Customer reviews reveal notable shortcomings regarding **{aspect_title}** at **{hotel_name}** (**{neg_pct}% complaints**).",
+                    f"Travelers report room for improvement in **{aspect_title}** at **{hotel_name}** (**{neg_pct}% negative sentiments**)."
+                ]
+                headline = random.choice(neg_headlines_en)
+                trend_sentence = (
+                    "Recent guest notes highlight a decline in consistency compared to past standards."
+                    if trend == 'degrading' else
+                    "Several travelers reported shortcomings that did not match their expectations."
+                )
+            else:
+                neu_headlines_en = [
+                    f"For **{aspect_title}** at **{hotel_name}**, guest impressions are balanced with mixed viewpoints across different trips.",
+                    f"Feedback on **{aspect_title}** at **{hotel_name}** presents a moderate, balanced consensus with both positives and minor caveats.",
+                    f"Guest perspectives on **{aspect_title}** at **{hotel_name}** are varied, reflecting mixed experiences depending on stay period."
+                ]
+                headline = random.choice(neu_headlines_en)
+                trend_sentence = "Guests appreciate notable highlights while pointing out specific areas that could be enhanced."
+
+            recency_note = f"According to the latest review ({recent_date}), the guest rated `{recent_score:.1f}/5.0` stars."
+            quote_embed = ""
+            if recent_span and len(recent_span) >= 8 and not recent_span.endswith('...'):
+                quote_embed = f"\n\n> *\"{recent_span}\"* — (Direct traveler quote from {recent_date} stay)"
+
+            answer = (
+                f"{headline}\n\n"
+                f"📊 {count_info_en}\n\n"
+                f"{trend_sentence} {recency_note}{quote_embed}\n\n"
+                f"• **Trend Verdict:** {agg_result['trend_label']} (Weighted sentiment score: `{agg_result['aggregate_sentiment_score']:+.2f}`)"
+            )
+
+        return answer
+
+
+# ---------------------------------------------------------------------------
+# Conversational QA Bot Engine
 # ---------------------------------------------------------------------------
 class DialogueState:
     def __init__(self):
@@ -262,10 +847,29 @@ class DialogueState:
         self.history.clear()
 
 
+class SessionManager:
+    """Quản lý ngữ cảnh hội thoại đa luồng cho từng phiên làm việc (session_id)."""
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._sessions = {}
+
+    def get_state(self, session_id: str) -> DialogueState:
+        with self._lock:
+            if session_id not in self._sessions:
+                self._sessions[session_id] = DialogueState()
+            return self._sessions[session_id]
+
+    def reset_state(self, session_id: str):
+        with self._lock:
+            if session_id in self._sessions:
+                self._sessions[session_id].reset()
+
+
 class ConversationalQABot:
     def __init__(self, model_path="model/model.pt"):
         self.device = torch.device('cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu'))
-        self.state = DialogueState()
+        self.session_manager = SessionManager()
+        self.state = self.session_manager.get_state("default")
         self.model_loaded = False
         self.model_path = model_path
         self.model_name = "bert-base-uncased"
@@ -279,26 +883,36 @@ class ConversationalQABot:
         self.model.to(self.device)
         self.model.eval()
 
+        print("Building Robust Hotel Matcher Index...")
+        self.matcher = RobustHotelMatcher(HOTEL_DATABASE)
+        self.aggregator = MultiReviewAggregator(self.model, self.tokenizer, self.device)
+
     def load_checkpoint(self, path):
-        # Check candidate locations
+        # Kiểm tra bảo mật đường dẫn (chống path traversal ngoài thư mục ứng dụng)
+        allowed_dir = os.path.realpath(os.getcwd())
         search_paths = [
             path,
             os.path.join("model", os.path.basename(path)) if path else None,
             "model/model.pt",
             "model.pt",
-            "../model/model.pt",
             "model/hotel_aspect_qa_model/model.pt",
             "model/hotel_aspect_qa_model/pytorch_model.bin"
         ]
         resolved_path = None
         for p in search_paths:
             if p and os.path.exists(p) and os.path.isfile(p):
-                resolved_path = p
-                break
+                real_p = os.path.realpath(p)
+                if real_p.startswith(allowed_dir):
+                    resolved_path = real_p
+                    break
 
         if resolved_path:
             try:
-                checkpoint = torch.load(resolved_path, map_location=self.device)
+                try:
+                    checkpoint = torch.load(resolved_path, map_location=self.device, weights_only=True)
+                except (TypeError, ValueError):
+                    checkpoint = torch.load(resolved_path, map_location=self.device)
+
                 if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
                     self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
                 elif isinstance(checkpoint, dict):
@@ -316,45 +930,13 @@ class ConversationalQABot:
             self.model_path = path or "model/model.pt"
             return False, f"Checkpoint not found at '{path}'. Place model.pt into 'model/' folder."
 
-    def resolve_hotel_entity(self, query):
-        q_clean = query.strip().lower()
-
-        # Check for coreference pronouns
-        is_coref = any(re.search(r'\b' + re.escape(p) + r'\b', q_clean) for p in COREFERENCE_PRONOUNS)
-        if is_coref and self.state.active_hotel_key:
-            return self.state.active_hotel_key, True
-
-        # Search exact match in HOTEL_DATABASE
-        best_match = None
-        max_overlap = 0
-
-        for h_key, data in HOTEL_DATABASE.items():
-            if h_key in q_clean:
-                if len(h_key) > max_overlap:
-                    max_overlap = len(h_key)
-                    best_match = h_key
-
-        if best_match:
-            return best_match, False
-
-        # Substring token match
-        for h_key in HOTEL_DATABASE.keys():
-            tokens = [t for t in h_key.split() if len(t) > 3 and t not in ['hotel', 'resort', 'spa']]
-            if tokens and any(t in q_clean for t in tokens):
-                matched_count = sum(1 for t in tokens if t in q_clean)
-                if matched_count >= 2 or (len(tokens) == 1 and matched_count == 1):
-                    return h_key, False
-
-        # Fallback to current context
-        if self.state.active_hotel_key:
-            return self.state.active_hotel_key, True
-
-        return None, False
-
-    def detect_intent_and_aspect(self, query):
+    def detect_intent_and_aspect(self, query: str, active_aspect: Optional[str] = None) -> Tuple[str, Optional[str]]:
         q_lower = query.lower()
         if any(re.search(r'\b' + re.escape(w) + r'\b', q_lower) for w in LOCATION_KEYWORDS):
             return 'location', None
+
+        if any(re.search(r'\b' + re.escape(w) + r'\b', q_lower) for w in STAR_KEYWORDS):
+            return 'star', None
 
         aspect_scores = defaultdict(int)
         for asp, kws in ASPECT_KEYWORDS.items():
@@ -362,191 +944,357 @@ class ConversationalQABot:
                 if kw in q_lower:
                     aspect_scores[asp] += 1
 
+        if any(re.search(r'\b' + re.escape(w) + r'\b', q_lower) for w in COUNT_KEYWORDS):
+            best_asp = max(aspect_scores.keys(), key=lambda a: aspect_scores[a]) if aspect_scores else (active_aspect or 'Service')
+            return 'count', best_asp
+
         if aspect_scores:
             best_asp = max(aspect_scores.keys(), key=lambda a: aspect_scores[a])
             return 'aspect_qa', best_asp
 
-        return 'aspect_qa', self.state.active_aspect or 'Experience'
+        return 'aspect_qa', active_aspect or 'Experience'
 
-    def answer_query(self, user_query):
+    def answer_query(self, user_query: str, session_id: str = "default") -> dict:
         is_vi = is_vietnamese_query(user_query)
-        hotel_key, was_coref = self.resolve_hotel_entity(user_query)
-        intent, target_aspect = self.detect_intent_and_aspect(user_query)
+        state = self.session_manager.get_state(session_id)
+        self.state = state
+
+        # Xử lý lời chào hỏi / giới thiệu ban đầu của người dùng
+        greetings = ['xin chao', 'chao ban', 'chao em', 'chao anh', 'chao', 'hello', 'hi', 'hey', 'alo', 'ban la ai', 'who are you', 'what can you do']
+        q_norm = strip_vietnamese(user_query)
+        if any(q_norm == g or q_norm.startswith(g + ' ') for g in greetings) and not any(k in q_norm for k in ['hotel', 'khach san', 'resort', 'ks']):
+            greeting_msg = (
+                "Xin chào! Tôi là trợ lý AI chuyên giải đáp thông tin và phân tích đánh giá về 2,622 khách sạn tại Việt Nam.\n\n"
+                "Bạn có thể hỏi tôi bất kỳ điều gì bằng ngôn ngữ tự nhiên, ví dụ:\n"
+                "• *\"Khách sạn Pullman Hà Nội mấy sao và ở đâu?\"*\n"
+                "• *\"Có bao nhiêu đánh giá về dịch vụ ở Pullman Hà Nội?\"*\n"
+                "• *\"Chất lượng phòng ốc tại Salinda Phú Quốc dạo gần đây thế nào?\"*\n\n"
+                "Hãy cho tôi biết tên khách sạn bạn đang quan tâm nhé!"
+                if is_vi else
+                "Hello! I am an AI assistant specializing in hotel review intelligence for 2,622 hotels in Vietnam.\n\n"
+                "You can ask me anything in natural language, for example:\n"
+                "• *\"What is the star rating and address of Pullman Hanoi?\"*\n"
+                "• *\"How many reviews mention service at Pullman Hanoi?\"*\n"
+                "• *\"How is the room quality at Salinda Resort Phu Quoc recently?\"*\n\n"
+                "Please tell me which hotel you would like to explore!"
+            )
+            return {
+                "text": greeting_msg,
+                "direct_answer": greeting_msg,
+                "hotel": None,
+                "aspect": None,
+                "sentiment": None,
+                "confidence": 1.0,
+                "evidence": None,
+                "citations": [],
+                "original_reviews": [],
+                "context_applied": False
+            }
+
+        hotel_key, match_score, was_coref = self.matcher.match(user_query, state.active_hotel_key)
+        intent, target_aspect = self.detect_intent_and_aspect(user_query, state.active_aspect)
 
         if not hotel_key:
-            if HOTEL_DATABASE:
-                hotel_key = next(iter(HOTEL_DATABASE))
-            else:
-                msg = "Vui lòng đề cập tên khách sạn để trích xuất đánh giá chính xác." if is_vi else "Please mention a hotel name so I can retrieve verified reviews."
-                return {
-                    "text": msg,
-                    "hotel": None,
-                    "aspect": None,
-                    "sentiment": None,
-                    "confidence": None,
-                    "evidence": None,
-                    "context_applied": False
-                }
+            msg = (
+                "Vui lòng đề cập tên khách sạn để tôi có thể hỗ trợ bạn (ví dụ: Pullman Hà Nội, Mường Thanh, Salinda Phú Quốc...)."
+                if is_vi else
+                "Please mention a hotel name so I can assist you (e.g., Pullman Hanoi, Muong Thanh, Salinda Phu Quoc...)."
+            )
+            return {
+                "text": msg,
+                "direct_answer": msg,
+                "hotel": None,
+                "aspect": None,
+                "sentiment": None,
+                "confidence": None,
+                "evidence": None,
+                "citations": [],
+                "original_reviews": [],
+                "context_applied": False
+            }
 
         target_hotel = HOTEL_DATABASE[hotel_key]
-        self.state.active_hotel_key = hotel_key
-        self.state.active_hotel_name = target_hotel['hotel_name']
+        state.active_hotel_key = hotel_key
+        state.active_hotel_name = target_hotel['hotel_name']
         if target_aspect:
-            self.state.active_aspect = target_aspect
+            state.active_aspect = target_aspect
 
-        # Handle Location Intent
-        if intent == 'location':
-            raw_star = str(target_hotel.get('star', '')).replace('-star', '').replace('star', '').strip()
-            if raw_star and raw_star != '0':
-                star_desc = f"{raw_star} sao" if is_vi else f"{raw_star}-star"
-            else:
-                star_desc = "Tiêu chuẩn" if is_vi else "Standard"
+        raw_star = str(target_hotel.get('star', '')).replace('-star', '').replace('star', '').strip()
+        star_desc = f"{raw_star} sao" if (raw_star and raw_star != '0' and is_vi) else (f"{raw_star}-star" if raw_star else ("Tiêu chuẩn quốc tế" if is_vi else "Standard"))
+        total_revs = len(target_hotel.get('reviews', []))
+        score = target_hotel.get('score', 4.0)
 
+        # Xử lý Intent Số sao khách sạn (Star Rating Intent)
+        if intent == 'star':
             if is_vi:
-                reply_text = (
-                    f"**{target_hotel['hotel_name']}** ({star_desc}, Đánh giá {target_hotel['score']:.1f}/5.0) tọa lạc tại:\n"
-                    f"📍 `{target_hotel['hotel_address']}`"
-                )
+                star_variants = [
+                    (
+                        f"Khách sạn **{target_hotel['hotel_name']}** đạt chuẩn xếp hạng **{star_desc}** với điểm đánh giá tổng thể từ du khách là **`{score:.1f}/5.0` sao**.\n\n"
+                        f"• **Địa chỉ:** `{target_hotel.get('hotel_address', '')}`\n"
+                        f"• **Khu vực:** `{target_hotel.get('location', '')}`\n"
+                        f"• **Dữ liệu đánh giá:** Hiện có tổng cộng **{total_revs} bài đánh giá** chi tiết trong hệ thống."
+                    ),
+                    (
+                        f"Theo tiêu chuẩn xếp hạng ngành khách sạn, **{target_hotel['hotel_name']}** là cơ sở lưu trú đạt chuẩn **{star_desc}**, được cộng đồng du khách bình chọn mức điểm trung bình **`{score:.1f}/5.0` sao**.\n\n"
+                        f"📍 Tọa lạc tại: `{target_hotel.get('hotel_address', '')}` ({target_hotel.get('location', '')}).\n"
+                        f"📊 Cơ sở dữ liệu hiện lưu trữ **{total_revs} bài phản hồi** từ du khách thực tế."
+                    ),
+                    (
+                        f"Về quy mô và tiêu chuẩn dịch vụ, **{target_hotel['hotel_name']}** được công nhận hạng sao **{star_desc}** và nhận được mức độ hài lòng bình quân **`{score:.1f}/5.0` sao**.\n\n"
+                        f"• **Vị trí:** `{target_hotel.get('hotel_address', '')}`\n"
+                        f"• **Tổng phản hồi đã kiểm chứng:** **{total_revs} đánh giá**."
+                    )
+                ]
+                direct_ans = random.choice(star_variants)
             else:
-                reply_text = (
-                    f"**{target_hotel['hotel_name']}** ({star_desc}, Rated {target_hotel['score']:.1f}/5.0) is located at:\n"
-                    f"📍 `{target_hotel['hotel_address']}`"
-                )
+                star_variants_en = [
+                    (
+                        f"**{target_hotel['hotel_name']}** holds an official rating of **{star_desc}** with an overall guest rating of **`{score:.1f}/5.0` stars**.\n\n"
+                        f"• **Address:** `{target_hotel.get('hotel_address', '')}`\n"
+                        f"• **Region:** `{target_hotel.get('location', '')}`\n"
+                        f"• **Review Volume:** Currently indexed with **{total_revs} verified reviews**."
+                    ),
+                    (
+                        f"Classified under the **{star_desc}** hospitality standard, **{target_hotel['hotel_name']}** carries a cumulative traveler score of **`{score:.1f}/5.0` stars**.\n\n"
+                        f"📍 Location: `{target_hotel.get('hotel_address', '')}` ({target_hotel.get('location', '')}).\n"
+                        f"📊 Backed by **{total_revs} authentic customer reviews**."
+                    )
+                ]
+                direct_ans = random.choice(star_variants_en)
+
             return {
-                "text": reply_text,
+                "text": direct_ans,
+                "direct_answer": direct_ans,
                 "hotel": target_hotel['hotel_name'],
-                "aspect": "Location",
-                "sentiment": "Neutral",
+                "aspect": "Branding",
+                "sentiment": "Positive" if score >= 4.0 else "Neutral",
                 "confidence": 1.0,
-                "evidence": target_hotel['hotel_address'],
+                "evidence": f"Xếp hạng: {star_desc} | Điểm số: {score:.1f}/5.0",
+                "citations": [],
+                "original_reviews": [],
+                "star_desc": star_desc,
+                "score": score,
+                "total_reviews": total_revs,
                 "context_applied": was_coref
             }
 
-        # Retrieve relevant review for Aspect QA
-        reviews = target_hotel.get('reviews', [])
-        if not reviews:
-            msg = f"Chưa có đánh giá chi tiết cho **{target_hotel['hotel_name']}**." if is_vi else f"No detailed reviews available for **{target_hotel['hotel_name']}**."
+        # Xử lý Intent Hỏi về Số lượng đánh giá (Review Count Intent)
+        if intent == 'count':
+            aspect_title = ASPECT_TRANSLATIONS.get(target_aspect, {}).get('vi' if is_vi else 'en', target_aspect or 'Service')
+            aspect_rev_count = sum(1 for r in target_hotel.get('reviews', []) if target_aspect in r.get('present_aspects', []))
+            aspect_pct = (aspect_rev_count / total_revs * 100) if total_revs > 0 else 0
+
+            if is_vi:
+                count_variants = [
+                    (
+                        f"Thông tin số lượng đánh giá về khách sạn **{target_hotel['hotel_name']}** ({star_desc}, `{score:.1f}/5.0` sao):\n\n"
+                        f"• **Tổng số đánh giá trong CSDL:** **{total_revs} bài đánh giá**.\n"
+                        f"• **Số đánh giá về khía cạnh {aspect_title}:** **{aspect_rev_count} bài đánh giá** (chiếm **{aspect_pct:.1f}%** tổng số phản hồi).\n\n"
+                        f"Hệ thống đã sẵn sàng trích xuất dẫn chứng cụ thể từ các đánh giá này theo thời gian thực."
+                    ),
+                    (
+                        f"Thống kê phản hồi người dùng cho thấy **{target_hotel['hotel_name']}** ({star_desc}, `{score:.1f}/5.0` sao) hiện ghi nhận:\n\n"
+                        f"📊 **{aspect_rev_count} trên tổng số {total_revs} bài đánh giá** đề cập trực tiếp đến **{aspect_title}** (**{aspect_pct:.1f}%**).\n\n"
+                        f"Bạn có thể yêu cầu trích xuất chi tiết bằng chứng và xu hướng đánh giá gần đây bất kỳ lúc nào!"
+                    ),
+                    (
+                        f"Dữ liệu phản hồi thực tế của khách sạn **{target_hotel['hotel_name']}** ({star_desc}):\n\n"
+                        f"• **Quy mô mẫu:** **{total_revs} đánh giá** đã được kiểm chứng.\n"
+                        f"• **Tỷ trọng khía cạnh {aspect_title}:** **{aspect_rev_count} bài** (chiếm **{aspect_pct:.1f}%** tổng khối lượng phản hồi).\n\n"
+                        f"Mô hình AI đã sẵn sàng phân tích cảm xúc và trích xuất câu nhận xét cụ thể."
+                    )
+                ]
+                direct_ans = random.choice(count_variants)
+            else:
+                count_variants_en = [
+                    (
+                        f"Review volume metrics for **{target_hotel['hotel_name']}** ({star_desc}, rated `{score:.1f}/5.0`):\n\n"
+                        f"• **Total Indexed Reviews:** **{total_revs} reviews**.\n"
+                        f"• **Reviews Mentioning {aspect_title}:** **{aspect_rev_count} reviews** (**{aspect_pct:.1f}%** of total volume).\n\n"
+                        f"Ready to extract concrete rationale spans and analyze sentiment trends."
+                    ),
+                    (
+                        f"Verified feedback distribution for **{target_hotel['hotel_name']}** ({star_desc}):\n\n"
+                        f"📊 **{aspect_rev_count} out of {total_revs} reviews** discuss **{aspect_title}** (**{aspect_pct:.1f}%** share).\n\n"
+                        f"Ready to evaluate neural aspect sentiment and temporal trends."
+                    )
+                ]
+                direct_ans = random.choice(count_variants_en)
+
+            return {
+                "text": direct_ans,
+                "direct_answer": direct_ans,
+                "hotel": target_hotel['hotel_name'],
+                "aspect": target_aspect,
+                "sentiment": "Neutral",
+                "confidence": 1.0,
+                "evidence": f"{aspect_rev_count}/{total_revs} reviews",
+                "citations": [],
+                "original_reviews": [],
+                "star_desc": star_desc,
+                "score": score,
+                "aspect_count": aspect_rev_count,
+                "total_reviews": total_revs,
+                "aspect_pct": round(aspect_pct, 1),
+                "context_applied": was_coref
+            }
+
+        # Xử lý Intent Vị trí / Địa chỉ -> Tích hợp Google Maps API Card
+        if intent == 'location':
+            raw_star = str(target_hotel.get('star', '')).replace('-star', '').replace('star', '').strip()
+            star_desc = f"{raw_star} sao" if (raw_star and raw_star != '0' and is_vi) else (f"{raw_star}-star" if raw_star else "Standard")
+
+            hotel_name = target_hotel['hotel_name']
+            hotel_address = target_hotel['hotel_address']
+            score = target_hotel['score']
+
+            # Tạo link Google Maps và embed iframe (Hoạt động không cần API key thông qua Google Maps Embed)
+            maps_query = f"{hotel_name}, {hotel_address}"
+            q_encoded = urllib.parse.quote(maps_query)
+            embed_url = f"https://maps.google.com/maps?q={q_encoded}&t=&z=15&ie=UTF8&iwloc=&output=embed"
+            search_url = f"https://www.google.com/maps/search/?api=1&query={q_encoded}"
+
+            if is_vi:
+                loc_variants = [
+                    (
+                        f"Khách sạn **{hotel_name}** ({star_desc}, Đánh giá `{score:.1f}/5.0` sao) tọa lạc tại địa chỉ:\n"
+                        f"📍 **{hotel_address}** (Khu vực: {target_hotel.get('location', '')})."
+                    ),
+                    (
+                        f"Về vị trí, **{hotel_name}** ({star_desc}, xếp hạng `{score:.1f}/5.0` sao) nằm tại:\n"
+                        f"📍 **{hotel_address}** (Địa bàn: {target_hotel.get('location', '')}).\n"
+                        f"Bạn có thể xem bản đồ tương tác và đường đi trực tiếp phía dưới."
+                    ),
+                    (
+                        f"Bạn có thể tìm thấy khách sạn **{hotel_name}** ({star_desc}, điểm `{score:.1f}/5.0` sao) tại địa chỉ chuẩn xác:\n"
+                        f"📍 **{hotel_address}** ({target_hotel.get('location', '')})."
+                    )
+                ]
+                direct_ans = random.choice(loc_variants)
+            else:
+                loc_variants_en = [
+                    (
+                        f"**{hotel_name}** ({star_desc}, Rated `{score:.1f}/5.0`) is located at:\n"
+                        f"📍 **{hotel_address}** (Region: {target_hotel.get('location', '')})."
+                    ),
+                    (
+                        f"You can find **{hotel_name}** ({star_desc}, `{score:.1f}/5.0` stars) at:\n"
+                        f"📍 **{hotel_address}** (Area: {target_hotel.get('location', '')}).\n"
+                        f"Interactive Google Maps and navigation directions are embedded below."
+                    )
+                ]
+                direct_ans = random.choice(loc_variants_en)
+
+            return {
+                "text": direct_ans,
+                "direct_answer": direct_ans,
+                "hotel": hotel_name,
+                "aspect": "Location",
+                "sentiment": "Neutral",
+                "confidence": 1.0,
+                "evidence": hotel_address,
+                "citations": [],
+                "original_reviews": [],
+                "context_applied": was_coref,
+                "map_card": {
+                    "hotel_name": hotel_name,
+                    "address": hotel_address,
+                    "location": target_hotel.get('location', ''),
+                    "star": star_desc,
+                    "score": score,
+                    "embed_url": embed_url,
+                    "search_url": search_url
+                }
+            }
+
+        # Xử lý Aspect QA Đa đánh giá với Feature 10
+        candidates = self.aggregator.select_candidate_reviews(target_hotel, target_aspect, top_k=4)
+        if not candidates:
+            msg = f"Chưa có đủ đánh giá chi tiết cho **{target_hotel['hotel_name']}** về khía cạnh này." if is_vi else f"No detailed reviews available for **{target_hotel['hotel_name']}** on this aspect."
             return {
                 "text": msg,
+                "direct_answer": msg,
                 "hotel": target_hotel['hotel_name'],
                 "aspect": target_aspect,
                 "sentiment": "Neutral",
                 "confidence": 0.5,
                 "evidence": None,
+                "citations": [],
+                "original_reviews": [],
                 "context_applied": was_coref
             }
 
-        # Select most relevant review for the target aspect
-        best_review = reviews[0]
-        max_matches = -1
-        kws = ASPECT_KEYWORDS.get(target_aspect, [])
-        for r in reviews[:20]:
-            cnt = sum(1 for kw in kws if kw in r['text'].lower())
-            if cnt > max_matches:
-                max_matches = cnt
-                best_review = r
-
-        context_text = best_review['text']
-        dense_feat_vec = best_review['features']
-
-        # Neural Inference with HotelAspectQA_BERT
-        model_query = f"How is the {target_aspect.lower()} at {target_hotel['hotel_name']}?" if is_vi else user_query
-        inputs = self.tokenizer(
-            model_query,
-            context_text,
-            max_length=256,
-            truncation='only_second',
-            padding='max_length',
-            return_offsets_mapping=True,
-            return_tensors='pt'
+        # Chạy suy luận mạng nơ-ron đa review đồng thời
+        agg_result = self.aggregator.run_batched_inference(
+            candidates,
+            user_query,
+            target_hotel['hotel_name'],
+            target_aspect,
+            is_vi
         )
 
-        offset_mapping = inputs.pop('offset_mapping')[0].tolist()
-        input_ids = inputs['input_ids'].to(self.device)
-        attention_mask = inputs['attention_mask'].to(self.device)
-        token_type_ids = inputs['token_type_ids'].to(self.device) if 'token_type_ids' in inputs else None
-        feat_tensor = torch.tensor([dense_feat_vec], dtype=torch.float, device=self.device)
+        # Tổng hợp câu trả lời tự nhiên
+        direct_answer = ConversationalNLGSynthesizer.synthesize(target_hotel, target_aspect, agg_result, is_vi)
 
-        with torch.no_grad():
-            preds = self.model(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                token_type_ids=token_type_ids,
-                dense_features=feat_tensor
-            )
+        # Chuẩn bị danh sách trích dẫn dẫn chứng (Citations)
+        citations = []
+        for r in agg_result.get('reviews', []):
+            citations.append({
+                'span': r['span'],
+                'date': r['date'],
+                'score': r['score'],
+                'sentiment': r['sentiment'],
+                'recency_weight': r['recency_weight'],
+                'weight_pct': r['weight_pct']
+            })
 
-        start_logits = preds['start_logits'][0].cpu().numpy()
-        end_logits = preds['end_logits'][0].cpu().numpy()
-        tt = token_type_ids[0].cpu().numpy() if token_type_ids is not None else None
+        # Chuẩn bị danh sách đánh giá gốc đầy đủ (được ẩn dưới dạng collapsible trong UI)
+        original_reviews = []
+        for r in agg_result.get('reviews', []):
+            original_reviews.append({
+                'review_id': r['review_id'],
+                'date': r['date'],
+                'score': r['score'],
+                'sentiment': r['sentiment'],
+                'text': r['text'],
+                'weight_pct': r['weight_pct']
+            })
 
-        has_ans_raw = preds.get('has_answer_logits', preds.get('has_ans_logits'))
-        if has_ans_raw.squeeze().dim() > 0:
-            has_ans_prob = float(torch.sigmoid(has_ans_raw.squeeze())[0].item())
-        else:
-            has_ans_prob = float(torch.sigmoid(has_ans_raw.squeeze()).item())
+        # Fallback text cho các client markdown thông thường
+        aspect_label = ASPECT_TRANSLATIONS.get(target_aspect, {}).get('vi' if is_vi else 'en', target_aspect)
+        coref_note = " *(Đã liên kết ngữ cảnh từ câu trước)*" if was_coref else ""
+        fallback_text = (
+            f"{direct_answer}\n\n"
+            f"**Dẫn chứng tiêu biểu:**\n> \"{citations[0]['span'] if citations else ''}\"\n\n"
+            f"• **Khía cạnh:** {aspect_label}\n"
+            f"• **Cảm xúc tổng thể:** {agg_result.get('consensus_sentiment')}{coref_note}"
+        )
 
-        pred_aspect = ASPECTS[preds['aspect_logits'][0].argmax(-1).item()]
-        pred_sentiment = SENTIMENTS[preds['sentiment_logits'][0].argmax(-1).item()]
-
-        # Extract Evidence Span from raw review text constrained to context tokens
-        best_score = -1e9
-        best_s, best_e = 0, 0
-        seq_len = len(start_logits)
-
-        if tt is not None:
-            for s in range(1, seq_len):
-                if tt[s] != 1:
-                    continue
-                for e in range(s, min(s + 45, seq_len)):
-                    if tt[e] != 1:
-                        break
-                    sc = start_logits[s] + end_logits[e]
-                    if sc > best_score:
-                        best_score = sc
-                        best_s, best_e = s, e
-
-        if best_e >= best_s and best_score > -1e9 and best_s < len(offset_mapping) and best_e < len(offset_mapping):
-            char_s = offset_mapping[best_s][0]
-            char_e = offset_mapping[best_e][1]
-            if char_e > char_s and (char_e - char_s) > 10:
-                answer_span = context_text[char_s:char_e].strip()
-            else:
-                answer_span = context_text[:160].strip() + ("..." if len(context_text) > 160 else "")
-        else:
-            answer_span = context_text[:160].strip() + ("..." if len(context_text) > 160 else "")
-
-        aspect_label = ASPECT_TRANSLATIONS.get(pred_aspect, {}).get('vi' if is_vi else 'en', pred_aspect)
-        sentiment_label = SENTIMENT_TRANSLATIONS.get(pred_sentiment, {}).get('vi' if is_vi else 'en', pred_sentiment)
-
-        if is_vi:
-            coref_note = " *(Đã liên kết ngữ cảnh từ câu trước)*" if was_coref else ""
-            formatted_response = (
-                f"Trích xuất từ đánh giá của khách hàng về **{target_hotel['hotel_name']}**{coref_note}:\n\n"
-                f"> \"{answer_span}\"\n\n"
-                f"• **Khía cạnh:** {aspect_label}\n"
-                f"• **Cảm xúc:** {sentiment_label}"
-            )
-        else:
-            coref_note = " *(Context linked from prior turn)*" if was_coref else ""
-            formatted_response = (
-                f"Extracted evidence from guest reviews for **{target_hotel['hotel_name']}**{coref_note}:\n\n"
-                f"> \"{answer_span}\"\n\n"
-                f"• **Aspect Domain:** {aspect_label}\n"
-                f"• **Guest Sentiment:** {sentiment_label}"
-            )
+        aspect_rev_count = sum(1 for r in target_hotel.get('reviews', []) if target_aspect in r.get('present_aspects', []))
+        aspect_pct = (aspect_rev_count / total_revs * 100) if total_revs > 0 else 0
 
         return {
-            "text": formatted_response,
+            "text": fallback_text,
+            "direct_answer": direct_answer,
             "hotel": target_hotel['hotel_name'],
-            "aspect": pred_aspect,
-            "sentiment": pred_sentiment,
-            "confidence": round(has_ans_prob, 3),
-            "evidence": answer_span,
+            "aspect": target_aspect,
+            "sentiment": agg_result.get('consensus_sentiment'),
+            "confidence": 0.95,
+            "evidence": citations[0]['span'] if citations else None,
+            "citations": citations,
+            "original_reviews": original_reviews,
+            "trend_label": agg_result.get('trend_label'),
+            "star_desc": star_desc,
+            "score": score,
+            "aspect_count": aspect_rev_count,
+            "total_reviews": total_revs,
+            "aspect_pct": round(aspect_pct, 1),
             "context_applied": was_coref
         }
 
 # Global Bot Instance
 BOT = None
+
 
 # ---------------------------------------------------------------------------
 # Modern Floating Glass UI (HTML5 / CSS3 / JS)
@@ -564,6 +1312,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
         :root {
             --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
             
             /* Dark Theme (Default) */
             --bg-canvas: #090d16;
@@ -677,10 +1429,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
             position: relative;
             z-index: 1;
             display: flex;
-            width: 100vw;
+            width: 100%;
             height: 100vh;
+            height: 100dvh;
             padding: 16px;
             gap: 16px;
+            box-sizing: border-box;
         }
 
         /* Floating Glass Sidebar (Zero Top Bar, Clean & Minimal) */
@@ -696,13 +1450,25 @@ HTML_PAGE = r"""<!DOCTYPE html>
             box-shadow: var(--shadow-float);
             display: flex;
             flex-direction: column;
-            padding: 24px 20px;
-            gap: 20px;
+            padding: 20px 18px;
+            gap: 16px;
             overflow-y: auto;
-            scrollbar-width: none;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-glass) transparent;
         }
         aside.floating-sidebar::-webkit-scrollbar {
-            display: none;
+            width: 5px;
+        }
+        aside.floating-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        aside.floating-sidebar::-webkit-scrollbar-thumb {
+            background: var(--border-glass);
+            border-radius: 10px;
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 6px;
         }
 
         /* Sidebar Brand */
@@ -966,18 +1732,15 @@ HTML_PAGE = r"""<!DOCTYPE html>
             overflow: hidden;
         }
 
-        /* Message Scroll View with Edge Fade Mask */
+        /* Message Scroll View */
         .chat-messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: 32px 48px 100px 48px;
+            padding: 28px 40px 100px 40px;
             display: flex;
             flex-direction: column;
             gap: 20px;
             scroll-behavior: smooth;
-            
-            mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
-            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
         }
         .chat-messages-container::-webkit-scrollbar {
             width: 6px;
@@ -1046,6 +1809,44 @@ HTML_PAGE = r"""<!DOCTYPE html>
             border-top-right-radius: 4px;
             max-width: 70%;
         }
+        .chat-row.bot .bubble-content.welcome-bubble {
+            max-width: 100%;
+        }
+        .welcome-suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .suggestion-chip {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm, 8px);
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-align: left;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: inherit;
+        }
+        [data-theme="light"] .suggestion-chip {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        .suggestion-chip:hover {
+            background: var(--accent-glow);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+        .suggestion-chip .chip-icon {
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
 
         .qa-card-meta {
             margin-top: 14px;
@@ -1101,6 +1902,231 @@ HTML_PAGE = r"""<!DOCTYPE html>
             font-style: italic;
             color: var(--text-secondary);
             line-height: 1.5;
+        }
+
+        /* Google Maps Interactive Card */
+        .map-card-container {
+            margin-top: 14px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 14px;
+        }
+        [data-theme="light"] .map-card-container {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        .map-hotel-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .map-hotel-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .map-hotel-tags {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 0.78rem;
+        }
+        .map-address-line {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            line-height: 1.4;
+        }
+        .map-frame-wrapper {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-glass-subtle);
+        }
+        .map-frame-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        .map-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .map-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-decoration: none;
+            background: var(--accent-primary);
+            color: #ffffff;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+        .map-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .map-btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border-glass);
+        }
+        [data-theme="light"] .map-btn-secondary {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Evidence Citations Section */
+        .evidence-section {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .evidence-header {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .evidence-card {
+            background: rgba(0, 0, 0, 0.22);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 0 12px 12px 0;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        [data-theme="light"] .evidence-card {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        .evidence-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+        }
+        .evidence-badge {
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.72rem;
+        }
+        .evidence-badge.time-weight {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .evidence-badge.positive {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+        .evidence-badge.negative {
+            background: rgba(244, 63, 94, 0.15);
+            color: #fb7185;
+        }
+        .evidence-badge.neutral {
+            background: rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
+        }
+        .evidence-quote-text {
+            font-style: italic;
+            color: var(--text-primary);
+            line-height: 1.5;
+            font-size: 0.88rem;
+        }
+
+        /* Collapsible Original Reviews Container */
+        details.original-reviews-toggle {
+            margin-top: 14px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.25s ease;
+        }
+        [data-theme="light"] details.original-reviews-toggle {
+            background: rgba(0, 0, 0, 0.02);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        details.original-reviews-toggle summary {
+            padding: 10px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        details.original-reviews-toggle summary::-webkit-details-marker {
+            display: none;
+        }
+        details.original-reviews-toggle summary:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+        details.original-reviews-toggle[open] summary {
+            border-bottom: 1px solid var(--border-glass-subtle);
+            color: var(--accent-primary);
+        }
+        .original-reviews-content {
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+        .review-full-item {
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass-subtle);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        [data-theme="light"] .review-full-item {
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .review-full-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+        }
+        .review-full-body {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            white-space: pre-wrap;
         }
         [data-theme="light"] .quote-evidence {
             background: rgba(0, 0, 0, 0.04);
@@ -1265,6 +2291,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
             main.floating-chat-canvas {
                 min-height: 56vh;
             }
+            .chat-messages-container {
+                padding: 16px 14px 90px 14px;
+            }
             .floating-input-wrapper {
                 width: 92%;
                 bottom: 12px;
@@ -1361,32 +2390,36 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- Suggested Multi-Turn Queries -->
+            <!-- Natural Language Capabilities Guide -->
             <div class="sidebar-section">
                 <div class="section-label">
-                    <svg class="icon-svg sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    Suggested Prompts
+                    <svg class="icon-svg sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    Hỏi đáp Ngôn ngữ Tự do
                 </div>
-                <div class="suggestions-list">
-                    <button type="button" class="suggestion-item" onclick="sendSuggested('Where is Muong Thanh hotel located?')">
-                        <strong>Turn 1:</strong> Where is Muong Thanh hotel located?
-                    </button>
-                    <button type="button" class="suggestion-item" onclick="sendSuggested('How are the rooms in that hotel?')">
-                        <strong>Turn 2:</strong> How are the rooms in that hotel?
-                    </button>
-                    <button type="button" class="suggestion-item" onclick="sendSuggested('How is the customer service there?')">
-                        <strong>Turn 3:</strong> How is the customer service there?
-                    </button>
-                    <button type="button" class="suggestion-item" onclick="sendSuggested('How is the breakfast at Pullman Hanoi?')">
-                        <strong>Turn 4:</strong> How is the breakfast at Pullman Hanoi?
-                    </button>
+                <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="padding: 6px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm);">
+                        <strong style="color: var(--text-primary); display: block; margin-bottom: 2px;">📍 Vị trí & Google Maps:</strong>
+                        Hỏi địa chỉ/vị trí bất kỳ khách sạn nào để xem bản đồ tương tác trực tiếp.
+                    </div>
+                    <div style="padding: 6px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm);">
+                        <strong style="color: var(--text-primary); display: block; margin-bottom: 2px;">⭐ Xếp hạng sao & Số lượng:</strong>
+                        Hỏi khách sạn mấy sao hoặc có bao nhiêu đánh giá về khía cạnh cụ thể.
+                    </div>
+                    <div style="padding: 6px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm);">
+                        <strong style="color: var(--text-primary); display: block; margin-bottom: 2px;">⚡ Phân tích Đa đánh giá (Feature 10):</strong>
+                        Ưu tiên đánh giá gần đây để tổng hợp câu trả lời tự nhiên và trích dẫn gốc.
+                    </div>
+                    <div style="padding: 6px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm);">
+                        <strong style="color: var(--text-primary); display: block; margin-bottom: 2px;">💬 Hội thoại đa lượt:</strong>
+                        Dùng đại từ "khách sạn này", "ở đó thế nào" mà không cần gõ lại tên.
+                    </div>
                 </div>
             </div>
 
             <div class="sidebar-footer">
-                <button class="glass-btn glass-btn-secondary" id="clear-btn" style="width: 100%; justify-content: center;">
+                <button class="glass-btn glass-btn-secondary" id="clear-btn" style="width: 100%; justify-content: center; gap: 8px;">
                     <svg class="icon-svg sm" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                    Reset Dialogue State
+                    <span>Làm mới hội thoại (Reset)</span>
                 </button>
             </div>
         </aside>
@@ -1398,23 +2431,40 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     <div class="avatar-box bot">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                     </div>
-                    <div class="bubble-content">
-                        <strong>Welcome to AspectQA Hotel Intelligence</strong>
-                        <p style="margin-top: 6px; color: var(--text-secondary);">
-                            Multi-task conversational QA system trained across all <strong>2,622 hotels</strong> in Vietnam.
-                            Ask questions about hotel locations or the 6 core aspect domains:
-                            <em>Service, Facility, Experience, Amenity, Loyalty,</em> and <em>Branding</em>.
+                    <div class="bubble-content welcome-bubble">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                            <strong style="font-size: 1.02rem; color: var(--text-primary);">Xin chào! Chào mừng bạn đến với Hotel Aspect QA Assistant</strong>
+                            <span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(59, 130, 246, 0.15); color: var(--accent-primary); font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.3);">v2.0 Neural</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.55; margin-bottom: 12px;">
+                            Hệ thống hỗ trợ 100% <strong>ngôn ngữ tự nhiên tự do</strong> bằng Tiếng Việt hoặc Tiếng Anh, chạy trực tiếp trên checkpoint <code>model.pt</code>.<br>
+                            Bạn có thể tự do gõ câu hỏi bất kỳ, hoặc chọn nhanh các câu hỏi gợi ý bên dưới:
                         </p>
-                        <p style="margin-top: 6px; font-size: 0.8rem; color: var(--text-muted);">
-                            Original guest review evidence is retrieved and exact rationale spans are extracted. Contextual pronouns (<em>"khách sạn đó"</em>, <em>"that hotel"</em>, <em>"there"</em>) are resolved across multi-turn dialogue.
-                        </p>
+                        <div class="welcome-suggestions-grid">
+                            <button type="button" class="suggestion-chip" onclick="sendSuggested('Khách sạn Pullman Hà Nội mấy sao và ở đâu?')">
+                                <span class="chip-icon">📍</span>
+                                <span>Pullman Hà Nội mấy sao và ở đâu?</span>
+                            </button>
+                            <button type="button" class="suggestion-chip" onclick="sendSuggested('Chất lượng dịch vụ và nhân viên ở Pullman Hà Nội dạo gần đây thế nào?')">
+                                <span class="chip-icon">⚡</span>
+                                <span>Dịch vụ & nhân viên Pullman gần đây?</span>
+                            </button>
+                            <button type="button" class="suggestion-chip" onclick="sendSuggested('Có bao nhiêu đánh giá về phòng ốc ở khách sạn này?')">
+                                <span class="chip-icon">💬</span>
+                                <span>Bao nhiêu đánh giá về phòng ở khách sạn này?</span>
+                            </button>
+                            <button type="button" class="suggestion-chip" onclick="sendSuggested('Salinda Resort Phú Quốc phục vụ ăn uống có ngon không?')">
+                                <span class="chip-icon">⭐</span>
+                                <span>Salinda Resort ăn uống có ngon không?</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="floating-input-wrapper">
                 <form class="floating-input-bar" id="chat-form">
-                    <input type="text" class="prompt-input" id="prompt-input" placeholder="Ask about any hotel or aspect (e.g. 'How are the rooms at Muong Thanh?')..." autocomplete="off">
+                    <input type="text" class="prompt-input" id="prompt-input" placeholder="Ask about any hotel or aspect..." autocomplete="off">
                     <button type="submit" class="send-btn" id="send-btn" title="Send Query">
                         <svg class="icon-svg" viewBox="0 0 24 24">
                             <line x1="22" y1="2" x2="11" y2="13"/>
@@ -1506,26 +2556,73 @@ HTML_PAGE = r"""<!DOCTYPE html>
             }
         });
 
-        clearBtn.addEventListener('click', async () => {
-            await fetch('/api/clear', {method: 'POST'});
-            chatBox.innerHTML = `
-                <div class="chat-row bot">
-                    <div class="avatar-box bot">
-                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        let clientSessionId = 'sess_' + Math.random().toString(36).substring(2, 12);
+
+        const WELCOME_CARD_HTML = `
+            <div class="chat-row bot">
+                <div class="avatar-box bot">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <div class="bubble-content welcome-bubble">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                        <strong style="font-size: 1.02rem; color: var(--text-primary);">Xin chào! Chào mừng bạn đến với Hotel Aspect QA Assistant</strong>
+                        <span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(59, 130, 246, 0.15); color: var(--accent-primary); font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.3);">v2.0 Neural</span>
                     </div>
-                    <div class="bubble-content">
-                        <strong>Dialogue State Reset</strong>
-                        <p style="margin-top: 4px; color: var(--text-secondary);">Context memory cleared. You may start a fresh conversation with any of the 2,622 hotels.</p>
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.55; margin-bottom: 12px;">
+                        Hệ thống hỗ trợ 100% <strong>ngôn ngữ tự nhiên tự do</strong> bằng Tiếng Việt hoặc Tiếng Anh, chạy trực tiếp trên checkpoint <code>model.pt</code>.<br>
+                        Bạn có thể tự do gõ câu hỏi bất kỳ, hoặc chọn nhanh các câu hỏi gợi ý bên dưới:
+                    </p>
+                    <div class="welcome-suggestions-grid">
+                        <button type="button" class="suggestion-chip" onclick="sendSuggested('Khách sạn Pullman Hà Nội mấy sao và ở đâu?')">
+                            <span class="chip-icon">📍</span>
+                            <span>Pullman Hà Nội mấy sao và ở đâu?</span>
+                        </button>
+                        <button type="button" class="suggestion-chip" onclick="sendSuggested('Chất lượng dịch vụ và nhân viên ở Pullman Hà Nội dạo gần đây thế nào?')">
+                            <span class="chip-icon">⚡</span>
+                            <span>Dịch vụ & nhân viên Pullman gần đây?</span>
+                        </button>
+                        <button type="button" class="suggestion-chip" onclick="sendSuggested('Có bao nhiêu đánh giá về phòng ốc ở khách sạn này?')">
+                            <span class="chip-icon">💬</span>
+                            <span>Bao nhiêu đánh giá về phòng ở khách sạn này?</span>
+                        </button>
+                        <button type="button" class="suggestion-chip" onclick="sendSuggested('Salinda Resort Phú Quốc phục vụ ăn uống có ngon không?')">
+                            <span class="chip-icon">⭐</span>
+                            <span>Salinda Resort ăn uống có ngon không?</span>
+                        </button>
                     </div>
                 </div>
-            `;
-            showToast('Dialogue context reset successfully', 'success');
-        });
+            </div>
+        `;
 
         window.sendSuggested = function(text) {
             promptInput.value = text;
             handleSend(text);
         };
+
+        function renderWelcome() {
+            chatBox.innerHTML = WELCOME_CARD_HTML;
+            chatBox.scrollTop = 0;
+        }
+
+        clearBtn.addEventListener('click', async () => {
+            clearBtn.disabled = true;
+            try {
+                await fetch('/api/clear', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_id: clientSessionId})
+                });
+                clientSessionId = 'sess_' + Math.random().toString(36).substring(2, 12);
+                renderWelcome();
+                promptInput.value = '';
+                promptInput.focus();
+                showToast('Đã làm mới phiên hội thoại thành công (Reset)', 'success');
+            } catch (err) {
+                showToast('Lỗi khi làm mới phiên: ' + err, 'error');
+            } finally {
+                clearBtn.disabled = false;
+            }
+        });
 
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1544,7 +2641,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({query: text})
+                    body: JSON.stringify({query: text, session_id: clientSessionId})
                 });
                 const data = await res.json();
                 typingEl.remove();
@@ -1597,14 +2694,129 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
             let metaHtml = '';
             if (data.aspect) {
-                metaHtml += `<span class="meta-tag aspect">Domain: ${data.aspect}</span>`;
+                metaHtml += `<span class="meta-tag aspect">Domain: ${escapeHtml(data.aspect)}</span>`;
             }
             if (data.sentiment) {
                 const sCls = data.sentiment.toLowerCase();
-                metaHtml += `<span class="meta-tag ${sCls}">Sentiment: ${data.sentiment}</span>`;
+                metaHtml += `<span class="meta-tag ${sCls}">Sentiment: ${escapeHtml(data.sentiment)}</span>`;
+            }
+            if (data.star_desc) {
+                metaHtml += `<span class="meta-tag" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);">★ ${escapeHtml(data.star_desc)}</span>`;
+            }
+            if (data.aspect_count !== undefined && data.total_reviews !== undefined) {
+                metaHtml += `<span class="meta-tag" style="background:rgba(16,185,129,0.15);color:#34d399;border-color:rgba(16,185,129,0.3);">📊 ${data.aspect_count}/${data.total_reviews} Đánh giá (${data.aspect_pct}%)</span>`;
+            }
+            if (data.trend_label) {
+                metaHtml += `<span class="meta-tag coref" style="background:rgba(59,130,246,0.12);color:#60a5fa;border-color:rgba(59,130,246,0.3);">⚡ ${escapeHtml(data.trend_label)}</span>`;
             }
             if (data.context_applied) {
                 metaHtml += `<span class="meta-tag coref">Context Resolved</span>`;
+            }
+
+            // 1. Câu trả lời đàm thoại trực tiếp
+            const answerText = data.direct_answer || data.text || '';
+            let contentHtml = `<div>${formatMarkdown(answerText)}</div>`;
+
+            // 2. Thẻ Google Maps tương tác (khi hỏi vị trí/địa chỉ)
+            if (data.map_card) {
+                const mc = data.map_card;
+                const starBadge = mc.star ? `<span class="badge star" style="background:rgba(245,158,11,0.15);color:#fbbf24;padding:2px 6px;border-radius:4px;font-weight:600;">★ ${escapeHtml(mc.star)}</span>` : '';
+                const scoreBadge = mc.score ? `<span class="badge score" style="background:rgba(16,185,129,0.15);color:#34d399;padding:2px 6px;border-radius:4px;font-weight:600;">Rating ${mc.score}/5.0</span>` : '';
+                
+                contentHtml += `
+                    <div class="map-card-container">
+                        <div class="map-hotel-info">
+                            <div class="map-hotel-title">${escapeHtml(mc.hotel_name)}</div>
+                            <div class="map-hotel-tags">
+                                ${starBadge} ${scoreBadge}
+                            </div>
+                            <div class="map-address-line">
+                                <span>📍</span>
+                                <span>${escapeHtml(mc.address)}</span>
+                            </div>
+                        </div>
+                        <div class="map-frame-wrapper">
+                            <iframe 
+                                src="${escapeHtml(mc.embed_url)}" 
+                                loading="lazy" 
+                                referrerpolicy="no-referrer-when-downgrade">
+                            </iframe>
+                        </div>
+                        <div class="map-actions">
+                            <a href="${escapeHtml(mc.search_url)}" target="_blank" class="map-btn">
+                                <svg class="icon-svg" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+                                Mở trong Google Maps (Open in Maps)
+                            </a>
+                            <button class="map-btn map-btn-secondary" data-address="${escapeHtml(mc.address)}" onclick="copyHotelAddress(this)">
+                                <svg class="icon-svg" style="width:14px;height:14px;" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                Sao chép địa chỉ
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 3. Dẫn chứng trích xuất từ đánh giá khách hàng (Key Evidence Citations)
+            if (data.citations && data.citations.length > 0) {
+                let citationsHtml = `
+                    <div class="evidence-section">
+                        <div class="evidence-header">
+                            <span>📌</span>
+                            <span>Dẫn chứng trích xuất từ đánh giá khách hàng (Key Evidence Citations)</span>
+                        </div>
+                `;
+                for (const c of data.citations) {
+                    const sentClass = (c.sentiment || '').toLowerCase();
+                    const weightPct = c.weight_pct !== undefined ? `${c.weight_pct}%` : '';
+                    citationsHtml += `
+                        <div class="evidence-card">
+                            <div class="evidence-meta-row">
+                                <span>📅 ${escapeHtml(c.date || '')}</span>
+                                <span>⭐ ${c.score || ''}/5.0</span>
+                                <span class="evidence-badge ${sentClass}">${escapeHtml(c.sentiment || '')}</span>
+                                ${weightPct ? `<span class="evidence-badge time-weight">⚡ Trọng số thời gian: ${weightPct}</span>` : ''}
+                            </div>
+                            <div class="evidence-quote-text">"${escapeHtml(c.span)}"</div>
+                        </div>
+                    `;
+                }
+                citationsHtml += `</div>`;
+                contentHtml += citationsHtml;
+            }
+
+            // 4. Khối ẩn chứa đánh giá gốc (Collapsible Original Reviews - Nhấn để mở xem)
+            if (data.original_reviews && data.original_reviews.length > 0) {
+                let reviewsHtml = `
+                    <details class="original-reviews-toggle">
+                        <summary>
+                            <span>🔍 Xem toàn bộ đánh giá gốc (View original reviews) • ${data.original_reviews.length} đánh giá</span>
+                            <span style="font-size:0.75rem;opacity:0.7;">▼ Nhấn để mở</span>
+                        </summary>
+                        <div class="original-reviews-content">
+                `;
+                for (let idx = 0; idx < data.original_reviews.length; idx++) {
+                    const r = data.original_reviews[idx];
+                    const sentClass = (r.sentiment || '').toLowerCase();
+                    const weightPct = r.weight_pct !== undefined ? `${r.weight_pct}%` : '';
+                    reviewsHtml += `
+                        <div class="review-full-item">
+                            <div class="review-full-header">
+                                <span style="font-weight:600;">Đánh giá #${idx + 1} &bull; 📅 ${escapeHtml(r.date || '')}</span>
+                                <div>
+                                    <span style="margin-right:6px;">⭐ ${r.score || ''}/5.0</span>
+                                    <span class="evidence-badge ${sentClass}">${escapeHtml(r.sentiment || '')}</span>
+                                    ${weightPct ? `<span class="evidence-badge time-weight">Trọng số: ${weightPct}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="review-full-body">${escapeHtml(r.text || '')}</div>
+                        </div>
+                    `;
+                }
+                reviewsHtml += `
+                        </div>
+                    </details>
+                `;
+                contentHtml += reviewsHtml;
             }
 
             row.innerHTML = `
@@ -1612,7 +2824,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                 </div>
                 <div class="bubble-content">
-                    <div>${formatMarkdown(data.text)}</div>
+                    ${contentHtml}
                     ${metaHtml ? `<div class="qa-card-meta">${metaHtml}</div>` : ''}
                 </div>
             `;
@@ -1650,6 +2862,25 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 toast.style.animation = 'toastOut 0.3s forwards';
                 setTimeout(() => toast.remove(), 300);
             }, 3500);
+        }
+
+        function copyHotelAddress(btn) {
+            const addr = btn.getAttribute('data-address') || '';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(addr).then(() => {
+                    showToast('Đã sao chép địa chỉ!', 'success');
+                }).catch(() => {
+                    showToast('Không thể sao chép địa chỉ', 'error');
+                });
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = addr;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+                showToast('Đã sao chép địa chỉ!', 'success');
+            }
         }
 
         function escapeHtml(str) {
@@ -1715,6 +2946,10 @@ class QAChatHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         url = urllib.parse.urlparse(self.path)
         content_length = int(self.headers.get('Content-Length', 0))
+        if content_length > 1_000_000:
+            self.send_error(413, "Payload Too Large")
+            return
+
         post_data = self.rfile.read(content_length)
 
         try:
@@ -1722,41 +2957,61 @@ class QAChatHandler(BaseHTTPRequestHandler):
         except Exception:
             body = {}
 
-        if url.path == '/api/chat':
-            user_query = body.get('query', '').strip()
-            if not user_query:
-                response = {
-                    "text": "Empty query received.",
-                    "hotel": None,
-                    "aspect": None,
-                    "sentiment": None,
-                    "confidence": 0,
-                    "evidence": None,
-                    "context_applied": False
-                }
-            else:
-                response = BOT.answer_query(user_query)
+        session_id = body.get('session_id', 'default')
 
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+        if url.path == '/api/chat':
+            try:
+                user_query = body.get('query', '').strip()
+                if not user_query:
+                    response = {
+                        "text": "Empty query received.",
+                        "hotel": None,
+                        "aspect": None,
+                        "sentiment": None,
+                        "confidence": 0,
+                        "evidence": None,
+                        "context_applied": False
+                    }
+                else:
+                    response = BOT.answer_query(user_query, session_id=session_id)
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
 
         elif url.path == '/api/load_model':
-            m_path = body.get('model_path', 'model/model.pt').strip()
-            success, msg = BOT.load_checkpoint(m_path)
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps({'success': success, 'message': msg}).encode('utf-8'))
+            try:
+                m_path = body.get('model_path', 'model/model.pt').strip()
+                success, msg = BOT.load_checkpoint(m_path)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'success': success, 'message': msg}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'success': False, 'message': str(e)}).encode('utf-8'))
 
         elif url.path == '/api/clear':
-            if BOT:
-                BOT.state.reset()
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps({'success': True}).encode('utf-8'))
+            try:
+                if BOT:
+                    BOT.session_manager.reset_state(session_id)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'success': True}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'success': False, 'error': str(e)}).encode('utf-8'))
 
         else:
             self.send_response(404)
