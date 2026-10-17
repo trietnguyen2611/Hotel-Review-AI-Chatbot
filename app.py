@@ -16,7 +16,7 @@ from transformers import BertModel, BertTokenizerFast
 # Constants & Mappings
 # ---------------------------------------------------------------------------
 ASPECTS = ['Service', 'Facility', 'Experience', 'Amenity', 'Loyalty', 'Branding']
-SENTIMENTS = ['Positive', 'Negative', 'Neutral']
+SENTIMENTS = ['Negative', 'Positive', 'Neutral']
 
 ASPECT_TRANSLATIONS = {
     'Service': {'en': 'Customer Service & Staff', 'vi': 'Dịch vụ & Nhân viên'},
@@ -28,8 +28,8 @@ ASPECT_TRANSLATIONS = {
 }
 
 SENTIMENT_TRANSLATIONS = {
-    'Positive': {'en': 'Positive (Praise)', 'vi': 'Tích cực (Khen ngợi)'},
     'Negative': {'en': 'Negative (Complaint)', 'vi': 'Tiêu cực (Phàn nàn)'},
+    'Positive': {'en': 'Positive (Praise)', 'vi': 'Tích cực (Khen ngợi)'},
     'Neutral': {'en': 'Neutral (Mixed / Factual)', 'vi': 'Trung tính (Khách quan)'}
 }
 
@@ -84,77 +84,89 @@ def is_vietnamese_query(text: str) -> bool:
     return any(re.search(r'\b' + re.escape(w) + r'\b', t_lower) for w in VIETNAMESE_MARKERS)
 
 # ---------------------------------------------------------------------------
-# Multilingual Model Architecture (Exact match with Training_Kaggle.ipynb)
+# Model Architecture: HotelAspectQA_BERT with 10-Feature Dense Context Fusion
+# (Exact match with Training_Kaggle.ipynb and model/model.pt)
 # ---------------------------------------------------------------------------
-class FeatureDenseMLP(nn.Module):
-    def __init__(self, in_features=10, hidden_dim=64, out_dim=768, dropout_rate=0.2):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(in_features, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, out_dim)
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-
 class HotelAspectQA_BERT(nn.Module):
-    def __init__(self, model_name="bert-base-multilingual-cased", num_aspects=6, num_sentiments=3, feature_dim=10, dropout_rate=0.2):
+    def __init__(self, model_name="bert-base-uncased", num_aspects=6, num_sentiments=3, num_features=10):
         super().__init__()
+        self.num_aspects = num_aspects
+        self.num_sentiments = num_sentiments
+        self.num_features = num_features
+
         self.bert = BertModel.from_pretrained(model_name)
-        hidden_size = self.bert.config.hidden_size
+        h_dim = self.bert.config.hidden_size  # 768
 
-        self.feature_mlp = FeatureDenseMLP(in_features=feature_dim, hidden_dim=64, out_dim=hidden_size, dropout_rate=dropout_rate)
-        self.fusion_norm = nn.LayerNorm(hidden_size)
-
-        self.qa_outputs = nn.Linear(hidden_size, 2)
-        self.has_ans_classifier = nn.Sequential(
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_size, 2)
+        # 10 Engineered Features Projection Layer (Mục 5 Project.ipynb)
+        self.feature_proj = nn.Sequential(
+            nn.Linear(self.num_features, 64),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(64, h_dim)
         )
+
+        # 1. Span Extraction Head (Token-level: start & end logits)
+        self.qa_outputs = nn.Linear(h_dim, 2)
+
+        # 2. Aspect Classification Head (Sequence-level: 6 aspects)
         self.aspect_classifier = nn.Sequential(
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_size, num_aspects)
+            nn.Dropout(0.1),
+            nn.Linear(h_dim, h_dim // 2),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(h_dim // 2, self.num_aspects)
         )
+
+        # 3. Sentiment Classification Head (Sequence-level: 3 sentiments)
         self.sentiment_classifier = nn.Sequential(
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_size, num_sentiments)
+            nn.Dropout(0.1),
+            nn.Linear(h_dim, h_dim // 2),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(h_dim // 2, self.num_sentiments)
+        )
+
+        # 4. Answerability Verification Head (Binary logit)
+        self.has_answer_classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(h_dim, 1)
         )
 
     def forward(self, input_ids, attention_mask, token_type_ids=None, dense_features=None):
-        outputs = self.bert(
+        bert_outputs = self.bert(
             input_ids=input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
             return_dict=True
         )
 
-        seq_output = outputs.last_hidden_state
-        cls_output = outputs.pooler_output
+        sequence_rep = bert_outputs.last_hidden_state  # (B, L, 768)
+        pooled_rep = bert_outputs.pooler_output        # (B, 768)
 
+        # Residual-style context fusion with 10 features
         if dense_features is not None:
-            feat_projected = self.feature_mlp(dense_features)
-            fused_cls = self.fusion_norm(cls_output + feat_projected)
+            feat_emb = self.feature_proj(dense_features)  # (B, 768)
+            fused_rep = pooled_rep + feat_emb             # (B, 768)
         else:
-            fused_cls = cls_output
+            fused_rep = pooled_rep
 
-        qa_logits = self.qa_outputs(seq_output)
-        start_logits, end_logits = qa_logits.split(1, dim=-1)
-        start_logits = start_logits.squeeze(-1)
-        end_logits = end_logits.squeeze(-1)
+        # Span extraction logits
+        logits = self.qa_outputs(sequence_rep)         # (B, L, 2)
+        start_logits, end_logits = logits.split(1, dim=-1)
+        start_logits = start_logits.squeeze(-1)        # (B, L)
+        end_logits = end_logits.squeeze(-1)            # (B, L)
 
-        has_ans_logits = self.has_ans_classifier(fused_cls)
-        aspect_logits = self.aspect_classifier(fused_cls)
-        sentiment_logits = self.sentiment_classifier(fused_cls)
+        aspect_logits = self.aspect_classifier(fused_rep)        # (B, 6)
+        sentiment_logits = self.sentiment_classifier(fused_rep)  # (B, 3)
+        has_ans_logits = self.has_answer_classifier(fused_rep).squeeze(-1)  # (B,)
 
         return {
             'start_logits': start_logits,
             'end_logits': end_logits,
-            'has_ans_logits': has_ans_logits,
             'aspect_logits': aspect_logits,
-            'sentiment_logits': sentiment_logits
+            'sentiment_logits': sentiment_logits,
+            'has_answer_logits': has_ans_logits,
+            'has_ans_logits': has_ans_logits
         }
 
 # ---------------------------------------------------------------------------
@@ -256,9 +268,9 @@ class ConversationalQABot:
         self.state = DialogueState()
         self.model_loaded = False
         self.model_path = model_path
-        self.model_name = "bert-base-multilingual-cased"
+        self.model_name = "bert-base-uncased"
 
-        print(f"Initializing Multilingual BERT Tokenizer ({self.model_name})...")
+        print(f"Initializing BERT Tokenizer ({self.model_name})...")
         self.tokenizer = BertTokenizerFast.from_pretrained(self.model_name)
 
         print("Initializing Model Architecture...")
@@ -271,10 +283,12 @@ class ConversationalQABot:
         # Check candidate locations
         search_paths = [
             path,
-            os.path.join("model", os.path.basename(path)),
+            os.path.join("model", os.path.basename(path)) if path else None,
             "model/model.pt",
             "model.pt",
-            "../model/model.pt"
+            "../model/model.pt",
+            "model/hotel_aspect_qa_model/model.pt",
+            "model/hotel_aspect_qa_model/pytorch_model.bin"
         ]
         resolved_path = None
         for p in search_paths:
@@ -285,17 +299,18 @@ class ConversationalQABot:
         if resolved_path:
             try:
                 checkpoint = torch.load(resolved_path, map_location=self.device)
-                if 'model_state_dict' in checkpoint:
+                if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
                     self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
                 elif isinstance(checkpoint, dict):
                     self.model.load_state_dict(checkpoint, strict=False)
                 self.model_loaded = True
                 self.model_path = resolved_path
                 print(f"Successfully loaded checkpoint: {resolved_path}")
-                return True, f"Loaded weights from {resolved_path}"
+                return True, f"Loaded weights successfully from {resolved_path}"
             except Exception as e:
                 print(f"Error loading checkpoint {resolved_path}: {e}")
-                return False, str(e)
+                self.model_loaded = False
+                return False, f"Error loading checkpoint: {str(e)}"
         else:
             self.model_loaded = False
             self.model_path = path or "model/model.pt"
@@ -381,7 +396,12 @@ class ConversationalQABot:
 
         # Handle Location Intent
         if intent == 'location':
-            star_desc = f"{target_hotel['star']} sao" if is_vi else f"{target_hotel['star']}-star"
+            raw_star = str(target_hotel.get('star', '')).replace('-star', '').replace('star', '').strip()
+            if raw_star and raw_star != '0':
+                star_desc = f"{raw_star} sao" if is_vi else f"{raw_star}-star"
+            else:
+                star_desc = "Tiêu chuẩn" if is_vi else "Standard"
+
             if is_vi:
                 reply_text = (
                     f"**{target_hotel['hotel_name']}** ({star_desc}, Đánh giá {target_hotel['score']:.1f}/5.0) tọa lạc tại:\n"
@@ -429,50 +449,71 @@ class ConversationalQABot:
         context_text = best_review['text']
         dense_feat_vec = best_review['features']
 
-        # Neural Inference with Multilingual BERT
+        # Neural Inference with HotelAspectQA_BERT
+        model_query = f"How is the {target_aspect.lower()} at {target_hotel['hotel_name']}?" if is_vi else user_query
         inputs = self.tokenizer(
-            user_query,
+            model_query,
             context_text,
-            max_length=384,
+            max_length=256,
             truncation='only_second',
-            stride=128,
-            return_overflowing_tokens=False,
-            return_offsets_mapping=True,
             padding='max_length',
+            return_offsets_mapping=True,
             return_tensors='pt'
         )
 
         offset_mapping = inputs.pop('offset_mapping')[0].tolist()
         input_ids = inputs['input_ids'].to(self.device)
         attention_mask = inputs['attention_mask'].to(self.device)
+        token_type_ids = inputs['token_type_ids'].to(self.device) if 'token_type_ids' in inputs else None
         feat_tensor = torch.tensor([dense_feat_vec], dtype=torch.float, device=self.device)
 
         with torch.no_grad():
             preds = self.model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
                 dense_features=feat_tensor
             )
 
-        start_logits = preds['start_logits'][0].cpu()
-        end_logits = preds['end_logits'][0].cpu()
-        has_ans_prob = torch.softmax(preds['has_ans_logits'][0], dim=-1)[1].item()
+        start_logits = preds['start_logits'][0].cpu().numpy()
+        end_logits = preds['end_logits'][0].cpu().numpy()
+        tt = token_type_ids[0].cpu().numpy() if token_type_ids is not None else None
+
+        has_ans_raw = preds.get('has_answer_logits', preds.get('has_ans_logits'))
+        if has_ans_raw.squeeze().dim() > 0:
+            has_ans_prob = float(torch.sigmoid(has_ans_raw.squeeze())[0].item())
+        else:
+            has_ans_prob = float(torch.sigmoid(has_ans_raw.squeeze()).item())
+
         pred_aspect = ASPECTS[preds['aspect_logits'][0].argmax(-1).item()]
         pred_sentiment = SENTIMENTS[preds['sentiment_logits'][0].argmax(-1).item()]
 
-        # Extract Evidence Span from raw review text
-        start_idx = torch.argmax(start_logits).item()
-        end_idx = torch.argmax(end_logits).item()
+        # Extract Evidence Span from raw review text constrained to context tokens
+        best_score = -1e9
+        best_s, best_e = 0, 0
+        seq_len = len(start_logits)
 
-        if 0 < start_idx <= end_idx < len(offset_mapping) and (end_idx - start_idx) < 60:
-            char_s = offset_mapping[start_idx][0]
-            char_e = offset_mapping[end_idx][1]
-            if char_e > char_s:
+        if tt is not None:
+            for s in range(1, seq_len):
+                if tt[s] != 1:
+                    continue
+                for e in range(s, min(s + 45, seq_len)):
+                    if tt[e] != 1:
+                        break
+                    sc = start_logits[s] + end_logits[e]
+                    if sc > best_score:
+                        best_score = sc
+                        best_s, best_e = s, e
+
+        if best_e >= best_s and best_score > -1e9 and best_s < len(offset_mapping) and best_e < len(offset_mapping):
+            char_s = offset_mapping[best_s][0]
+            char_e = offset_mapping[best_e][1]
+            if char_e > char_s and (char_e - char_s) > 10:
                 answer_span = context_text[char_s:char_e].strip()
             else:
-                answer_span = context_text[:140] + "..."
+                answer_span = context_text[:160].strip() + ("..." if len(context_text) > 160 else "")
         else:
-            answer_span = context_text[:140] + "..."
+            answer_span = context_text[:160].strip() + ("..." if len(context_text) > 160 else "")
 
         aspect_label = ASPECT_TRANSLATIONS.get(pred_aspect, {}).get('vi' if is_vi else 'en', pred_aspect)
         sentiment_label = SENTIMENT_TRANSLATIONS.get(pred_sentiment, {}).get('vi' if is_vi else 'en', pred_sentiment)
@@ -480,10 +521,10 @@ class ConversationalQABot:
         if is_vi:
             coref_note = " *(Đã liên kết ngữ cảnh từ câu trước)*" if was_coref else ""
             formatted_response = (
-                f"Trích xuất từ đánh giá gốc của khách hàng về **{target_hotel['hotel_name']}**{coref_note}:\n\n"
+                f"Trích xuất từ đánh giá của khách hàng về **{target_hotel['hotel_name']}**{coref_note}:\n\n"
                 f"> \"{answer_span}\"\n\n"
-                f"• **Khía cạnh đánh giá:** {aspect_label}\n"
-                f"• **Cảm xúc ghi nhận:** {sentiment_label} (Độ tin cậy: {has_ans_prob*100:.1f}%)"
+                f"• **Khía cạnh:** {aspect_label}\n"
+                f"• **Cảm xúc:** {sentiment_label}"
             )
         else:
             coref_note = " *(Context linked from prior turn)*" if was_coref else ""
@@ -491,7 +532,7 @@ class ConversationalQABot:
                 f"Extracted evidence from guest reviews for **{target_hotel['hotel_name']}**{coref_note}:\n\n"
                 f"> \"{answer_span}\"\n\n"
                 f"• **Aspect Domain:** {aspect_label}\n"
-                f"• **Guest Sentiment:** {sentiment_label} (Confidence: {has_ans_prob*100:.1f}%)"
+                f"• **Guest Sentiment:** {sentiment_label}"
             )
 
         return {
@@ -877,6 +918,31 @@ HTML_PAGE = r"""<!DOCTYPE html>
             gap: 4px;
         }
 
+        /* Suggestions List */
+        .suggestions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .suggestion-item {
+            background: var(--bg-glass-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            line-height: 1.35;
+        }
+        .suggestion-item:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+            background: var(--bg-glass-card-hover);
+            transform: translateX(2px);
+        }
+
         /* Sidebar Footer */
         .sidebar-footer {
             margin-top: auto;
@@ -1026,6 +1092,20 @@ HTML_PAGE = r"""<!DOCTYPE html>
             border-color: rgba(168, 85, 247, 0.3);
         }
 
+        .quote-evidence {
+            margin: 10px 0;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 0 10px 10px 0;
+            font-style: italic;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        [data-theme="light"] .quote-evidence {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
         /* Floating Pill Input Bar */
         .floating-input-wrapper {
             position: absolute;
@@ -1122,9 +1202,78 @@ HTML_PAGE = r"""<!DOCTYPE html>
         }
         .icon-svg.sm { width: 14px; height: 14px; }
         .icon-svg.lg { width: 22px; height: 22px; }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--bg-glass-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            font-size: 0.84rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-float);
+            animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            pointer-events: auto;
+        }
+        .toast.success {
+            border-color: rgba(16, 185, 129, 0.4);
+            color: var(--accent-emerald);
+        }
+        .toast.error {
+            border-color: rgba(244, 63, 94, 0.4);
+            color: var(--accent-rose);
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+            .app-layout {
+                flex-direction: column;
+                height: 100vh;
+                padding: 10px;
+                gap: 10px;
+                overflow-y: auto;
+            }
+            aside.floating-sidebar {
+                width: 100%;
+                min-width: unset;
+                height: auto;
+                max-height: 42vh;
+            }
+            main.floating-chat-canvas {
+                min-height: 56vh;
+            }
+            .floating-input-wrapper {
+                width: 92%;
+                bottom: 12px;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="toast-container" id="toast-container"></div>
     <div class="ambient-orb orb-top-left"></div>
     <div class="ambient-orb orb-bottom-right"></div>
     <div class="ambient-orb orb-center"></div>
@@ -1170,9 +1319,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 </div>
                 <div class="glass-card">
                     <div class="status-badge-row">
-                        <span class="status-badge active" id="model-status-badge">
+                        <span class="status-badge untrained" id="model-status-badge">
                             <span class="status-dot"></span>
-                            <span id="model-status-text">Active Checkpoint</span>
+                            <span id="model-status-text">Checking status...</span>
                         </span>
                         <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);" id="model-device-text">CUDA/CPU</span>
                     </div>
@@ -1212,17 +1361,25 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- Bilingual Capability Card -->
+            <!-- Suggested Multi-Turn Queries -->
             <div class="sidebar-section">
                 <div class="section-label">
-                    <svg class="icon-svg sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    Bilingual Intelligence
+                    <svg class="icon-svg sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Suggested Prompts
                 </div>
-                <div class="glass-card" style="font-size: 0.78rem; line-height: 1.45; color: var(--text-secondary);">
-                    <div>Native support for both <strong>English</strong> and <strong>Tiếng Việt</strong>.</div>
-                    <div style="margin-top: 4px; font-size: 0.72rem; color: var(--text-muted);">
-                        Asks in Vietnamese or English $\to$ directly extracts verified evidence from raw reviews.
-                    </div>
+                <div class="suggestions-list">
+                    <button type="button" class="suggestion-item" onclick="sendSuggested('Where is Muong Thanh hotel located?')">
+                        <strong>Turn 1:</strong> Where is Muong Thanh hotel located?
+                    </button>
+                    <button type="button" class="suggestion-item" onclick="sendSuggested('How are the rooms in that hotel?')">
+                        <strong>Turn 2:</strong> How are the rooms in that hotel?
+                    </button>
+                    <button type="button" class="suggestion-item" onclick="sendSuggested('How is the customer service there?')">
+                        <strong>Turn 3:</strong> How is the customer service there?
+                    </button>
+                    <button type="button" class="suggestion-item" onclick="sendSuggested('How is the breakfast at Pullman Hanoi?')">
+                        <strong>Turn 4:</strong> How is the breakfast at Pullman Hanoi?
+                    </button>
                 </div>
             </div>
 
@@ -1242,12 +1399,14 @@ HTML_PAGE = r"""<!DOCTYPE html>
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                     </div>
                     <div class="bubble-content">
-                        <strong>AspectQA Hotel Intelligence</strong>
+                        <strong>Welcome to AspectQA Hotel Intelligence</strong>
                         <p style="margin-top: 6px; color: var(--text-secondary);">
-                            Ask questions in either <strong>English</strong> or <strong>Tiếng Việt</strong> about any of the <strong>2,622 hotels</strong> in Vietnam.
+                            Multi-task conversational QA system trained across all <strong>2,622 hotels</strong> in Vietnam.
+                            Ask questions about hotel locations or the 6 core aspect domains:
+                            <em>Service, Facility, Experience, Amenity, Loyalty,</em> and <em>Branding</em>.
                         </p>
                         <p style="margin-top: 6px; font-size: 0.8rem; color: var(--text-muted);">
-                            The system retrieves original guest reviews and extracts exact evidence spans across the 6 core aspect domains. Contextual pronouns (<em>"khách sạn đó"</em>, <em>"that hotel"</em>, <em>"there"</em>) are resolved across multi-turn dialogue.
+                            Original guest review evidence is retrieved and exact rationale spans are extracted. Contextual pronouns (<em>"khách sạn đó"</em>, <em>"that hotel"</em>, <em>"there"</em>) are resolved across multi-turn dialogue.
                         </p>
                     </div>
                 </div>
@@ -1255,7 +1414,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
             <div class="floating-input-wrapper">
                 <form class="floating-input-bar" id="chat-form">
-                    <input type="text" class="prompt-input" id="prompt-input" placeholder="Type your question in English or Tiếng Việt..." autocomplete="off">
+                    <input type="text" class="prompt-input" id="prompt-input" placeholder="Ask about any hotel or aspect (e.g. 'How are the rooms at Muong Thanh?')..." autocomplete="off">
                     <button type="submit" class="send-btn" id="send-btn" title="Send Query">
                         <svg class="icon-svg" viewBox="0 0 24 24">
                             <line x1="22" y1="2" x2="11" y2="13"/>
@@ -1334,10 +1493,14 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     body: JSON.stringify({model_path: path})
                 });
                 const data = await res.json();
-                alert(data.message);
+                if (data.success) {
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
                 updateStatus();
             } catch (err) {
-                alert('Failed to load checkpoint: ' + err);
+                showToast('Failed to load checkpoint: ' + err, 'error');
             } finally {
                 loadModelBtn.disabled = false;
             }
@@ -1352,11 +1515,17 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     </div>
                     <div class="bubble-content">
                         <strong>Dialogue State Reset</strong>
-                        <p style="margin-top: 4px; color: var(--text-secondary);">Context memory cleared. You may ask about any hotel in English or Vietnamese.</p>
+                        <p style="margin-top: 4px; color: var(--text-secondary);">Context memory cleared. You may start a fresh conversation with any of the 2,622 hotels.</p>
                     </div>
                 </div>
             `;
+            showToast('Dialogue context reset successfully', 'success');
         });
+
+        window.sendSuggested = function(text) {
+            promptInput.value = text;
+            handleSend(text);
+        };
 
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1470,6 +1639,19 @@ HTML_PAGE = r"""<!DOCTYPE html>
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'toastOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1478,9 +1660,15 @@ HTML_PAGE = r"""<!DOCTYPE html>
         function formatMarkdown(str) {
             if (!str) return '';
             let formatted = escapeHtml(str);
+            // Blockquote / Quote evidence formatting
+            formatted = formatted.replace(/(?:^|\n)(&gt;|>)\s*(".*?"|[\s\S]*?)(?=\n\n|\n•|$)/g, '<div class="quote-evidence">$2</div>');
+            // Bold & Italic & Code
             formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
             formatted = formatted.replace(/`([^`]+)`/g, '<code style="font-family:var(--font-mono);background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;">$1</code>');
+            // Bullet points
+            formatted = formatted.replace(/(?:^|\n)•\s*(.*?)(?=\n|$)/g, '<div style="margin: 3px 0 3px 4px; display: flex; align-items: baseline; gap: 6px;"><span style="color:var(--accent-primary);">•</span><span>$1</span></div>');
+            // Paragraph breaks
             formatted = formatted.replace(/\n\n/g, '<br><br>');
             formatted = formatted.replace(/\n/g, '<br>');
             return formatted;
@@ -1595,7 +1783,7 @@ def main():
     # Load 2,622 Hotels Knowledge Base
     load_hotel_database()
 
-    # Initialize Bot & Multilingual Neural Architecture
+    # Initialize Bot & Neural Architecture
     BOT = ConversationalQABot(model_path=args.model)
 
     active_port = args.port
@@ -1606,7 +1794,7 @@ def main():
     url = f"http://localhost:{active_port}"
 
     print("=" * 75)
-    print("🏨 ASPECT-BASED HOTEL CONVERSATIONAL QA WEB SERVER (BILINGUAL EN/VI)")
+    print("🏨 ASPECT-BASED HOTEL CONVERSATIONAL QA WEB SERVER")
     print("=" * 75)
     print(f" Web UI URL : {url}")
     print(f" Hardware   : {BOT.device}")
