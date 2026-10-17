@@ -105,6 +105,43 @@ def normalize_text(text: str) -> str:
         text = text.replace(k, v)
     return ' '.join(text.split())
 
+CITY_CANONICAL_MAP = {
+    'ha noi': 'Hanoi',
+    'da nang': 'Da Nang',
+    'sai gon': 'Ho Chi Minh City',
+    'ho chi minh': 'Ho Chi Minh City',
+    'phu quoc': 'Phu Quoc',
+    'nha trang': 'Nha Trang',
+    'vung tau': 'Vung Tau',
+    'phan thiet': 'Phan Thiet',
+    'da lat': 'Da Lat',
+    'hue': 'Hue',
+    'hoi an': 'Hoi An',
+    'sapa': 'Sa Pa',
+    'ha long': 'Ha Long'
+}
+
+def clean_location(loc_raw: str) -> str:
+    """Produce clean English city/province name."""
+    if not loc_raw:
+        return 'Vietnam'
+    ascii_loc = clean_vietnamese_text(loc_raw).lower()
+    for k, v in CITY_CANONICAL_MAP.items():
+        if k in ascii_loc:
+            return v
+    return clean_vietnamese_text(loc_raw).title() or 'Vietnam'
+
+def clean_address(addr_raw: str) -> str:
+    """Convert Vietnamese address terms to clean English terms."""
+    if not addr_raw:
+        return 'Vietnam'
+    ascii_addr = clean_vietnamese_text(addr_raw)
+    ascii_addr = re.sub(r'\bduong\b', 'Street', ascii_addr, flags=re.IGNORECASE)
+    ascii_addr = re.sub(r'\bquan\b', 'District', ascii_addr, flags=re.IGNORECASE)
+    ascii_addr = re.sub(r'\bphuong\b', 'Ward', ascii_addr, flags=re.IGNORECASE)
+    ascii_addr = re.sub(r'\btp\.?\b', 'City', ascii_addr, flags=re.IGNORECASE)
+    return ascii_addr
+
 def clean_display_name(raw: str) -> str:
     """Produce a clean, capitalized English title for display."""
     if not raw:
@@ -162,8 +199,8 @@ def load_hotel_database(parquet_path: str = 'data/df/hotel_reviews.parquet') -> 
                 'norm_key': norm_key,
                 'star': star_label,
                 'score': float(row.get('score', 4.0)),
-                'hotel_address': str(row.get('hotel_address', 'Vietnam')).strip(),
-                'location': str(row.get('location', '')).strip(),
+                'hotel_address': clean_address(str(row.get('hotel_address', 'Vietnam')).strip()),
+                'location': clean_location(str(row.get('location', '')).strip()),
                 'reviews': [],
                 'max_m': 0
             }
@@ -203,8 +240,13 @@ class RobustHotelMatcher:
 
         self.stopwords = {
             'hotel', 'resort', 'the', 'and', 'in', 'at', 'of', 'for', 'ks', 'khach', 'san',
-            'how', 'is', 'what', 'where', 'service', 'room', 'view', 'food', 'staff',
-            'please', 'tell', 'me', 'about', 'stay', 'night', 'stars', 'address'
+            'how', 'is', 'what', 'where', 'who', 'why', 'when', 'are', 'was', 'were', 'do', 'does',
+            'service', 'room', 'view', 'food', 'staff', 'please', 'tell', 'me', 'about', 'stay',
+            'night', 'stars', 'star', 'address', 'location', 'can', 'you', 'i', 'we', 'my', 'your',
+            'assist', 'help', 'hello', 'hi', 'hey', 'alo', 'there', 'here', 'this', 'that', 'with',
+            'luxury', 'recommend', 'recommendation', 'best', 'good', 'bad', 'top', 'clean',
+            'breakfast', 'pool', 'spa', 'gym', 'bed', 'price', 'any', 'some', 'much', 'many',
+            'which', 'nearby', 'near', 'around', 'center', 'city'
         }
 
         for norm_key, hotel in database.items():
@@ -221,10 +263,18 @@ class RobustHotelMatcher:
         if not q_tokens:
             return None
 
-        # 1. Exact Substring Match
+        is_recommend_prompt = any(w in norm_q for w in ['recommend', 'suggest', 'where to stay', 'which hotel', 'best hotels', 'top hotels'])
+
+        # 1. Exact Substring Match (requiring whole words and non-generic distinct tokens)
         for norm_key, hotel in self.hotel_lookup.items():
-            if norm_key in norm_q and len(norm_key) >= 4:
-                return hotel
+            distinct_tokens = [t for t in norm_key.split() if t not in self.stopwords and len(t) > 2]
+            if not distinct_tokens:
+                continue
+            pattern = r'\b' + re.escape(norm_key) + r'\b'
+            if re.search(pattern, norm_q):
+                if len(distinct_tokens) >= 2 or (len(distinct_tokens) == 1 and len(distinct_tokens[0]) >= 6):
+                    if not is_recommend_prompt or len(distinct_tokens) >= 2:
+                        return hotel
 
         # 2. Inverted Index Candidate Scoring
         candidates = defaultdict(int)
@@ -233,37 +283,37 @@ class RobustHotelMatcher:
                 candidates[norm_key] += 3
 
         if not candidates:
-            # Fuzzy match top 50 candidates
-            all_keys = list(self.hotel_lookup.keys())
-            close_matches = difflib.get_close_matches(norm_q, all_keys, n=3, cutoff=0.6)
-            if close_matches:
-                return self.hotel_lookup[close_matches[0]]
             return None
 
-        # Score candidates with Jaccard and length penalty
+        # Score candidates with token coverage and Jaccard
         best_match = None
         best_score = -1.0
 
         q_token_set = set(q_tokens)
         for norm_key, token_matches in candidates.items():
-            hotel_tokens = set(norm_key.split())
+            hotel_tokens = set(w for w in norm_key.split() if w not in self.stopwords and len(w) > 2)
+            if not hotel_tokens:
+                continue
             intersection = q_token_set.intersection(hotel_tokens)
             if not intersection:
                 continue
 
+            coverage = len(intersection) / float(len(hotel_tokens))
             jaccard = len(intersection) / float(len(q_token_set.union(hotel_tokens)))
-            score = (token_matches * 2.0) + (jaccard * 10.0)
+            score = (len(intersection) * 4.0) + (coverage * 6.0) + (jaccard * 5.0)
 
             # Location match bonus
             for city in CITY_MAP.values():
                 if city in norm_q and city in norm_key:
-                    score += 5.0
+                    score += 2.0
 
             if score > best_score:
                 best_score = score
                 best_match = self.hotel_lookup[norm_key]
 
-        if best_score > 3.0:
+        if best_score >= 6.5 and not is_recommend_prompt:
+            return best_match
+        elif best_score >= 9.0 and is_recommend_prompt:
             return best_match
         return None
 
@@ -542,20 +592,47 @@ class GenerativeQAPipeline:
                 print(f"Failed to reload model {custom_model_path}: {e}")
                 return False
 
-    def generate(self, prompt_text: str, max_new_tokens: int = 180) -> str:
+    def generate(self, prompt_text: str, max_new_tokens: int = 180, context_text: Optional[str] = None) -> str:
         if not self.loaded_successfully or self.model is None or self.tokenizer is None:
             return ""
 
         try:
             with self.inference_lock:
                 if self.model_type == 'extractive_bert':
-                    inputs = self.tokenizer(prompt_text, max_length=512, truncation=True, return_tensors='pt').to(self.device)
+                    q = prompt_text
+                    ctx = context_text or prompt_text
+                    inputs = self.tokenizer(q, ctx, max_length=512, truncation=True, return_tensors='pt').to(self.device)
                     with torch.no_grad():
                         out = self.model(**inputs)
-                        start_idx = torch.argmax(out['start_logits'], dim=-1).item()
-                        end_idx = torch.argmax(out['end_logits'], dim=-1).item()
-                        if 0 <= start_idx <= end_idx < inputs['input_ids'].shape[1] and (end_idx - start_idx) < 70:
-                            extracted = self.tokenizer.decode(inputs['input_ids'][0][start_idx:end_idx+1], skip_special_tokens=True).strip()
+                        s_logits = out['start_logits'][0].clone()
+                        e_logits = out['end_logits'][0].clone()
+                        token_types = inputs.get('token_type_ids', None)
+
+                        # Mask CLS token and all question tokens (token_type_ids == 0) so answer comes strictly from context
+                        seq_len = inputs['input_ids'].shape[1]
+                        for idx in range(seq_len):
+                            if token_types is not None and token_types[0][idx] == 0:
+                                s_logits[idx] = -1e4
+                                e_logits[idx] = -1e4
+                            elif idx == 0:
+                                s_logits[idx] = -1e4
+                                e_logits[idx] = -1e4
+
+                        best_score = -1e4
+                        best_s, best_e = 0, 0
+                        for s in range(1, seq_len):
+                            if s_logits[s] <= -1e3:
+                                continue
+                            for e in range(s, min(seq_len, s + 50)):
+                                if e_logits[e] <= -1e3:
+                                    continue
+                                sc = s_logits[s].item() + e_logits[e].item()
+                                if sc > best_score:
+                                    best_score = sc
+                                    best_s, best_e = s, e
+
+                        if best_s > 0 and best_s <= best_e:
+                            extracted = self.tokenizer.decode(inputs['input_ids'][0][best_s:best_e+1], skip_special_tokens=True).strip()
                             if extracted and len(extracted) > 3:
                                 return extracted
                     return ""
@@ -566,10 +643,23 @@ class GenerativeQAPipeline:
                             input_ids=enc['input_ids'],
                             attention_mask=enc['attention_mask'],
                             max_new_tokens=max_new_tokens,
+                            num_beams=2,
+                            no_repeat_ngram_size=2,
+                            repetition_penalty=1.15
+                        )
+                    ans = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+                    if ans:
+                        return ans
+
+                    # Secondary fallback with sampling if beam search was empty
+                    with torch.no_grad():
+                        outputs = self.model.generate(
+                            input_ids=enc['input_ids'],
+                            attention_mask=enc['attention_mask'],
+                            max_new_tokens=max_new_tokens,
                             temperature=0.7,
                             top_p=0.9,
-                            do_sample=True,
-                            repetition_penalty=1.15
+                            do_sample=True
                         )
                     return self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
         except Exception as e:
@@ -631,9 +721,56 @@ class ConversationalQABot:
                 return 'aspect_qa', asp
         return 'aspect_qa', 'Experience'
 
+    def search_database_by_criteria(self, query: str, top_n: int = 3) -> List[Tuple[Dict[str, Any], str]]:
+        """Retrieve top matching hotel properties and review excerpts based on location, amenities, and ratings."""
+        clean_q = clean_vietnamese_text(query).lower()
+
+        target_city = None
+        for k, v in CITY_CANONICAL_MAP.items():
+            if k in clean_q or v.lower() in clean_q:
+                target_city = v.lower()
+                break
+
+        aspect_kws = []
+        for asp, kws in ASPECT_KEYWORDS.items():
+            for kw in kws:
+                if kw in clean_q:
+                    aspect_kws.append(kw)
+
+        candidates = []
+        for norm_key, hotel in self.database.items():
+            loc = hotel.get('location', '').lower()
+            addr = hotel.get('hotel_address', '').lower()
+
+            if target_city and (target_city not in loc and target_city not in addr and target_city not in norm_key):
+                continue
+
+            score = hotel.get('score', 4.0)
+            reviews = hotel.get('reviews', [])
+            rev_count = len(reviews)
+
+            kw_hits = 0
+            best_rev = ""
+            for r in reviews:
+                t_lower = r.get('text', '').lower()
+                matches = sum(1 for kw in aspect_kws if kw in t_lower)
+                if matches > kw_hits:
+                    kw_hits = matches
+                    best_rev = r.get('text', '')[:140]
+
+            if not best_rev and reviews:
+                best_rev = reviews[0].get('text', '')[:140]
+
+            rank_score = (score * 2.5) + (min(rev_count, 60) * 0.1) + (kw_hits * 2.0)
+            candidates.append((rank_score, hotel, best_rev))
+
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        return [(c[1], c[2]) for c in candidates[:top_n]]
+
     def answer_query(self, session_id: str, user_query: str) -> Dict[str, Any]:
         state = self.sessions.get_session(session_id)
         with state.lock:
+            clean_q = clean_vietnamese_text(user_query).strip() or user_query.strip()
             intent, aspect = self.detect_intent_and_aspect(user_query)
 
             # Hotel Resolution
@@ -642,82 +779,179 @@ class ConversationalQABot:
 
             if matched_hotel:
                 state.current_hotel = matched_hotel
-            elif state.current_hotel:
+            elif state.current_hotel and any(w in clean_q.lower() for w in [
+                'it', 'hotel', 'resort', 'service', 'star', 'location', 'address', 'room',
+                'breakfast', 'pool', 'stay', 'price', 'here', 'there', 'this'
+            ] + [kw for kws in ASPECT_KEYWORDS.values() for kw in kws]):
                 matched_hotel = state.current_hotel
                 was_coref = True
-            else:
-                return {
-                    "answer": "Could you please specify which hotel you would like to inquire about? For example, you can ask: 'How is the service at Pullman Hanoi?'",
-                    "hotel_name": None,
-                    "aspect": None,
-                    "sentiment": None,
-                    "confidence": 0.0,
-                    "maps_card": None,
-                    "original_reviews": []
-                }
 
-            h_name = matched_hotel.get('hotel_name', 'The Hotel')
-            addr = matched_hotel.get('hotel_address', 'Vietnam')
-            loc = matched_hotel.get('location', '')
-            star_label = matched_hotel.get('star', 'Standard')
-            tot_revs = len(matched_hotel.get('reviews', []))
+            # ------------------------------------------------------------------
+            # Scenario A: A specific hotel property is identified
+            # ------------------------------------------------------------------
+            if matched_hotel:
+                h_name = matched_hotel.get('hotel_name', 'The Hotel')
+                addr = matched_hotel.get('hotel_address', 'Vietnam')
+                loc = matched_hotel.get('location', 'Vietnam')
+                star_label = matched_hotel.get('star', 'Standard')
+                tot_revs = len(matched_hotel.get('reviews', []))
 
-            # Retrieve Multi-Review Evidence with Feature 10 Decay
-            cand_reviews = self.retriever.retrieve(matched_hotel, aspect)
-            sent_summary = self.retriever.aggregate_sentiment(cand_reviews)
-            consensus = sent_summary['consensus']
-            avg_score = sent_summary['avg_score']
+                # Retrieve Multi-Review Evidence with Feature 10 Decay
+                cand_reviews = self.retriever.retrieve(matched_hotel, aspect)
+                sent_summary = self.retriever.aggregate_sentiment(cand_reviews)
+                consensus = sent_summary['consensus']
+                avg_score = sent_summary['avg_score']
 
-            # Build Google Maps Embed Card if Location Inquired
-            maps_card = None
-            if intent == 'location' or any(k in user_query.lower() for k in ['where', 'address', 'location', 'map']):
-                search_query = f"{h_name}, {addr}" if addr else f"{h_name}, Vietnam"
-                encoded_loc = urllib.parse.quote(search_query)
-                maps_card = {
+                # Build Google Maps Embed Card if Location Inquired
+                maps_card = None
+                if intent == 'location' or any(k in clean_q.lower() for k in ['where', 'address', 'location', 'map', 'o dau', 'dia chi']):
+                    search_query = f"{h_name}, {addr}" if addr else f"{h_name}, Vietnam"
+                    encoded_loc = urllib.parse.quote(search_query)
+                    maps_card = {
+                        "hotel_name": h_name,
+                        "address": addr,
+                        "location": loc,
+                        "search_url": f"https://www.google.com/maps/search/?api=1&query={encoded_loc}",
+                        "embed_url": f"https://maps.google.com/maps?q={encoded_loc}&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                    }
+
+                # Format evidence context
+                rev_lines = [
+                    f"[Review {i+1} | Date: {r['date']} | Score: {r['score']}/5.0 | Recency Weight: {r['recency_weight']:.2f}]: {r['text'][:200]}"
+                    for i, r in enumerate(cand_reviews)
+                ]
+                rev_context = "\n".join(rev_lines) if rev_lines else "No specific customer reviews available."
+
+                # Conditioned Prompt matching training architecture
+                prompt = (
+                    f"Answer the user inquiry based on the hotel information and customer reviews below.\n"
+                    f"User Inquiry: {clean_q}\n"
+                    f"Hotel: {h_name} | Star Rating: {star_label} | Total Reviews: {tot_revs} | Location: {loc} | Address: {addr} | Average Score: {avg_score:.1f}/5.0\n"
+                    f"Relevant Reviews (Ranked by Feature 10 Recency Weight w = exp(-0.03 * delta_m)):\n"
+                    f"{rev_context}\n"
+                    f"Answer in natural language:"
+                )
+
+                bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
+                neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_context)
+
+                if not neural_ans:
+                    neural_ans = f"{h_name} is a {star_label} property in {loc}, with {tot_revs} reviews documented. Average guest satisfaction is rated {avg_score:.1f} out of 5.0 stars."
+
+                # Format original reviews data for UI
+                original_reviews_data = []
+                for r in cand_reviews:
+                    original_reviews_data.append({
+                        "date": r['date'],
+                        "score": r['score'],
+                        "recency_weight": round(r['recency_weight'], 3),
+                        "text": r['text']
+                    })
+
+                response_payload = {
+                    "answer": neural_ans,
                     "hotel_name": h_name,
-                    "address": addr,
-                    "location": loc,
-                    "search_url": f"https://www.google.com/maps/search/?api=1&query={encoded_loc}",
-                    "embed_url": f"https://maps.google.com/maps?q={encoded_loc}&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                    "star": star_label,
+                    "score": round(avg_score, 1),
+                    "total_reviews": tot_revs,
+                    "aspect": aspect,
+                    "aspect_title": ASPECT_DISPLAY.get(aspect, aspect),
+                    "sentiment": consensus.capitalize(),
+                    "confidence": 0.95,
+                    "maps_card": maps_card,
+                    "original_reviews": original_reviews_data,
+                    "context_applied": was_coref
                 }
 
-            # Neural Prompt Formulation
-            review_snippets = " | ".join([f"[{r['date']}, score={r['score']}] {r['text'][:140]}" for r in cand_reviews])
-            prompt = (
-                f"Question: {user_query} | Hotel: {h_name} ({star_label}, {tot_revs} reviews) | "
-                f"Aspect: {aspect} | Sentiment Consensus: {consensus} (Avg Score: {avg_score:.1f}/5.0) | "
-                f"Evidence: {review_snippets} | Answer in natural English:"
+                state.history.append({"user": user_query, "bot": neural_ans})
+                return response_payload
+
+            # ------------------------------------------------------------------
+            # Scenario B: No specific hotel matched -> Dynamic Database Retrieval
+            # ------------------------------------------------------------------
+            candidate_hotels = self.search_database_by_criteria(user_query, top_n=3)
+
+            is_recommendation = bool(candidate_hotels) and any(
+                w in clean_q.lower() for w in [
+                    'hotel', 'resort', 'stay', 'recommend', 'where', 'place', 'khach san',
+                    'good', 'best', 'top', 'pool', 'breakfast', 'room', 'luxury', 'beach', 'view'
+                ] + list(CITY_CANONICAL_MAP.keys())
             )
 
-            # Neural Generation with fallback
-            neural_ans = self.pipeline.generate(prompt)
+            if is_recommendation:
+                hotel_lines = []
+                orig_revs = []
+                top_h = candidate_hotels[0][0]
+                for i, (h, rev_quote) in enumerate(candidate_hotels, 1):
+                    hotel_lines.append(
+                        f"[{i}] {h['hotel_name']} ({h['star']}, Score: {h['score']}/5.0, {h['location']}, Address: {h['hotel_address']}). Guest review: \"{rev_quote}\""
+                    )
+                    orig_revs.append({
+                        "date": "Recent",
+                        "score": h['score'],
+                        "recency_weight": 1.0,
+                        "text": f"{h['hotel_name']} ({h['location']}): {rev_quote}"
+                    })
+                ctx = "\n".join(hotel_lines)
+                prompt = (
+                    f"Answer the user inquiry based on the retrieved hotel database records and customer reviews below.\n"
+                    f"User Inquiry: {clean_q}\n"
+                    f"Retrieved Properties from Knowledge Base:\n"
+                    f"{ctx}\n"
+                    f"Answer in natural conversational language:"
+                )
 
+                bert_ctx = f"Recommended hotels in Vietnam: {ctx}"
+                neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_ctx)
 
-            # Format original reviews data
-            original_reviews_data = []
-            for r in cand_reviews:
-                original_reviews_data.append({
-                    "date": r['date'],
-                    "score": r['score'],
-                    "recency_weight": round(r['recency_weight'], 3),
-                    "text": r['text']
-                })
+                if not neural_ans:
+                    neural_ans = f"Based on verified guest reviews, recommended accommodations include {top_h.get('hotel_name')} ({top_h.get('star', 'Standard')}) in {top_h.get('location', 'Vietnam')}, rated {top_h.get('score', 4.0):.1f}/5.0 stars."
+
+                response_payload = {
+                    "answer": neural_ans,
+                    "hotel_name": top_h.get('hotel_name'),
+                    "star": top_h.get('star'),
+                    "score": round(top_h.get('score', 4.0), 1),
+                    "total_reviews": len(top_h.get('reviews', [])),
+                    "aspect": aspect,
+                    "aspect_title": "Recommendations",
+                    "sentiment": "Positive",
+                    "confidence": 0.90,
+                    "maps_card": None,
+                    "original_reviews": orig_revs,
+                    "context_applied": False
+                }
+                state.history.append({"user": user_query, "bot": neural_ans})
+                return response_payload
+
+            # ------------------------------------------------------------------
+            # Scenario C: General Inquiry or Greeting -> Conversational Generation
+            # ------------------------------------------------------------------
+            gen_prompt = (
+                f"You are a helpful AI assistant specializing in hotel reviews, travel and accommodations in Vietnam. "
+                f"Answer the user inquiry directly in helpful, natural conversational language:\n"
+                f"User Inquiry: {clean_q}\n"
+                f"Answer:"
+            )
+            neural_ans = self.pipeline.generate(gen_prompt, context_text="AI Assistant for hotel accommodations and verified guest reviews across Vietnam.")
+
+            if not neural_ans:
+                neural_ans = "Hello, I am your AI assistant specializing in hotel reviews, service quality, and accommodations across Vietnam. How can I help you today?"
 
             response_payload = {
                 "answer": neural_ans,
-                "hotel_name": h_name,
-                "star": star_label,
-                "score": avg_score,
-                "total_reviews": tot_revs,
-                "aspect": aspect,
-                "aspect_title": ASPECT_DISPLAY.get(aspect, aspect),
-                "sentiment": consensus.capitalize(),
-                "confidence": 0.94,
-                "maps_card": maps_card,
-                "original_reviews": original_reviews_data,
-                "context_applied": was_coref
+                "hotel_name": None,
+                "star": None,
+                "score": None,
+                "total_reviews": None,
+                "aspect": None,
+                "aspect_title": None,
+                "sentiment": None,
+                "confidence": 0.85,
+                "maps_card": None,
+                "original_reviews": [],
+                "context_applied": False
             }
-
             state.history.append({"user": user_query, "bot": neural_ans})
             return response_payload
 
