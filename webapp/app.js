@@ -26,6 +26,7 @@
         externalLink: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
         book: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
         message: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+        edit: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
         pin: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-2-6V4H7v7l-2 6z"/><line x1="9" y1="4" x2="9" y2="2"/><line x1="15" y1="4" x2="15" y2="2"/></svg>`,
         pinFilled: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill: currentColor;"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-2-6V4H7v7l-2 6z"/><line x1="9" y1="4" x2="9" y2="2"/><line x1="15" y1="4" x2="15" y2="2"/></svg>`,
         trash: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`
@@ -47,7 +48,6 @@
         appLayout: document.querySelector('.app-layout'),
         sidebar: document.getElementById('sidebar'),
         sidebarToggleBtn: document.getElementById('sidebarToggleBtn'),
-        sidebarCloseBtn: document.getElementById('sidebarCloseBtn'),
         sidebarBackdrop: document.getElementById('sidebarBackdrop'),
         newChatBtn: document.getElementById('newChatBtn'),
         pinnedSection: document.getElementById('pinnedSection'),
@@ -56,13 +56,11 @@
         recentList: document.getElementById('recentList'),
         activeChatTitle: document.getElementById('activeChatTitle'),
 
-        modelStatusPill: document.getElementById('modelStatusPill'),
-        modelStatusLabel: document.getElementById('modelStatusLabel'),
-        modelTypeBadge: document.getElementById('modelTypeBadge'),
-        topbarUploadBtn: document.getElementById('topbarUploadBtn'),
-        uploadProgressChip: document.getElementById('uploadProgressChip'),
-        uploadProgressText: document.getElementById('uploadProgressText'),
-        modelFileInput: document.getElementById('modelFileInput'),
+        modelDropdownWrapper: document.getElementById('modelDropdownWrapper'),
+        modelSelectorBtn: document.getElementById('modelSelectorBtn'),
+        currentModelLabel: document.getElementById('currentModelLabel'),
+        modelDropdownMenu: document.getElementById('modelDropdownMenu'),
+        modelDropdownList: document.getElementById('modelDropdownList'),
 
         messagesContainer: document.getElementById('messagesContainer'),
         messagesList: document.getElementById('messagesList'),
@@ -94,13 +92,14 @@
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
 
+        // Icon must strictly match the current active mode
         if (theme === 'dark') {
-            elements.sunIcon.style.display = 'inline-block';
-            elements.moonIcon.style.display = 'none';
-            elements.themeLabelText.textContent = 'Dark Mode';
-        } else {
             elements.sunIcon.style.display = 'none';
             elements.moonIcon.style.display = 'inline-block';
+            elements.themeLabelText.textContent = 'Dark Mode';
+        } else {
+            elements.sunIcon.style.display = 'inline-block';
+            elements.moonIcon.style.display = 'none';
             elements.themeLabelText.textContent = 'Light Mode';
         }
     }
@@ -129,25 +128,15 @@
                 // Desktop Collapse/Expand
                 const collapsed = elements.appLayout.classList.toggle('sidebar-collapsed');
                 localStorage.setItem(STORAGE_SIDEBAR_COLLAPSED_KEY, collapsed);
+                // Re-evaluate marquee after sidebar transition
+                setTimeout(updateMarqueeOverflow, 300);
             }
         });
-
-        if (elements.sidebarCloseBtn) {
-            elements.sidebarCloseBtn.addEventListener('click', () => {
-                if (window.innerWidth <= 840) {
-                    closeMobileSidebar();
-                } else {
-                    elements.appLayout.classList.add('sidebar-collapsed');
-                    localStorage.setItem(STORAGE_SIDEBAR_COLLAPSED_KEY, 'true');
-                }
-            });
-        }
 
         if (elements.sidebarBackdrop) {
             elements.sidebarBackdrop.addEventListener('click', () => {
                 closeMobileSidebar();
             });
-        }
     }
 
     function closeMobileSidebar() {
@@ -291,9 +280,14 @@
             <div class="conv-item ${isActive ? 'active' : ''}" data-conv-id="${escapeHtml(conv.id)}" role="button" tabindex="0">
                 <div class="conv-item-left">
                     ${SVG.message}
-                    <span class="conv-item-title">${escapeHtml(conv.title || 'Conversation')}</span>
+                    <div class="conv-item-title-wrap">
+                        <span class="conv-item-title" title="${escapeHtml(conv.title || 'Conversation')}">${escapeHtml(conv.title || 'Conversation')}</span>
+                    </div>
                 </div>
                 <div class="conv-actions">
+                    <button type="button" class="conv-action-btn edit-btn" data-action="rename" title="Rename conversation" aria-label="Rename conversation">
+                        ${SVG.edit}
+                    </button>
                     <button type="button" class="${pinClass}" data-action="pin" title="${pinTitle}" aria-label="${pinTitle}">
                         ${pinIcon}
                     </button>
@@ -329,9 +323,105 @@
         if (currentConv && elements.activeChatTitle) {
             elements.activeChatTitle.textContent = currentConv.title || 'New Conversation';
         }
+
+        // Calculate marquee overflow for long titles
+        updateMarqueeOverflow();
+    }
+
+    // -------------------------------------------------------------------------
+    // Marquee / Scrolling Effect for Long Titles
+    // -------------------------------------------------------------------------
+    function updateMarqueeOverflow() {
+        requestAnimationFrame(() => {
+            const items = document.querySelectorAll('.conv-item');
+            items.forEach(item => {
+                const wrap = item.querySelector('.conv-item-title-wrap');
+                const titleSpan = item.querySelector('.conv-item-title');
+                if (!wrap || !titleSpan) return;
+
+                // Check horizontal overflow
+                const overflow = titleSpan.scrollWidth - wrap.clientWidth;
+                if (overflow > 4) {
+                    titleSpan.classList.add('is-long');
+                    titleSpan.style.setProperty('--marquee-distance', `${overflow + 14}px`);
+                    const duration = Math.max(4.5, (overflow + 14) / 16);
+                    titleSpan.style.setProperty('--marquee-duration', `${duration.toFixed(1)}s`);
+                } else {
+                    titleSpan.classList.remove('is-long');
+                    titleSpan.style.removeProperty('--marquee-distance');
+                    titleSpan.style.removeProperty('--marquee-duration');
+                }
+            });
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // Conversation Renaming
+    // -------------------------------------------------------------------------
+    function startRenameConversation(convId) {
+        const conv = conversations.find(c => c.id === convId);
+        if (!conv) return;
+
+        const convItem = document.querySelector(`.conv-item[data-conv-id="${convId}"]`);
+        if (!convItem) return;
+
+        const titleWrap = convItem.querySelector('.conv-item-title-wrap');
+        const actionsWrap = convItem.querySelector('.conv-actions');
+        if (!titleWrap) return;
+
+        const originalTitle = conv.title || 'Conversation';
+        titleWrap.innerHTML = `<input type="text" class="conv-title-input" value="${escapeHtml(originalTitle)}" maxlength="80">`;
+        if (actionsWrap) actionsWrap.style.display = 'none';
+
+        const input = titleWrap.querySelector('input');
+        input.focus();
+        input.select();
+
+        let isFinished = false;
+
+        function commitRename() {
+            if (isFinished) return;
+            isFinished = true;
+            const newTitle = input.value.trim();
+            if (newTitle && newTitle !== originalTitle) {
+                conv.title = newTitle;
+                conv.updatedAt = Date.now();
+                saveConversations();
+            }
+            renderConversationLists();
+        }
+
+        function cancelRename() {
+            if (isFinished) return;
+            isFinished = true;
+            renderConversationLists();
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                commitRename();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelRename();
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            commitRename();
+        });
+
+        input.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     }
 
     function handleConvListClick(e) {
+        // If clicking inside rename input, ignore
+        if (e.target.classList.contains('conv-title-input')) return;
+
         const actionBtn = e.target.closest('button[data-action]');
         const convItem = e.target.closest('.conv-item');
         if (!convItem) return;
@@ -340,7 +430,9 @@
         if (actionBtn) {
             e.stopPropagation();
             const action = actionBtn.getAttribute('data-action');
-            if (action === 'pin') {
+            if (action === 'rename') {
+                startRenameConversation(convId);
+            } else if (action === 'pin') {
                 togglePinConversation(convId, e);
             } else if (action === 'delete') {
                 deleteConversation(convId, e);
@@ -351,93 +443,156 @@
         switchConversation(convId);
     }
 
-    elements.pinnedList.addEventListener('click', handleConvListClick);
-    elements.recentList.addEventListener('click', handleConvListClick);
-    elements.newChatBtn.addEventListener('click', handleNewChat);
-
-    // -------------------------------------------------------------------------
-    // Topbar Model Upload Handling
-    // -------------------------------------------------------------------------
-    elements.topbarUploadBtn.addEventListener('click', () => {
-        elements.modelFileInput.click();
-    });
-
-    elements.modelFileInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-            handleFileUpload(e.target.files[0]);
+    function handleConvListKeydown(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            if (e.target.classList.contains('conv-title-input')) return;
+            const convItem = e.target.closest('.conv-item');
+            if (convItem && !e.target.closest('button[data-action]')) {
+                e.preventDefault();
+                handleConvListClick(e);
+            }
         }
-    });
+    }
 
-    function handleFileUpload(file) {
-        if (!file.name.endsWith('.pt') && !file.name.endsWith('.bin') && !file.name.endsWith('.safetensors')) {
-            alert('Please select a PyTorch model checkpoint (.pt, .bin, or .safetensors)');
+    elements.pinnedList.addEventListener('click', handleConvListClick);
+    elements.pinnedList.addEventListener('keydown', handleConvListKeydown);
+    elements.recentList.addEventListener('click', handleConvListClick);
+    elements.recentList.addEventListener('keydown', handleConvListKeydown);
+    elements.newChatBtn.addEventListener('click', handleNewChat);
+    window.addEventListener('resize', updateMarqueeOverflow);
+
+    // -------------------------------------------------------------------------
+    // Project Model Selection (from folder model/)
+    // -------------------------------------------------------------------------
+    let availableModels = [];
+
+    async function fetchModels() {
+        try {
+            const res = await fetch('/api/models');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            availableModels = data.models || [];
+
+            if (data.active_model && elements.currentModelLabel) {
+                elements.currentModelLabel.textContent = data.active_model;
+            }
+
+            renderModelDropdownList(availableModels, data.active_model);
+        } catch (e) {
+            console.warn('Could not fetch models:', e);
+            if (elements.modelDropdownList) {
+                elements.modelDropdownList.innerHTML = `<div class="model-dropdown-empty">Failed to load models</div>`;
+            }
+        }
+    }
+
+    function renderModelDropdownList(models, activeName) {
+        if (!elements.modelDropdownList) return;
+        if (!models || models.length === 0) {
+            elements.modelDropdownList.innerHTML = `<div class="model-dropdown-empty">No checkpoints found in model/</div>`;
             return;
         }
 
-        const formData = new FormData();
-        formData.append('model_file', file);
-
-        elements.uploadProgressChip.style.display = 'inline-flex';
-        elements.uploadProgressText.textContent = '0%';
-        elements.topbarUploadBtn.disabled = true;
-        elements.modelStatusLabel.textContent = 'Uploading...';
-        elements.modelTypeBadge.textContent = 'Upload';
-
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/upload-model', true);
-
-        xhr.upload.onprogress = function (e) {
-            if (e.lengthComputable) {
-                const percent = Math.round((e.loaded / e.total) * 100);
-                elements.uploadProgressText.textContent = `${percent}%`;
-                elements.modelStatusLabel.textContent = `Uploading ${percent}%`;
-            }
-        };
-
-        xhr.onload = function () {
-            elements.uploadProgressChip.style.display = 'none';
-            elements.topbarUploadBtn.disabled = false;
-            if (xhr.status === 200) {
-                try {
-                    const res = JSON.parse(xhr.responseText);
-                    elements.modelStatusLabel.textContent = 'Custom Checkpoint';
-                    elements.modelTypeBadge.textContent = 'Loaded';
-                    showSystemNotification(`Model weights ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB) loaded successfully.`);
-                } catch (err) {
-                    handleUploadError('Invalid response from server');
-                }
-            } else {
-                handleUploadError(`Upload failed with status code ${xhr.status}`);
-            }
-        };
-
-        xhr.onerror = function () {
-            elements.uploadProgressChip.style.display = 'none';
-            elements.topbarUploadBtn.disabled = false;
-            handleUploadError('Network connection error during upload');
-        };
-
-        xhr.send(formData);
+        elements.modelDropdownList.innerHTML = models.map(m => {
+            const isActive = m.is_active || (m.name === activeName);
+            return `
+                <button type="button" class="model-dropdown-item ${isActive ? 'active' : ''}" data-model-name="${escapeHtml(m.name)}">
+                    <div class="model-item-info">
+                        <span class="model-item-name">${escapeHtml(m.name)}</span>
+                        <span class="model-item-size">${m.size_mb.toFixed(1)} MB</span>
+                    </div>
+                    ${isActive ? `<span class="model-item-badge">Active</span>` : ''}
+                </button>
+            `;
+        }).join('');
     }
 
-    function handleUploadError(msg) {
-        elements.modelStatusLabel.textContent = 'Upload Failed';
-        elements.modelTypeBadge.textContent = 'Error';
-        alert(msg);
-    }
-
-    async function checkHealth() {
+    async function selectModel(modelName) {
+        if (!modelName) return;
         try {
-            const res = await fetch('/api/health');
-            if (res.ok) {
-                const data = await res.json();
-                if (data.model_loaded) {
-                    elements.modelTypeBadge.textContent = 'Ready';
-                }
+            if (elements.currentModelLabel) {
+                elements.currentModelLabel.textContent = 'Loading...';
             }
+            closeModelDropdown();
+
+            const res = await fetch('/api/select-model', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model_name: modelName })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            if (elements.currentModelLabel) {
+                elements.currentModelLabel.textContent = data.active_model || modelName;
+            }
+            showSystemNotification(`Active model switched to: ${data.active_model || modelName}`);
+            await fetchModels();
         } catch (e) {
-            console.warn('Backend health check delayed:', e);
+            alert(`Failed to load model: ${e.message}`);
+            await fetchModels();
         }
+    }
+
+    function toggleModelDropdown() {
+        if (!elements.modelDropdownMenu) return;
+        const isHidden = elements.modelDropdownMenu.style.display === 'none';
+        if (isHidden) {
+            elements.modelDropdownMenu.style.display = 'block';
+            if (elements.modelSelectorBtn) {
+                elements.modelSelectorBtn.setAttribute('aria-expanded', 'true');
+            }
+        } else {
+            closeModelDropdown();
+        }
+    }
+
+    function closeModelDropdown() {
+        if (elements.modelDropdownMenu) {
+            elements.modelDropdownMenu.style.display = 'none';
+        }
+        if (elements.modelSelectorBtn) {
+            elements.modelSelectorBtn.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    function initModelSelector() {
+        if (elements.modelSelectorBtn) {
+            elements.modelSelectorBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleModelDropdown();
+            });
+        }
+
+        if (elements.modelDropdownList) {
+            elements.modelDropdownList.addEventListener('click', (e) => {
+                const item = e.target.closest('.model-dropdown-item');
+                if (item) {
+                    const modelName = item.getAttribute('data-model-name');
+                    if (modelName) {
+                        selectModel(modelName);
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (elements.modelDropdownWrapper && !elements.modelDropdownWrapper.contains(e.target)) {
+                closeModelDropdown();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModelDropdown();
+            }
+        });
+
+        fetchModels();
     }
 
     // -------------------------------------------------------------------------
@@ -545,8 +700,11 @@
             conv.updatedAt = Date.now();
             saveConversations();
 
-            // Render bot message to DOM
-            renderBotMessageNode(data);
+            // Render bot message to DOM only if this conversation is still active
+            if (activeConvId === conv.id) {
+                renderBotMessageNode(data);
+                scrollToBottom();
+            }
         } catch (err) {
             removeTypingIndicator(typingId);
             const errMsg = `Unable to process request: ${err.message}. Please check if the backend server is running.`;
@@ -557,11 +715,15 @@
             });
             conv.updatedAt = Date.now();
             saveConversations();
-            renderErrorMessageNode(errMsg);
+
+            // Render error message to DOM only if this conversation is still active
+            if (activeConvId === conv.id) {
+                renderErrorMessageNode(errMsg);
+                scrollToBottom();
+            }
         } finally {
             isRequestPending = false;
             elements.sendBtn.disabled = !elements.promptInput.value.trim();
-            scrollToBottom();
         }
     });
 

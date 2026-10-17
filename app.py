@@ -354,6 +354,7 @@ class GenerativeQAPipeline:
         self.model = None
         self.tokenizer = None
         self.loaded_successfully = False
+        self.active_model_name = 'model_v2.pt'
         self.inference_lock = threading.Lock()
 
         self._initialize(checkpoint_path)
@@ -368,20 +369,28 @@ class GenerativeQAPipeline:
                 self.tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
                 self.model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint_path).to(self.device)
                 self.loaded_successfully = True
+                self.active_model_name = os.path.basename(checkpoint_path)
             except Exception as e:
                 print(f"Notice: Failed to load from {checkpoint_path} ({e}).")
 
-        # Attempt 2: Load model.pt state dict
-        if not self.loaded_successfully and os.path.exists('model.pt'):
+        # Attempt 2: Load model/model_v2.pt or model.pt state dict
+        cand_pt = None
+        for p in [os.path.join('model', 'model_v2.pt'), 'model.pt', os.path.join('model', 'modelv1.pt')]:
+            if os.path.exists(p):
+                cand_pt = p
+                break
+
+        if not self.loaded_successfully and cand_pt:
             try:
-                print("Loading fine-tuned weights from model.pt...")
+                print(f"Loading fine-tuned weights from {cand_pt}...")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
                 self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
-                self.model.load_state_dict(torch.load('model.pt', map_location=self.device))
+                self.model.load_state_dict(torch.load(cand_pt, map_location=self.device))
                 self.model.to(self.device)
                 self.loaded_successfully = True
+                self.active_model_name = os.path.basename(cand_pt)
             except Exception as e:
-                print(f"Notice: Failed to load from model.pt ({e}).")
+                print(f"Notice: Failed to load from {cand_pt} ({e}).")
 
         # Attempt 3: Load base pretrained FLAN-T5
         if not self.loaded_successfully:
@@ -390,13 +399,14 @@ class GenerativeQAPipeline:
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
                 self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name).to(self.device)
                 self.loaded_successfully = True
+                self.active_model_name = 'FLAN-T5 Base'
             except Exception as e:
                 print(f"Notice: Could not load neural weights ({e}). Using grounded contextual generator fallback.")
                 self.loaded_successfully = False
 
         if self.loaded_successfully and self.model is not None:
             self.model.eval()
-            print("Generative neural engine ready.")
+            print(f"Generative neural engine ready. Active model: {self.active_model_name}")
 
     def reload_model(self, custom_model_path: str = 'model.pt') -> bool:
         """Dynamically reload new weights into memory with thread safety."""
@@ -414,6 +424,7 @@ class GenerativeQAPipeline:
                     self.model.to(self.device)
                     self.model.eval()
                     self.loaded_successfully = True
+                    self.active_model_name = os.path.basename(custom_model_path)
                     print(f"Successfully reloaded weights from {custom_model_path}.")
                     return True
                 elif os.path.isdir(custom_model_path):
@@ -421,6 +432,7 @@ class GenerativeQAPipeline:
                     self.model = AutoModelForSeq2SeqLM.from_pretrained(custom_model_path).to(self.device)
                     self.model.eval()
                     self.loaded_successfully = True
+                    self.active_model_name = os.path.basename(custom_model_path)
                     print(f"Successfully reloaded model directory from {custom_model_path}.")
                     return True
             except Exception as e:
@@ -707,10 +719,54 @@ class QAChatHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
+            active_m = getattr(BOT.pipeline, 'active_model_name', 'model_v2.pt') if BOT and BOT.pipeline else 'Seq2Seq Engine'
             self.wfile.write(json.dumps({
                 'status': 'ok',
                 'hotels_loaded': len(HOTEL_DATABASE),
-                'model_loaded': BOT.pipeline.loaded_successfully if BOT and BOT.pipeline else False
+                'model_loaded': BOT.pipeline.loaded_successfully if BOT and BOT.pipeline else False,
+                'active_model': active_m
+            }).encode('utf-8'))
+            return
+
+        if parsed.path == '/api/models':
+            models = []
+            active_m = getattr(BOT.pipeline, 'active_model_name', '') if BOT and BOT.pipeline else ''
+
+            # Scan model/ directory
+            model_dir = os.path.join(BASE_DIR, 'model')
+            if os.path.exists(model_dir):
+                for fname in sorted(os.listdir(model_dir)):
+                    if fname.endswith(('.pt', '.bin', '.safetensors')):
+                        fpath = os.path.join(model_dir, fname)
+                        size_mb = round(os.path.getsize(fpath) / (1024 * 1024), 1)
+                        is_active = (fname == active_m) or (not active_m and fname == 'model_v2.pt')
+                        models.append({
+                            'name': fname,
+                            'path': f"model/{fname}",
+                            'size_mb': size_mb,
+                            'active': is_active
+                        })
+
+            # Check root model.pt if exists
+            root_model = os.path.join(BASE_DIR, 'model.pt')
+            if os.path.exists(root_model) and not any(m['name'] == 'model.pt' for m in models):
+                models.append({
+                    'name': 'model.pt',
+                    'path': 'model.pt',
+                    'size_mb': round(os.path.getsize(root_model) / (1024 * 1024), 1),
+                    'active': active_m == 'model.pt'
+                })
+
+            if not any(m['active'] for m in models) and models:
+                models[0]['active'] = True
+                active_m = models[0]['name']
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'models': models,
+                'active_model': active_m or (models[0]['name'] if models else 'Default')
             }).encode('utf-8'))
             return
 
@@ -844,6 +900,64 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json; charset=utf-8')
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': f'Upload processing failed: {str(e)}'}).encode('utf-8'))
+        elif parsed.path == '/api/select-model':
+            try:
+                content_len = int(self.headers.get('Content-Length', 0))
+                body = self.rfile.read(content_len).decode('utf-8')
+                data = json.loads(body)
+                model_name = data.get('model_name') or data.get('name') or data.get('model_path')
+                if not model_name:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': 'Missing model_name parameter'}).encode('utf-8'))
+                    return
+
+                # Target search
+                clean_name = os.path.basename(model_name)
+                candidate_paths = [
+                    os.path.join(BASE_DIR, 'model', clean_name),
+                    os.path.join(BASE_DIR, clean_name),
+                    os.path.join(BASE_DIR, model_name)
+                ]
+                target_path = None
+                for p in candidate_paths:
+                    if os.path.exists(p) and (p.endswith(('.pt', '.bin', '.safetensors')) or os.path.isdir(p)):
+                        target_path = p
+                        break
+
+                if not target_path:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': f'Model {model_name} not found in model/ directory'}).encode('utf-8'))
+                    return
+
+                if BOT is None:
+                    with BOT_INIT_LOCK:
+                        if BOT is None:
+                            BOT = ConversationalQABot(HOTEL_DATABASE)
+
+                success = BOT.pipeline.reload_model(target_path)
+                selected_name = os.path.basename(target_path)
+                if success:
+                    BOT.pipeline.active_model_name = selected_name
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        'status': 'success',
+                        'active_model': selected_name,
+                        'message': f'Model {selected_name} loaded successfully'
+                    }).encode('utf-8'))
+                else:
+                    self.send_response(500)
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': f'Failed to reload model weights from {selected_name}'}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
         else:
             self.send_response(404)
             self.end_headers()

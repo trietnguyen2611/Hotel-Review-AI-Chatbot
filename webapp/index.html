@@ -25,12 +25,6 @@
                         <h1>Hotel QA CHATBOT</h1>
                     </div>
                 </div>
-                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Collapse Sidebar" title="Collapse sidebar">
-                    <svg class="svg-icon" viewBox="0 0 24 24">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
             </div>
 
             <div class="sidebar-content">
@@ -77,7 +71,7 @@
                         <span id="themeLabelText">Dark Mode</span>
                     </span>
                     <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light and Dark Mode">
-                        <!-- Sun Icon (for switching to light) -->
+                        <!-- Sun Icon (shown when Light Mode is active) -->
                         <svg class="svg-icon icon-sun" id="sunIcon" viewBox="0 0 24 24" style="display: none;">
                             <circle cx="12" cy="12" r="5"/>
                             <line x1="12" y1="1" x2="12" y2="3"/>
@@ -89,8 +83,8 @@
                             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
                             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                         </svg>
-                        <!-- Moon Icon (for switching to dark) -->
-                        <svg class="svg-icon icon-moon" id="moonIcon" viewBox="0 0 24 24">
+                        <!-- Moon Icon (shown when Dark Mode is active) -->
+                        <svg class="svg-icon icon-moon" id="moonIcon" viewBox="0 0 24 24" style="display: inline-block;">
                             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                         </svg>
                     </button>
@@ -118,35 +112,31 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <!-- Model Status Pill -->
-                    <div class="model-status-pill" id="modelStatusPill" title="Active Model Checkpoint">
-                        <span class="pulse-dot"></span>
-                        <span class="model-status-name" id="modelStatusLabel">Seq2Seq Engine</span>
-                        <span class="model-badge" id="modelTypeBadge">Ready</span>
+                    <!-- Project Models Selector Dropdown (Folder model/) -->
+                    <div class="model-dropdown-wrapper" id="modelDropdownWrapper">
+                        <button class="model-selector-btn" id="modelSelectorBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Select active model from model/ folder">
+                            <span class="pulse-dot"></span>
+                            <span class="model-selector-name" id="currentModelLabel">model_v2.pt</span>
+                            <svg class="svg-icon svg-icon-sm chevron-down" viewBox="0 0 24 24">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+                        <div class="model-dropdown-menu" id="modelDropdownMenu" style="display: none;">
+                            <div class="model-dropdown-header">
+                                <span>Project Models (model/)</span>
+                            </div>
+                            <div class="model-dropdown-list" id="modelDropdownList">
+                                <!-- Populated dynamically via /api/models -->
+                            </div>
+                        </div>
                     </div>
-
-                    <!-- Upload Model Button -->
-                    <button class="topbar-btn upload-btn" id="topbarUploadBtn" title="Upload custom model checkpoint (.pt, .bin, .safetensors)">
-                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                        </svg>
-                        <span>Upload Model</span>
-                    </button>
-
-                    <!-- Upload Progress Chip -->
-                    <div class="upload-progress-chip" id="uploadProgressChip" style="display: none;">
-                        <span class="upload-spinner"></span>
-                        <span id="uploadProgressText">0%</span>
-                    </div>
-
-                    <input type="file" id="modelFileInput" accept=".pt,.bin,.safetensors">
                 </div>
             </header>
 
             <!-- Messages Scroll Area (with Scroll Fade Mask) -->
             <div class="messages-container" id="messagesContainer">
                 <div class="messages-content-wrap" id="messagesList">
-                    <!-- Welcome Hero -->
+                    <!-- Welcome Hero (Without Vietnamese suggestions) -->
                     <div class="welcome-hero" id="welcomeHero">
                         <div class="welcome-logo">
                             <!-- Hotel AI Sparkle SVG -->
@@ -156,17 +146,6 @@
                         </div>
                         <h3>Welcome to Hotel QA Chatbot</h3>
                         <p>Ask aspect-based questions about hotels, guest reviews, amenities, and locations.</p>
-                        <div class="chips-container">
-                            <button type="button" class="suggestion-chip" data-query="Imperial Hotel Vũng Tàu chất lượng phòng thế nào?">
-                                <span>Imperial Hotel Vũng Tàu chất lượng phòng thế nào?</span>
-                            </button>
-                            <button type="button" class="suggestion-chip" data-query="Khách sạn nào ở Đà Nẵng phục vụ tốt?">
-                                <span>Khách sạn nào ở Đà Nẵng phục vụ tốt?</span>
-                            </button>
-                            <button type="button" class="suggestion-chip" data-query="Đánh giá đồ ăn sáng tại Pullman Hotel">
-                                <span>Đánh giá đồ ăn sáng tại Pullman Hotel</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
