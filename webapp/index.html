@@ -25,77 +25,52 @@
                         <h1>Hotel QA CHATBOT</h1>
                     </div>
                 </div>
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Collapse Sidebar" title="Collapse sidebar">
+                    <svg class="svg-icon" viewBox="0 0 24 24">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
 
             <div class="sidebar-content">
-                <!-- Model Status -->
-                <div>
-                    <div class="sidebar-section-title">Active Model Checkpoint</div>
-                    <div class="model-status-card">
-                        <div class="model-header-row">
-                            <div class="model-indicator">
-                                <span class="pulse-dot"></span>
-                                <span id="modelStatusLabel">Seq2Seq Engine</span>
-                            </div>
-                            <span class="model-badge" id="modelTypeBadge">Ready</span>
-                        </div>
-                        <div class="model-details-text" id="modelDetailsText">
-                            Fine-tuned Seq2Seq architecture with Feature 10 recency weighting enabled.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Model Upload Section -->
-                <div>
-                    <div class="sidebar-section-title">Model Weights Management</div>
-                    <div class="upload-dropzone" id="uploadDropzone" title="Click or drag model.pt here to upload">
-                        <!-- Upload Cloud SVG -->
-                        <svg class="svg-icon svg-icon-lg upload-icon" viewBox="0 0 24 24">
-                            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9M8 16l4-4 4 4"/>
-                        </svg>
-                        <div class="upload-dropzone-title">Upload model.pt</div>
-                        <div class="upload-dropzone-sub">Drop checkpoint or click to browse</div>
-                        <div class="upload-progress-bar" id="uploadProgressBar">
-                            <div class="upload-progress-fill" id="uploadProgressFill"></div>
-                        </div>
-                    </div>
-                    <input type="file" id="modelFileInput" accept=".pt,.bin,.safetensors">
-                </div>
-
-                <!-- Dataset Knowledge Base Stats -->
-                <div>
-                    <div class="sidebar-section-title">Knowledge Base Index</div>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-value" id="statHotelsCount">2,622</span>
-                            <span class="stat-label">Properties</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">6</span>
-                            <span class="stat-label">Aspects</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">&lambda; = 0.03</span>
-                            <span class="stat-label">Time Decay</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">Top-4</span>
-                            <span class="stat-label">Multi-Review</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar-footer">
-                <!-- Clear / Reset Chat Button -->
-                <button class="action-btn" id="newChatBtn">
-                    <!-- Refresh SVG -->
+                <!-- New Conversation Button -->
+                <button class="new-conversation-btn" id="newChatBtn">
                     <svg class="svg-icon" viewBox="0 0 24 24">
-                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M3 21v-5h5"/>
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
                     <span>New Conversation</span>
                 </button>
 
+                <!-- Pinned Conversations Section -->
+                <div class="conv-section" id="pinnedSection" style="display: none;">
+                    <div class="sidebar-section-title">
+                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                            <line x1="12" y1="17" x2="12" y2="22"/>
+                            <path d="M5 17h14l-2-6V4H7v7l-2 6z"/>
+                            <line x1="9" y1="4" x2="9" y2="2"/>
+                            <line x1="15" y1="4" x2="15" y2="2"/>
+                        </svg>
+                        <span>Pinned</span>
+                    </div>
+                    <div class="conv-list" id="pinnedList"></div>
+                </div>
+
+                <!-- Recent Conversations Section -->
+                <div class="conv-section" id="recentSection">
+                    <div class="sidebar-section-title">
+                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <span>Recent</span>
+                    </div>
+                    <div class="conv-list" id="recentList"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
                 <!-- Light / Dark Mode Switch -->
                 <div class="theme-switch-row">
                     <span class="theme-switch-label">
@@ -123,31 +98,48 @@
             </div>
         </aside>
 
+        <!-- Mobile Sidebar Backdrop Scrim -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
         <!-- Main Chat Area -->
         <main class="chat-main">
-            <!-- Header -->
+            <!-- Transparent Top Bar -->
             <header class="chat-header">
                 <div class="header-left">
-                    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar">
+                    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar" title="Toggle Sidebar">
                         <!-- Menu / Sidebar SVG -->
                         <svg class="svg-icon" viewBox="0 0 24 24">
-                            <line x1="3" y1="12" x2="21" y2="12"/>
-                            <line x1="3" y1="6" x2="21" y2="6"/>
-                            <line x1="3" y1="18" x2="21" y2="18"/>
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
                         </svg>
                     </button>
                     <div class="header-title-block">
-                        <h2>Conversation</h2>
+                        <h2 id="activeChatTitle">New Conversation</h2>
                     </div>
                 </div>
                 <div class="header-right">
-                    <div class="live-badge">
-                        <!-- Sparkle / AI Vector SVG -->
-                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-                        </svg>
-                        <span>Active Session</span>
+                    <!-- Model Status Pill -->
+                    <div class="model-status-pill" id="modelStatusPill" title="Active Model Checkpoint">
+                        <span class="pulse-dot"></span>
+                        <span class="model-status-name" id="modelStatusLabel">Seq2Seq Engine</span>
+                        <span class="model-badge" id="modelTypeBadge">Ready</span>
                     </div>
+
+                    <!-- Upload Model Button -->
+                    <button class="topbar-btn upload-btn" id="topbarUploadBtn" title="Upload custom model checkpoint (.pt, .bin, .safetensors)">
+                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        <span>Upload Model</span>
+                    </button>
+
+                    <!-- Upload Progress Chip -->
+                    <div class="upload-progress-chip" id="uploadProgressChip" style="display: none;">
+                        <span class="upload-spinner"></span>
+                        <span id="uploadProgressText">0%</span>
+                    </div>
+
+                    <input type="file" id="modelFileInput" accept=".pt,.bin,.safetensors">
                 </div>
             </header>
 
@@ -163,7 +155,18 @@
                             </svg>
                         </div>
                         <h3>Welcome to Hotel QA Chatbot</h3>
-                        
+                        <p>Ask aspect-based questions about hotels, guest reviews, amenities, and locations.</p>
+                        <div class="chips-container">
+                            <button type="button" class="suggestion-chip" data-query="Imperial Hotel Vũng Tàu chất lượng phòng thế nào?">
+                                <span>Imperial Hotel Vũng Tàu chất lượng phòng thế nào?</span>
+                            </button>
+                            <button type="button" class="suggestion-chip" data-query="Khách sạn nào ở Đà Nẵng phục vụ tốt?">
+                                <span>Khách sạn nào ở Đà Nẵng phục vụ tốt?</span>
+                            </button>
+                            <button type="button" class="suggestion-chip" data-query="Đánh giá đồ ăn sáng tại Pullman Hotel">
+                                <span>Đánh giá đồ ăn sáng tại Pullman Hotel</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

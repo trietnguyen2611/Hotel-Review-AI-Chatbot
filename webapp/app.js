@@ -1,17 +1,18 @@
 /**
  * Hotel Aspect AI QA Studio - Frontend Application Logic
  * - 100% Vector SVGs (Zero emojis)
- * - Model.pt upload with progress and real-time backend reload
- * - Theme switcher with localStorage persistence
- * - Auto-scrolling within locked viewport container
+ * - Multi-conversation state management (Pin/Unpin, Delete, LocalStorage persistence)
+ * - Responsive Collapsible Sidebar (Desktop & Mobile with backdrop scrim)
+ * - Transparent Topbar with active model status and model.pt upload
  * - Interactive Google Maps & Collapsible Multi-Review Citations
+ * - Auto-scrolling within locked viewport with top scroll dissolve mask
  */
 
 (function () {
     'use strict';
 
     // -------------------------------------------------------------------------
-    // SVG Templates (Feather/Lucide style, stroke-width: 2)
+    // SVG Templates (Feather/Lucide style, stroke-width: 2, 100% Vector)
     // -------------------------------------------------------------------------
     const SVG = {
         bot: `<svg class="svg-icon" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`,
@@ -23,38 +24,57 @@
         weight: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>`,
         chevron: `<svg class="svg-icon svg-icon-sm summary-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`,
         externalLink: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
-        book: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`
+        book: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+        message: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+        pin: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-2-6V4H7v7l-2 6z"/><line x1="9" y1="4" x2="9" y2="2"/><line x1="15" y1="4" x2="15" y2="2"/></svg>`,
+        pinFilled: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill: currentColor;"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-2-6V4H7v7l-2 6z"/><line x1="9" y1="4" x2="9" y2="2"/><line x1="15" y1="4" x2="15" y2="2"/></svg>`,
+        trash: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`
     };
 
     // -------------------------------------------------------------------------
-    // Session State
+    // Storage Keys & State
     // -------------------------------------------------------------------------
-    let sessionId = 'session_' + Math.random().toString(36).substring(2, 11);
+    const STORAGE_CONVERSATIONS_KEY = 'hotel_qa_conversations_v1';
+    const STORAGE_ACTIVE_ID_KEY = 'hotel_qa_active_conv_id';
+    const STORAGE_SIDEBAR_COLLAPSED_KEY = 'hotel_qa_sidebar_collapsed';
+
+    let conversations = [];
+    let activeConvId = null;
     let isRequestPending = false;
 
     // DOM Elements
     const elements = {
+        appLayout: document.querySelector('.app-layout'),
         sidebar: document.getElementById('sidebar'),
         sidebarToggleBtn: document.getElementById('sidebarToggleBtn'),
+        sidebarCloseBtn: document.getElementById('sidebarCloseBtn'),
+        sidebarBackdrop: document.getElementById('sidebarBackdrop'),
+        newChatBtn: document.getElementById('newChatBtn'),
+        pinnedSection: document.getElementById('pinnedSection'),
+        pinnedList: document.getElementById('pinnedList'),
+        recentSection: document.getElementById('recentSection'),
+        recentList: document.getElementById('recentList'),
+        activeChatTitle: document.getElementById('activeChatTitle'),
+
+        modelStatusPill: document.getElementById('modelStatusPill'),
+        modelStatusLabel: document.getElementById('modelStatusLabel'),
+        modelTypeBadge: document.getElementById('modelTypeBadge'),
+        topbarUploadBtn: document.getElementById('topbarUploadBtn'),
+        uploadProgressChip: document.getElementById('uploadProgressChip'),
+        uploadProgressText: document.getElementById('uploadProgressText'),
+        modelFileInput: document.getElementById('modelFileInput'),
+
         messagesContainer: document.getElementById('messagesContainer'),
         messagesList: document.getElementById('messagesList'),
         welcomeHero: document.getElementById('welcomeHero'),
         chatForm: document.getElementById('chatForm'),
         promptInput: document.getElementById('promptInput'),
         sendBtn: document.getElementById('sendBtn'),
-        newChatBtn: document.getElementById('newChatBtn'),
+
         themeToggleBtn: document.getElementById('themeToggleBtn'),
         themeLabelText: document.getElementById('themeLabelText'),
         sunIcon: document.getElementById('sunIcon'),
-        moonIcon: document.getElementById('moonIcon'),
-        uploadDropzone: document.getElementById('uploadDropzone'),
-        modelFileInput: document.getElementById('modelFileInput'),
-        uploadProgressBar: document.getElementById('uploadProgressBar'),
-        uploadProgressFill: document.getElementById('uploadProgressFill'),
-        modelStatusLabel: document.getElementById('modelStatusLabel'),
-        modelTypeBadge: document.getElementById('modelTypeBadge'),
-        modelDetailsText: document.getElementById('modelDetailsText'),
-        statHotelsCount: document.getElementById('statHotelsCount')
+        moonIcon: document.getElementById('moonIcon')
     };
 
     // -------------------------------------------------------------------------
@@ -91,65 +111,255 @@
     });
 
     // -------------------------------------------------------------------------
-    // Sidebar Mobile Toggle
+    // Sidebar Collapse / Expand Mechanism (Desktop & Mobile)
     // -------------------------------------------------------------------------
-    elements.sidebarToggleBtn.addEventListener('click', () => {
-        elements.sidebar.classList.toggle('open');
-    });
-
-    document.addEventListener('click', (e) => {
-        if (window.innerWidth <= 840) {
-            if (!elements.sidebar.contains(e.target) && !elements.sidebarToggleBtn.contains(e.target)) {
-                elements.sidebar.classList.remove('open');
-            }
+    function initSidebar() {
+        // Restore desktop collapse state
+        const isCollapsed = localStorage.getItem(STORAGE_SIDEBAR_COLLAPSED_KEY) === 'true';
+        if (isCollapsed && window.innerWidth > 840) {
+            elements.appLayout.classList.add('sidebar-collapsed');
         }
-    });
 
-    // -------------------------------------------------------------------------
-    // Health Check & Stats
-    // -------------------------------------------------------------------------
-    async function checkHealth() {
-        try {
-            const res = await fetch('/api/health');
-            if (res.ok) {
-                const data = await res.json();
-                if (data.hotels_loaded) {
-                    elements.statHotelsCount.textContent = Number(data.hotels_loaded).toLocaleString();
-                }
+        elements.sidebarToggleBtn.addEventListener('click', () => {
+            if (window.innerWidth <= 840) {
+                // Mobile Drawer
+                const isOpen = elements.sidebar.classList.toggle('open');
+                elements.sidebarBackdrop.classList.toggle('active', isOpen);
+            } else {
+                // Desktop Collapse/Expand
+                const collapsed = elements.appLayout.classList.toggle('sidebar-collapsed');
+                localStorage.setItem(STORAGE_SIDEBAR_COLLAPSED_KEY, collapsed);
             }
-        } catch (e) {
-            console.warn('Backend health check delayed:', e);
+        });
+
+        if (elements.sidebarCloseBtn) {
+            elements.sidebarCloseBtn.addEventListener('click', () => {
+                if (window.innerWidth <= 840) {
+                    closeMobileSidebar();
+                } else {
+                    elements.appLayout.classList.add('sidebar-collapsed');
+                    localStorage.setItem(STORAGE_SIDEBAR_COLLAPSED_KEY, 'true');
+                }
+            });
+        }
+
+        if (elements.sidebarBackdrop) {
+            elements.sidebarBackdrop.addEventListener('click', () => {
+                closeMobileSidebar();
+            });
+        }
+    }
+
+    function closeMobileSidebar() {
+        elements.sidebar.classList.remove('open');
+        if (elements.sidebarBackdrop) {
+            elements.sidebarBackdrop.classList.remove('active');
         }
     }
 
     // -------------------------------------------------------------------------
-    // Model Upload Handling (model.pt)
+    // Multi-Conversation State Management
     // -------------------------------------------------------------------------
-    elements.uploadDropzone.addEventListener('click', () => {
-        elements.modelFileInput.click();
-    });
+    function createNewConversationData(title = 'New Conversation') {
+        const id = 'conv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        return {
+            id: id,
+            title: title,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            pinned: false,
+            sessionId: 'session_' + Math.random().toString(36).substring(2, 11),
+            messages: []
+        };
+    }
 
-    ['dragenter', 'dragover'].forEach(eventName => {
-        elements.uploadDropzone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            elements.uploadDropzone.classList.add('drag-active');
-        }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        elements.uploadDropzone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            elements.uploadDropzone.classList.remove('drag-active');
-        }, false);
-    });
-
-    elements.uploadDropzone.addEventListener('drop', (e) => {
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-            handleFileUpload(files[0]);
+    function loadConversations() {
+        try {
+            const raw = localStorage.getItem(STORAGE_CONVERSATIONS_KEY);
+            if (raw) {
+                conversations = JSON.parse(raw);
+            }
+        } catch (e) {
+            console.warn('Failed to parse conversations from localStorage:', e);
+            conversations = [];
         }
+
+        if (!Array.isArray(conversations) || conversations.length === 0) {
+            const initial = createNewConversationData('New Conversation');
+            conversations = [initial];
+            activeConvId = initial.id;
+            saveConversations();
+        } else {
+            const savedActiveId = localStorage.getItem(STORAGE_ACTIVE_ID_KEY);
+            const found = conversations.find(c => c.id === savedActiveId);
+            activeConvId = found ? found.id : conversations[0].id;
+        }
+    }
+
+    function saveConversations() {
+        try {
+            localStorage.setItem(STORAGE_CONVERSATIONS_KEY, JSON.stringify(conversations));
+            if (activeConvId) {
+                localStorage.setItem(STORAGE_ACTIVE_ID_KEY, activeConvId);
+            }
+        } catch (e) {
+            console.warn('Failed to save conversations to localStorage:', e);
+        }
+    }
+
+    function getActiveConversation() {
+        let conv = conversations.find(c => c.id === activeConvId);
+        if (!conv) {
+            conv = conversations[0];
+            activeConvId = conv ? conv.id : null;
+        }
+        return conv;
+    }
+
+    function handleNewChat() {
+        const newConv = createNewConversationData('New Conversation');
+        conversations.unshift(newConv);
+        activeConvId = newConv.id;
+        saveConversations();
+        renderConversationLists();
+        renderActiveConversationMessages();
+        elements.promptInput.value = '';
+        elements.sendBtn.disabled = true;
+        elements.promptInput.focus();
+
+        if (window.innerWidth <= 840) {
+            closeMobileSidebar();
+        }
+    }
+
+    function switchConversation(id) {
+        if (activeConvId === id) return;
+        activeConvId = id;
+        saveConversations();
+        renderConversationLists();
+        renderActiveConversationMessages();
+        elements.promptInput.value = '';
+        elements.sendBtn.disabled = true;
+        elements.promptInput.focus();
+
+        if (window.innerWidth <= 840) {
+            closeMobileSidebar();
+        }
+    }
+
+    function togglePinConversation(id, e) {
+        if (e) e.stopPropagation();
+        const conv = conversations.find(c => c.id === id);
+        if (conv) {
+            conv.pinned = !conv.pinned;
+            conv.updatedAt = Date.now();
+            saveConversations();
+            renderConversationLists();
+        }
+    }
+
+    function deleteConversation(id, e) {
+        if (e) e.stopPropagation();
+        const conv = conversations.find(c => c.id === id);
+        if (!conv) return;
+
+        const confirmTitle = conv.title || 'this conversation';
+        if (!confirm(`Delete conversation "${confirmTitle}"?`)) return;
+
+        conversations = conversations.filter(c => c.id !== id);
+
+        if (conversations.length === 0) {
+            const initial = createNewConversationData('New Conversation');
+            conversations = [initial];
+            activeConvId = initial.id;
+        } else if (activeConvId === id) {
+            activeConvId = conversations[0].id;
+        }
+
+        saveConversations();
+        renderConversationLists();
+        renderActiveConversationMessages();
+    }
+
+    function createConvItemHtml(conv) {
+        const isActive = conv.id === activeConvId;
+        const pinIcon = conv.pinned ? SVG.pinFilled : SVG.pin;
+        const pinTitle = conv.pinned ? 'Unpin conversation' : 'Pin conversation';
+        const pinClass = conv.pinned ? 'conv-action-btn pin-btn is-pinned' : 'conv-action-btn pin-btn';
+
+        return `
+            <div class="conv-item ${isActive ? 'active' : ''}" data-conv-id="${escapeHtml(conv.id)}" role="button" tabindex="0">
+                <div class="conv-item-left">
+                    ${SVG.message}
+                    <span class="conv-item-title">${escapeHtml(conv.title || 'Conversation')}</span>
+                </div>
+                <div class="conv-actions">
+                    <button type="button" class="${pinClass}" data-action="pin" title="${pinTitle}" aria-label="${pinTitle}">
+                        ${pinIcon}
+                    </button>
+                    <button type="button" class="conv-action-btn delete-btn" data-action="delete" title="Delete conversation" aria-label="Delete conversation">
+                        ${SVG.trash}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderConversationLists() {
+        const pinned = conversations.filter(c => c.pinned).sort((a, b) => b.updatedAt - a.updatedAt);
+        const recent = conversations.filter(c => !c.pinned).sort((a, b) => b.updatedAt - a.updatedAt);
+
+        // Pinned section
+        if (pinned.length > 0) {
+            elements.pinnedSection.style.display = 'flex';
+            elements.pinnedList.innerHTML = pinned.map(c => createConvItemHtml(c)).join('');
+        } else {
+            elements.pinnedSection.style.display = 'none';
+            elements.pinnedList.innerHTML = '';
+        }
+
+        // Recent section
+        if (recent.length > 0) {
+            elements.recentList.innerHTML = recent.map(c => createConvItemHtml(c)).join('');
+        } else {
+            elements.recentList.innerHTML = '<div style="padding: 10px 8px; font-size: 0.76rem; color: var(--text-muted); font-style: italic;">No recent conversations</div>';
+        }
+
+        const currentConv = getActiveConversation();
+        if (currentConv && elements.activeChatTitle) {
+            elements.activeChatTitle.textContent = currentConv.title || 'New Conversation';
+        }
+    }
+
+    function handleConvListClick(e) {
+        const actionBtn = e.target.closest('button[data-action]');
+        const convItem = e.target.closest('.conv-item');
+        if (!convItem) return;
+        const convId = convItem.getAttribute('data-conv-id');
+
+        if (actionBtn) {
+            e.stopPropagation();
+            const action = actionBtn.getAttribute('data-action');
+            if (action === 'pin') {
+                togglePinConversation(convId, e);
+            } else if (action === 'delete') {
+                deleteConversation(convId, e);
+            }
+            return;
+        }
+
+        switchConversation(convId);
+    }
+
+    elements.pinnedList.addEventListener('click', handleConvListClick);
+    elements.recentList.addEventListener('click', handleConvListClick);
+    elements.newChatBtn.addEventListener('click', handleNewChat);
+
+    // -------------------------------------------------------------------------
+    // Topbar Model Upload Handling
+    // -------------------------------------------------------------------------
+    elements.topbarUploadBtn.addEventListener('click', () => {
+        elements.modelFileInput.click();
     });
 
     elements.modelFileInput.addEventListener('change', (e) => {
@@ -167,8 +377,9 @@
         const formData = new FormData();
         formData.append('model_file', file);
 
-        elements.uploadProgressBar.style.display = 'block';
-        elements.uploadProgressFill.style.width = '0%';
+        elements.uploadProgressChip.style.display = 'inline-flex';
+        elements.uploadProgressText.textContent = '0%';
+        elements.topbarUploadBtn.disabled = true;
         elements.modelStatusLabel.textContent = 'Uploading...';
         elements.modelTypeBadge.textContent = 'Upload';
 
@@ -178,20 +389,20 @@
         xhr.upload.onprogress = function (e) {
             if (e.lengthComputable) {
                 const percent = Math.round((e.loaded / e.total) * 100);
-                elements.uploadProgressFill.style.width = percent + '%';
+                elements.uploadProgressText.textContent = `${percent}%`;
                 elements.modelStatusLabel.textContent = `Uploading ${percent}%`;
             }
         };
 
         xhr.onload = function () {
-            elements.uploadProgressBar.style.display = 'none';
+            elements.uploadProgressChip.style.display = 'none';
+            elements.topbarUploadBtn.disabled = false;
             if (xhr.status === 200) {
                 try {
                     const res = JSON.parse(xhr.responseText);
                     elements.modelStatusLabel.textContent = 'Custom Checkpoint';
                     elements.modelTypeBadge.textContent = 'Loaded';
-                    elements.modelDetailsText.textContent = `Successfully loaded ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB). Ready for inference.`;
-                    showSystemNotification(`Model weights ${file.name} loaded successfully.`);
+                    showSystemNotification(`Model weights ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB) loaded successfully.`);
                 } catch (err) {
                     handleUploadError('Invalid response from server');
                 }
@@ -201,7 +412,8 @@
         };
 
         xhr.onerror = function () {
-            elements.uploadProgressBar.style.display = 'none';
+            elements.uploadProgressChip.style.display = 'none';
+            elements.topbarUploadBtn.disabled = false;
             handleUploadError('Network connection error during upload');
         };
 
@@ -211,38 +423,22 @@
     function handleUploadError(msg) {
         elements.modelStatusLabel.textContent = 'Upload Failed';
         elements.modelTypeBadge.textContent = 'Error';
-        elements.modelDetailsText.textContent = msg;
         alert(msg);
     }
 
-    function showSystemNotification(text) {
-        const row = document.createElement('div');
-        row.className = 'msg-row bot';
-        row.innerHTML = `
-            <div class="avatar-box bot">${SVG.bot}</div>
-            <div class="msg-body">
-                <div class="msg-bubble" style="border-left: 3px solid var(--success); font-size: 0.88rem;">
-                    ${escapeHtml(text)}
-                </div>
-            </div>
-        `;
-        elements.messagesList.appendChild(row);
-        scrollToBottom();
-    }
-
-    // -------------------------------------------------------------------------
-    // Session Reset
-    // -------------------------------------------------------------------------
-    elements.newChatBtn.addEventListener('click', () => {
-        sessionId = 'session_' + Math.random().toString(36).substring(2, 11);
-        elements.messagesList.innerHTML = '';
-        if (elements.welcomeHero) {
-            elements.messagesList.appendChild(elements.welcomeHero);
+    async function checkHealth() {
+        try {
+            const res = await fetch('/api/health');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.model_loaded) {
+                    elements.modelTypeBadge.textContent = 'Ready';
+                }
+            }
+        } catch (e) {
+            console.warn('Backend health check delayed:', e);
         }
-        elements.promptInput.value = '';
-        elements.sendBtn.disabled = true;
-        elements.promptInput.focus();
-    });
+    }
 
     // -------------------------------------------------------------------------
     // Prompt Input Handling
@@ -284,13 +480,33 @@
         const query = elements.promptInput.value.trim();
         if (!query || isRequestPending) return;
 
-        // Hide welcome hero on first user query
+        const conv = getActiveConversation();
+        if (!conv) return;
+
+        // Auto-title if still default
+        if (conv.title === 'New Conversation' || !conv.title) {
+            const cleanTitle = query.replace(/\s+/g, ' ').trim();
+            conv.title = cleanTitle.length > 34 ? cleanTitle.slice(0, 34) + '...' : cleanTitle;
+            elements.activeChatTitle.textContent = conv.title;
+        }
+
+        // Hide welcome hero on user query
         if (elements.welcomeHero && elements.welcomeHero.parentNode) {
             elements.welcomeHero.remove();
         }
 
-        // Render User Message
-        appendUserMessage(query);
+        // Add user message to conversation history
+        conv.messages.push({
+            role: 'user',
+            text: query,
+            timestamp: Date.now()
+        });
+        conv.updatedAt = Date.now();
+        saveConversations();
+        renderConversationLists();
+
+        // Render user message to DOM
+        renderUserMessageNode(query);
 
         // Clear input
         elements.promptInput.value = '';
@@ -307,7 +523,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    session_id: sessionId,
+                    session_id: conv.sessionId,
                     query: query
                 })
             });
@@ -319,10 +535,29 @@
             }
 
             const data = await response.json();
-            appendBotMessage(data);
+
+            // Add bot message to conversation history
+            conv.messages.push({
+                role: 'bot',
+                data: data,
+                timestamp: Date.now()
+            });
+            conv.updatedAt = Date.now();
+            saveConversations();
+
+            // Render bot message to DOM
+            renderBotMessageNode(data);
         } catch (err) {
             removeTypingIndicator(typingId);
-            appendErrorMessage(`Unable to process request: ${err.message}. Please check if the backend server is running.`);
+            const errMsg = `Unable to process request: ${err.message}. Please check if the backend server is running.`;
+            conv.messages.push({
+                role: 'error',
+                text: errMsg,
+                timestamp: Date.now()
+            });
+            conv.updatedAt = Date.now();
+            saveConversations();
+            renderErrorMessageNode(errMsg);
         } finally {
             isRequestPending = false;
             elements.sendBtn.disabled = !elements.promptInput.value.trim();
@@ -330,7 +565,35 @@
         }
     });
 
-    function appendUserMessage(text) {
+    // -------------------------------------------------------------------------
+    // DOM Message Nodes
+    // -------------------------------------------------------------------------
+    function renderActiveConversationMessages() {
+        elements.messagesList.innerHTML = '';
+        const conv = getActiveConversation();
+        if (!conv || !conv.messages || conv.messages.length === 0) {
+            if (elements.welcomeHero) {
+                elements.messagesList.appendChild(elements.welcomeHero);
+            }
+            return;
+        }
+
+        conv.messages.forEach(msg => {
+            if (msg.role === 'user') {
+                renderUserMessageNode(msg.text);
+            } else if (msg.role === 'bot') {
+                renderBotMessageNode(msg.data || { answer: msg.text });
+            } else if (msg.role === 'error') {
+                renderErrorMessageNode(msg.text);
+            } else if (msg.role === 'system') {
+                renderSystemNotificationNode(msg.text);
+            }
+        });
+
+        scrollToBottom();
+    }
+
+    function renderUserMessageNode(text) {
         const row = document.createElement('div');
         row.className = 'msg-row user';
         row.innerHTML = `
@@ -340,50 +603,9 @@
             </div>
         `;
         elements.messagesList.appendChild(row);
-        scrollToBottom();
     }
 
-    function appendTypingIndicator() {
-        const id = 'typing_' + Date.now();
-        const row = document.createElement('div');
-        row.className = 'msg-row bot';
-        row.id = id;
-        row.innerHTML = `
-            <div class="avatar-box bot">${SVG.bot}</div>
-            <div class="msg-body">
-                <div class="msg-bubble">
-                    <div class="typing-dots">
-                        <span class="typing-dot"></span>
-                        <span class="typing-dot"></span>
-                        <span class="typing-dot"></span>
-                    </div>
-                </div>
-            </div>
-        `;
-        elements.messagesList.appendChild(row);
-        return id;
-    }
-
-    function removeTypingIndicator(id) {
-        const el = document.getElementById(id);
-        if (el) el.remove();
-    }
-
-    function appendErrorMessage(msg) {
-        const row = document.createElement('div');
-        row.className = 'msg-row bot';
-        row.innerHTML = `
-            <div class="avatar-box bot">${SVG.bot}</div>
-            <div class="msg-body">
-                <div class="msg-bubble" style="border-left: 3px solid var(--danger);">
-                    ${escapeHtml(msg)}
-                </div>
-            </div>
-        `;
-        elements.messagesList.appendChild(row);
-    }
-
-    function appendBotMessage(data) {
+    function renderBotMessageNode(data) {
         const row = document.createElement('div');
         row.className = 'msg-row bot';
 
@@ -494,7 +716,74 @@
         `;
 
         elements.messagesList.appendChild(row);
+    }
+
+    function renderErrorMessageNode(msg) {
+        const row = document.createElement('div');
+        row.className = 'msg-row bot';
+        row.innerHTML = `
+            <div class="avatar-box bot">${SVG.bot}</div>
+            <div class="msg-body">
+                <div class="msg-bubble" style="border-left: 3px solid var(--danger);">
+                    ${escapeHtml(msg)}
+                </div>
+            </div>
+        `;
+        elements.messagesList.appendChild(row);
+    }
+
+    function renderSystemNotificationNode(text) {
+        const row = document.createElement('div');
+        row.className = 'msg-row bot';
+        row.innerHTML = `
+            <div class="avatar-box bot">${SVG.bot}</div>
+            <div class="msg-body">
+                <div class="msg-bubble" style="border-left: 3px solid var(--success); font-size: 0.88rem;">
+                    ${escapeHtml(text)}
+                </div>
+            </div>
+        `;
+        elements.messagesList.appendChild(row);
+    }
+
+    function showSystemNotification(text) {
+        const conv = getActiveConversation();
+        if (conv) {
+            conv.messages.push({
+                role: 'system',
+                text: text,
+                timestamp: Date.now()
+            });
+            saveConversations();
+        }
+        renderSystemNotificationNode(text);
         scrollToBottom();
+    }
+
+    function appendTypingIndicator() {
+        const id = 'typing_' + Date.now();
+        const row = document.createElement('div');
+        row.className = 'msg-row bot';
+        row.id = id;
+        row.innerHTML = `
+            <div class="avatar-box bot">${SVG.bot}</div>
+            <div class="msg-body">
+                <div class="msg-bubble">
+                    <div class="typing-dots">
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                    </div>
+                </div>
+            </div>
+        `;
+        elements.messagesList.appendChild(row);
+        return id;
+    }
+
+    function removeTypingIndicator(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
     }
 
     function scrollToBottom() {
@@ -509,9 +798,13 @@
     }
 
     // -------------------------------------------------------------------------
-    // Initialization
+    // App Initialization
     // -------------------------------------------------------------------------
     initTheme();
+    initSidebar();
+    loadConversations();
+    renderConversationLists();
+    renderActiveConversationMessages();
     checkHealth();
 
 })();
