@@ -62,6 +62,17 @@
         modelDropdownMenu: document.getElementById('modelDropdownMenu'),
         modelDropdownList: document.getElementById('modelDropdownList'),
 
+        hotelCarouselSection: document.getElementById('hotelCarouselSection'),
+        cityFilterBar: document.getElementById('cityFilterBar'),
+        hotelSearchInput: document.getElementById('hotelSearchInput'),
+        carouselToggleBtn: document.getElementById('carouselToggleBtn'),
+        hotelCarouselTrack: document.getElementById('hotelCarouselTrack'),
+        activeHotelBanner: document.getElementById('activeHotelBanner'),
+        activeHotelTitle: document.getElementById('activeHotelTitle'),
+        activeHotelTag: document.getElementById('activeHotelTag'),
+        deselectHotelBtn: document.getElementById('deselectHotelBtn'),
+        quickAspectPills: document.getElementById('quickAspectPills'),
+
         messagesContainer: document.getElementById('messagesContainer'),
         messagesList: document.getElementById('messagesList'),
         welcomeHero: document.getElementById('welcomeHero'),
@@ -157,6 +168,7 @@
             updatedAt: Date.now(),
             pinned: false,
             sessionId: 'session_' + Math.random().toString(36).substring(2, 11),
+            selectedHotel: null,
             messages: []
         };
     }
@@ -211,6 +223,8 @@
         saveConversations();
         renderConversationLists();
         renderActiveConversationMessages();
+        updateActiveHotelBanner();
+        highlightSelectedCard();
         elements.promptInput.value = '';
         elements.sendBtn.disabled = true;
         elements.promptInput.focus();
@@ -226,6 +240,8 @@
         saveConversations();
         renderConversationLists();
         renderActiveConversationMessages();
+        updateActiveHotelBanner();
+        highlightSelectedCard();
         elements.promptInput.value = '';
         elements.sendBtn.disabled = true;
         elements.promptInput.focus();
@@ -629,13 +645,18 @@
         scrollToBottom();
 
         try {
+            const chatPayload = {
+                session_id: conv.sessionId,
+                query: query
+            };
+            if (conv.selectedHotel && conv.selectedHotel.hotel_name) {
+                chatPayload.selected_hotel = conv.selectedHotel.hotel_name;
+            }
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    session_id: conv.sessionId,
-                    query: query
-                })
+                body: JSON.stringify(chatPayload)
             });
 
             removeTypingIndicator(typingId);
@@ -915,6 +936,187 @@
     }
 
     // -------------------------------------------------------------------------
+    // Hotel Carousel & Active Hotel Lock Management
+    // -------------------------------------------------------------------------
+    let allLoadedHotels = [];
+    let currentFilterCity = 'all';
+    let currentSearchQuery = '';
+    let searchDebounceTimer = null;
+
+    async function fetchHotels(city = 'all', search = '') {
+        try {
+            const params = new URLSearchParams();
+            if (city && city !== 'all') params.set('city', city);
+            if (search) params.set('search', search);
+            params.set('limit', '40');
+
+            const res = await fetch(`/api/hotels?${params.toString()}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            allLoadedHotels = data.hotels || [];
+            renderHotelCarousel(allLoadedHotels);
+        } catch (e) {
+            console.warn('Could not fetch hotels:', e);
+            if (elements.hotelCarouselTrack) {
+                elements.hotelCarouselTrack.innerHTML = '<div class="hotel-card-skeleton">Unable to load hotels. Please ensure the backend server is running.</div>';
+            }
+        }
+    }
+
+    function renderHotelCarousel(hotels) {
+        if (!elements.hotelCarouselTrack) return;
+        const conv = getActiveConversation();
+        const selNormKey = conv && conv.selectedHotel ? conv.selectedHotel.norm_key : null;
+        const selName = conv && conv.selectedHotel ? conv.selectedHotel.hotel_name : null;
+
+        if (!hotels || hotels.length === 0) {
+            elements.hotelCarouselTrack.innerHTML = '<div class="hotel-card-skeleton">No hotels found matching criteria.</div>';
+            return;
+        }
+
+        elements.hotelCarouselTrack.innerHTML = hotels.map(h => {
+            const isSelected = (selNormKey && h.norm_key === selNormKey) || (selName && h.hotel_name === selName);
+            return `
+                <div class="hotel-card ${isSelected ? 'selected' : ''}" data-norm-key="${escapeHtml(h.norm_key)}" role="button" tabindex="0">
+                    <div class="hotel-card-top">
+                        <span class="card-star-badge">${escapeHtml(h.star)}</span>
+                        <span class="card-score-badge">★ ${h.score.toFixed(1)}</span>
+                        <span class="card-rev-badge">${h.review_count} revs</span>
+                    </div>
+                    <h4 class="hotel-card-name" title="${escapeHtml(h.hotel_name)}">${escapeHtml(h.hotel_name)}</h4>
+                    <div class="hotel-card-loc">
+                        ${SVG.mapPin}
+                        <span>${escapeHtml(h.location)}</span>
+                    </div>
+                    ${h.sample_snippet ? `<p class="hotel-card-snippet">"${escapeHtml(h.sample_snippet)}"</p>` : ''}
+                    <div class="hotel-card-footer">
+                        <span class="select-hint">Click to inquire</span>
+                        <span class="selected-indicator">✓ Selected</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function selectHotel(hotel) {
+        const conv = getActiveConversation();
+        if (!conv) return;
+        conv.selectedHotel = hotel;
+        saveConversations();
+        updateActiveHotelBanner();
+        highlightSelectedCard();
+        elements.promptInput.focus();
+    }
+
+    function deselectHotel() {
+        const conv = getActiveConversation();
+        if (!conv) return;
+        conv.selectedHotel = null;
+        saveConversations();
+        updateActiveHotelBanner();
+        highlightSelectedCard();
+    }
+
+    function updateActiveHotelBanner() {
+        const conv = getActiveConversation();
+        const banner = elements.activeHotelBanner;
+        if (!banner) return;
+
+        if (conv && conv.selectedHotel) {
+            banner.style.display = 'flex';
+            if (elements.activeHotelTitle) {
+                elements.activeHotelTitle.textContent = conv.selectedHotel.hotel_name;
+            }
+            if (elements.activeHotelTag) {
+                elements.activeHotelTag.textContent = `${conv.selectedHotel.star} · ${conv.selectedHotel.score}★`;
+            }
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+
+    function highlightSelectedCard() {
+        const conv = getActiveConversation();
+        const selNormKey = conv && conv.selectedHotel ? conv.selectedHotel.norm_key : null;
+        const selName = conv && conv.selectedHotel ? conv.selectedHotel.hotel_name : null;
+
+        const cards = document.querySelectorAll('.hotel-card');
+        cards.forEach(card => {
+            const normKey = card.getAttribute('data-norm-key');
+            if (normKey === selNormKey || (selName && card.querySelector('.hotel-card-name')?.textContent === selName)) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    }
+
+    function initHotelCarousel() {
+        if (elements.hotelCarouselTrack) {
+            elements.hotelCarouselTrack.addEventListener('click', (e) => {
+                const card = e.target.closest('.hotel-card');
+                if (!card) return;
+                const normKey = card.getAttribute('data-norm-key');
+                const found = allLoadedHotels.find(h => h.norm_key === normKey);
+                if (found) {
+                    selectHotel(found);
+                }
+            });
+        }
+
+        if (elements.deselectHotelBtn) {
+            elements.deselectHotelBtn.addEventListener('click', () => {
+                deselectHotel();
+            });
+        }
+
+        if (elements.cityFilterBar) {
+            elements.cityFilterBar.addEventListener('click', (e) => {
+                const pill = e.target.closest('.city-pill');
+                if (!pill) return;
+                document.querySelectorAll('.city-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                currentFilterCity = pill.getAttribute('data-city') || 'all';
+                fetchHotels(currentFilterCity, currentSearchQuery);
+            });
+        }
+
+        if (elements.hotelSearchInput) {
+            elements.hotelSearchInput.addEventListener('input', (e) => {
+                currentSearchQuery = e.target.value.trim();
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(() => {
+                    fetchHotels(currentFilterCity, currentSearchQuery);
+                }, 220);
+            });
+        }
+
+        if (elements.carouselToggleBtn) {
+            elements.carouselToggleBtn.addEventListener('click', () => {
+                if (elements.hotelCarouselSection) {
+                    elements.hotelCarouselSection.classList.toggle('collapsed');
+                }
+                elements.carouselToggleBtn.classList.toggle('collapsed');
+            });
+        }
+
+        if (elements.quickAspectPills) {
+            elements.quickAspectPills.addEventListener('click', (e) => {
+                const pill = e.target.closest('.aspect-pill');
+                if (!pill) return;
+                const query = pill.getAttribute('data-query');
+                if (!query) return;
+                elements.promptInput.value = query;
+                elements.sendBtn.disabled = false;
+                elements.promptInput.focus();
+                elements.chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            });
+        }
+
+        fetchHotels('all', '');
+    }
+
+    // -------------------------------------------------------------------------
     // App Initialization
     // -------------------------------------------------------------------------
     initTheme();
@@ -923,5 +1125,7 @@
     renderConversationLists();
     renderActiveConversationMessages();
     initModelSelector();
+    initHotelCarousel();
+    updateActiveHotelBanner();
 
 })();

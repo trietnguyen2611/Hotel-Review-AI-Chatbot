@@ -133,6 +133,55 @@
                 </div>
             </header>
 
+            <!-- Hotel Carousel Section (Browse & Select Hotel) -->
+            <section class="hotel-carousel-section" id="hotelCarouselSection" aria-label="Hotel Selection">
+                <div class="hotel-carousel-header">
+                    <div class="carousel-title-group">
+                        <div class="carousel-badge">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/>
+                            </svg>
+                            <span>Select Hotel to Inquire</span>
+                        </div>
+                        <span class="carousel-subtitle">Pick a hotel to focus conversation strictly on its verified reviews</span>
+                    </div>
+
+                    <div class="carousel-controls">
+                        <!-- City filter pills -->
+                        <div class="city-filter-bar" id="cityFilterBar" role="tablist">
+                            <button type="button" class="city-pill active" data-city="all">All</button>
+                            <button type="button" class="city-pill" data-city="Hanoi">Hanoi</button>
+                            <button type="button" class="city-pill" data-city="Da Nang">Da Nang</button>
+                            <button type="button" class="city-pill" data-city="Ho Chi Minh City">HCMC</button>
+                            <button type="button" class="city-pill" data-city="Phu Quoc">Phu Quoc</button>
+                            <button type="button" class="city-pill" data-city="Nha Trang">Nha Trang</button>
+                            <button type="button" class="city-pill" data-city="Hoi An">Hoi An</button>
+                        </div>
+
+                        <!-- Search input -->
+                        <div class="hotel-search-box">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <input type="text" id="hotelSearchInput" placeholder="Filter hotels..." autocomplete="off">
+                        </div>
+
+                        <!-- Collapse/Expand Toggle -->
+                        <button type="button" class="carousel-toggle-btn" id="carouselToggleBtn" title="Toggle hotels carousel" aria-label="Toggle hotels carousel">
+                            <svg class="svg-icon svg-icon-sm toggle-chevron" viewBox="0 0 24 24">
+                                <polyline points="18 15 12 9 6 15"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Horizontal scroll track of Hotel Cards -->
+                <div class="hotel-carousel-track" id="hotelCarouselTrack" role="region" aria-label="Hotel cards carousel">
+                    <div class="hotel-card-skeleton">Loading hotels...</div>
+                </div>
+            </section>
+
             <!-- Messages Scroll Area (with Scroll Fade Mask) -->
             <div class="messages-container" id="messagesContainer">
                 <div class="messages-content-wrap" id="messagesList">
@@ -145,13 +194,53 @@
                             </svg>
                         </div>
                         <h3>Welcome to Hotel QA Chatbot</h3>
-                        <p>Ask aspect-based questions about hotels, guest reviews, amenities, and locations.</p>
+                        <p>Select a hotel above or ask directly to inspect verified customer reviews, service quality, amenities, and location.</p>
                     </div>
                 </div>
             </div>
 
             <!-- Floating Frosted Glass Prompt Bar -->
             <div class="prompt-bar-container">
+                <!-- Active Hotel Lock Banner with Quick Aspect Inquiries -->
+                <div class="active-hotel-banner" id="activeHotelBanner" style="display: none;">
+                    <div class="active-hotel-header">
+                        <div class="active-hotel-badge">
+                            <span class="active-hotel-pulse"></span>
+                            <span class="active-hotel-prefix">Focus:</span>
+                            <strong class="active-hotel-title" id="activeHotelTitle">Pullman Hanoi</strong>
+                            <span class="active-hotel-tag" id="activeHotelTag">5-star · 4.0★</span>
+                        </div>
+                        <button type="button" class="deselect-btn" id="deselectHotelBtn" title="Clear hotel focus">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                            <span>Deselect</span>
+                        </button>
+                    </div>
+                    <!-- Quick Aspect Pills -->
+                    <div class="quick-aspect-pills" id="quickAspectPills">
+                        <button type="button" class="aspect-pill" data-query="How is the service and staff hospitality?">
+                            🛎️ Service &amp; Staff
+                        </button>
+                        <button type="button" class="aspect-pill" data-query="How is the breakfast and dining quality?">
+                            🍳 Breakfast &amp; Food
+                        </button>
+                        <button type="button" class="aspect-pill" data-query="How are the rooms and cleanliness?">
+                            🛏️ Rooms &amp; Comfort
+                        </button>
+                        <button type="button" class="aspect-pill" data-query="Tell me about the swimming pool and leisure amenities.">
+                            🏊 Pool &amp; Leisure
+                        </button>
+                        <button type="button" class="aspect-pill" data-query="How is the location and neighborhood?">
+                            📍 Location &amp; Map
+                        </button>
+                        <button type="button" class="aspect-pill" data-query="What is the overall impression from guest reviews?">
+                            ⭐ Overall Experience
+                        </button>
+                    </div>
+                </div>
+
                 <form class="prompt-bar-glass" id="chatForm">
                     <textarea 
                         class="prompt-input-area" 

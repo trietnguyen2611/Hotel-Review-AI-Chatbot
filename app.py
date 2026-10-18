@@ -623,8 +623,10 @@ class GenerativeQAPipeline:
     def _initialize(self, checkpoint_path: str):
         print(f"Loading Generative Model on {self.device}...")
 
-        # Priority 1: Search for fine-tuned checkpoints in order (Generative v2 first)
+        # Priority 1: Search for fine-tuned checkpoints in order (v3 conversational first, then v2, then v1)
         cand_candidates = [
+            os.path.join(BASE_DIR, 'model', 'model_v3_conversational_bart.pt'),
+            os.path.join(BASE_DIR, 'model_v3_conversational_bart.pt'),
             os.path.join(BASE_DIR, 'model', 'model_v2_bart.pt'),
             os.path.join(BASE_DIR, 'model_v2_bart.pt'),
             os.path.join(BASE_DIR, 'model', 'model_v2.pt'),
@@ -941,24 +943,40 @@ class ConversationalQABot:
         candidates.sort(key=lambda x: x[0], reverse=True)
         return [(c[1], c[2]) for c in candidates[:top_n]]
 
-    def answer_query(self, session_id: str, user_query: str) -> Dict[str, Any]:
+    def answer_query(self, session_id: str, user_query: str, selected_hotel: Optional[str] = None) -> Dict[str, Any]:
         state = self.sessions.get_session(session_id)
         with state.lock:
             clean_q = clean_vietnamese_text(user_query).strip() or user_query.strip()
             intent, aspect = self.detect_intent_and_aspect(user_query)
 
             # Hotel Resolution
-            matched_hotel = self.matcher.match(user_query)
+            matched_hotel = None
             was_coref = False
 
-            if matched_hotel:
-                state.current_hotel = matched_hotel
-            elif state.current_hotel and any(w in clean_q.lower() for w in [
-                'it', 'hotel', 'resort', 'service', 'star', 'location', 'address', 'room',
-                'breakfast', 'pool', 'stay', 'price', 'here', 'there', 'this'
-            ] + [kw for kws in ASPECT_KEYWORDS.values() for kw in kws]):
-                matched_hotel = state.current_hotel
-                was_coref = True
+            if selected_hotel:
+                clean_sel = clean_vietnamese_text(selected_hotel).lower()
+                for h_k, h_val in self.database.items():
+                    if h_k == clean_sel or clean_vietnamese_text(h_val.get('hotel_name', '')).lower() == clean_sel:
+                        matched_hotel = h_val
+                        break
+                if not matched_hotel:
+                    matched_hotel = self.matcher.match(selected_hotel)
+                if matched_hotel:
+                    state.current_hotel = matched_hotel
+
+            if not matched_hotel:
+                matched_hotel = self.matcher.match(user_query)
+                if matched_hotel:
+                    state.current_hotel = matched_hotel
+                elif state.current_hotel and any(w in clean_q.lower() for w in [
+                    'it', 'hotel', 'resort', 'service', 'star', 'location', 'address', 'room',
+                    'breakfast', 'pool', 'stay', 'price', 'here', 'there', 'this'
+                ] + [kw for kws in ASPECT_KEYWORDS.values() for kw in kws]):
+                    matched_hotel = state.current_hotel
+                    was_coref = True
+                elif state.current_hotel:
+                    matched_hotel = state.current_hotel
+                    was_coref = True
 
             # ------------------------------------------------------------------
             # Scenario A: A specific hotel property is identified
@@ -1014,7 +1032,20 @@ class ConversationalQABot:
                 bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
                 neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_context)
                 if not neural_ans:
-                    neural_ans = f"{h_name} is a {star_label} property in {loc}, with {tot_revs} reviews documented. Average guest satisfaction is rated {avg_score:.1f} out of 5.0 stars."
+                    try:
+                        import data_synthesis_engine as dse
+                        rev_quotes = [r['text'] for r in cand_reviews if r.get('text')]
+                        neural_ans = dse.synthesize_concierge_answer(
+                            h_name=h_name,
+                            aspect=aspect,
+                            consensus=consensus,
+                            quotes=rev_quotes,
+                            star=star_label,
+                            score=avg_score,
+                            is_followup=was_coref
+                        )
+                    except Exception:
+                        neural_ans = f"Regarding {aspect.lower()} at {h_name}, guest reviews reflect favorable impressions with an average score of {avg_score:.1f}/5.0 stars."
 
                 # Format original reviews data for UI
                 original_reviews_data = []
@@ -1208,6 +1239,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class QAChatHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        global HOTEL_DATABASE
         parsed = urllib.parse.urlparse(self.path)
         req_path = parsed.path.lstrip('/')
         if not req_path or req_path == 'index.html':
@@ -1270,6 +1302,72 @@ class QAChatHandler(BaseHTTPRequestHandler):
             }).encode('utf-8'))
             return
 
+        if parsed.path.rstrip('/') == '/api/hotels':
+            if not HOTEL_DATABASE:
+                load_hotel_database()
+
+            query_params = urllib.parse.parse_qs(parsed.query)
+            city_filter = query_params.get('city', ['all'])[0].strip().lower()
+            search_filter = query_params.get('search', [''])[0].strip().lower()
+            try:
+                limit = min(max(int(query_params.get('limit', [40])[0]), 1), 100)
+            except (ValueError, TypeError):
+                limit = 40
+
+            results = []
+            for norm_key, h in HOTEL_DATABASE.items():
+                h_name = h.get('hotel_name', '')
+                h_loc = h.get('location', '')
+                h_addr = h.get('hotel_address', '')
+                revs = h.get('reviews', [])
+                rev_count = len(revs)
+                score = float(h.get('score', 4.0))
+
+                # City filter
+                if city_filter and city_filter != 'all':
+                    if city_filter not in h_loc.lower() and city_filter not in h_addr.lower():
+                        continue
+
+                # Search query filter
+                if search_filter:
+                    combo = f"{h_name} {h_loc} {h_addr}".lower()
+                    if search_filter not in combo:
+                        continue
+
+                # Popularity score: score * log(review_count + 1)
+                pop_score = score * math.log1p(rev_count)
+
+                # Short review snippet
+                snippet = ""
+                if revs:
+                    first_text = revs[0].get('text', '').strip()
+                    snippet = (first_text[:110] + '...') if len(first_text) > 110 else first_text
+
+                results.append({
+                    'hotel_name': h_name,
+                    'norm_key': norm_key,
+                    'star': h.get('star', 'Standard'),
+                    'score': round(score, 1),
+                    'location': h_loc or 'Vietnam',
+                    'address': h_addr or 'Vietnam',
+                    'review_count': rev_count,
+                    'sample_snippet': snippet,
+                    'pop_score': pop_score
+                })
+
+            results.sort(key=lambda x: x['pop_score'], reverse=True)
+            trimmed = results[:limit]
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'total': len(results),
+                'returned': len(trimmed),
+                'hotels': trimmed
+            }).encode('utf-8'))
+            return
+
         # Serve static file from WEBAPP_DIR
         file_path = os.path.normpath(os.path.join(WEBAPP_DIR, req_path))
         if not (file_path == WEBAPP_DIR or file_path.startswith(WEBAPP_DIR + os.sep)) or not os.path.isfile(file_path):
@@ -1326,13 +1424,14 @@ class QAChatHandler(BaseHTTPRequestHandler):
 
             session_id = data.get('session_id', 'default_session')
             query = data.get('query', '').strip()
+            selected_hotel = data.get('selected_hotel')
 
             if BOT is None:
                 with BOT_INIT_LOCK:
                     if BOT is None:
                         BOT = ConversationalQABot(HOTEL_DATABASE)
 
-            result = BOT.answer_query(session_id, query)
+            result = BOT.answer_query(session_id, query, selected_hotel=selected_hotel)
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
