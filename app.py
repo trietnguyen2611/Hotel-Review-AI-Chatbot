@@ -44,31 +44,34 @@ ASPECT_DISPLAY = {
 }
 
 ASPECT_KEYWORDS = {
+    'Amenity': [
+        'amenity', 'amenities', 'pool', 'swimming pool', 'swimming', 'swim', 'gym', 'fitness',
+        'breakfast', 'buffet', 'food', 'restaurant', 'dining', 'dish', 'dishes', 'coffee', 'tea',
+        'spa', 'massage', 'sauna', 'wifi', 'internet', 'parking', 'bar', 'rooftop', 'lounge', 'cocktail'
+    ],
     'Service': [
-        'service', 'staff', 'employee', 'waiter', 'reception', 'check-in', 'checkout',
+        'service', 'staff', 'employee', 'waiter', 'reception', 'receptionist', 'check-in', 'checkout',
         'attitude', 'helpful', 'friendly', 'slow', 'hospitality', 'concierge', 'front desk',
-        'courteous', 'welcoming', 'polite', 'assistance', 'housekeeping'
+        'courteous', 'welcoming', 'polite', 'assistance', 'housekeeping', 'manager'
     ],
     'Facility': [
-        'facility', 'room', 'rooms', 'bed', 'beds', 'bathroom', 'shower', 'clean', 'dirty',
-        'air conditioner', 'ac', 'tv', 'balcony', 'sheet', 'towel', 'maintenance',
-        'spacious', 'water pressure', 'smell', 'noise', 'quiet', 'insulation', 'view'
+        'facility', 'facilities', 'room', 'rooms', 'bed', 'beds', 'bathroom', 'shower', 'bathtub',
+        'clean', 'cleanliness', 'dirty', 'air conditioner', 'ac', 'tv', 'balcony', 'sheet', 'towel',
+        'maintenance', 'spacious', 'water pressure', 'smell', 'noise', 'quiet', 'insulation', 'view',
+        'elevator', 'lift', 'stairs', 'building'
+    ],
+    'Loyalty': [
+        'loyalty', 'recommend', 'recommendation', 'return', 'come back', 'again', 'stay again',
+        'visit again', 'book again', 'next trip', 'next time', 'worth it', 'never again', 'wont return'
+    ],
+    'Branding': [
+        'brand', 'reputation', 'standard', 'prestige', 'luxury', 'chain', 'boutique', 'authentic',
+        'expectations', 'value for money', 'price', 'cost', 'expensive', 'cheap', 'budget',
+        '5-star quality', 'star rating', 'classification'
     ],
     'Experience': [
         'experience', 'stay', 'trip', 'atmosphere', 'vibe', 'vacation', 'overall',
-        'general', 'pleasure', 'relaxing', 'impressive', 'disappointing', 'worth'
-    ],
-    'Amenity': [
-        'amenity', 'amenities', 'pool', 'swimming pool', 'gym', 'fitness', 'breakfast',
-        'buffet', 'food', 'restaurant', 'dining', 'spa', 'wifi', 'parking', 'bar', 'lounge'
-    ],
-    'Loyalty': [
-        'loyalty', 'recommend', 'recommendation', 'return', 'come back', 'again',
-        'visit again', 'book again', 'next trip', 'worth it', 'never again', 'wont return'
-    ],
-    'Branding': [
-        'brand', 'reputation', 'standard', 'prestige', 'luxury', 'advertise',
-        'promise', 'chain', 'consistent', '5-star quality', 'star rating'
+        'general', 'pleasure', 'relaxing', 'impressive', 'disappointing', 'holiday', 'feeling', 'impression'
     ]
 }
 
@@ -339,59 +342,19 @@ def synthesize_hotel_overview(
 HOTEL_DATABASE: Dict[str, Dict[str, Any]] = {}
 ALL_HOTEL_NAMES: List[str] = []
 
-HOTEL_IMAGE_POOL = {
-    'beach': [
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1561501900-3701fa6a0864?auto=format&fit=crop&w=640&q=80"
-    ],
-    'heritage': [
-        "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=640&q=80"
-    ],
-    'city': [
-        "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=640&q=80"
-    ],
-    'mountain': [
-        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=640&q=80",
-        "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=640&q=80"
-    ]
-}
-
-def get_hotel_image_url(h_name: str, location: str = '', addr: str = '') -> str:
+def get_hotel_image_url(h_name: str, location: str = '', addr: str = '') -> Optional[str]:
+    """
+    Get authentic hotel image from Google Maps Street View or Place Photos API.
+    If no Google Maps API key is configured or no image is found, returns None.
+    Per user strict requirement: Zero stock photos from the internet, zero AI-generated images.
+    If a hotel does not have an authentic Google Maps image, do not show any image.
+    """
     maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
     if maps_api_key:
         query_loc = urllib.parse.quote(f"{h_name}, {addr or location}")
         return f"https://maps.googleapis.com/maps/api/streetview?size=480x280&location={query_loc}&fov=90&key={maps_api_key}"
+    return None
 
-    combined = f"{location} {addr} {h_name}".lower()
-    if any(k in combined for k in ['da nang', 'danang', 'phu quoc', 'nha trang', 'vung tau', 'phan thiet', 'beach', 'resort', 'island', 'ocean', 'sea', 'coast', 'bay']):
-        category = 'beach'
-    elif any(k in combined for k in ['hoi an', 'hoian', 'hue', 'old quarter', 'ma may', 'hang', 'pho co', 'heritage', 'boutique', 'temple', 'ancient']):
-        category = 'heritage'
-    elif any(k in combined for k in ['da lat', 'dalat', 'sapa', 'mountain', 'valley', 'pine', 'ninh binh', 'hills']):
-        category = 'mountain'
-    else:
-        category = 'city'
-
-    pool = HOTEL_IMAGE_POOL[category]
-    h_hash = int(hashlib.md5(h_name.encode('utf-8')).hexdigest(), 16)
-    return pool[h_hash % len(pool)]
 
 def load_hotel_database(parquet_path: str = 'data/df/hotel_reviews.parquet') -> Dict[str, Dict[str, Any]]:
     global HOTEL_DATABASE, ALL_HOTEL_NAMES
@@ -591,6 +554,63 @@ class MultiReviewRetriever:
         # Sort descending by combined recency-relevance score
         scored_reviews.sort(key=lambda x: x['combined_score'], reverse=True)
         return scored_reviews[:self.top_k]
+
+    def retrieve_all_for_aspect(self, hotel: Dict[str, Any], aspect: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve ALL original reviews for the hotel that touch upon the queried aspect,
+        ranked by Feature 10 recency weight. For use in UI 'View original reviews' pagination.
+        """
+        reviews = hotel.get('reviews', [])
+        if not reviews:
+            return []
+
+        max_m = hotel.get('max_m', 2020 * 12)
+        keywords = ASPECT_KEYWORDS.get(aspect, [])
+
+        matched = []
+        for r in reviews:
+            text = r.get('text', '')
+            text_lower = text.lower()
+            spans = r.get('spans', {}).get(aspect, []) if isinstance(r.get('spans'), dict) else []
+            has_kw = any(kw in text_lower for kw in keywords)
+
+            if spans or has_kw or aspect == 'Experience':
+                delta_m = max(0, max_m - r.get('m', max_m))
+                time_weight = math.exp(-self.lambda_decay * delta_m)
+                match_count = sum(1 for kw in keywords if kw in text_lower)
+                combined_score = time_weight * (1.0 + match_count * 0.8)
+                score_val = r.get('score', 4.0)
+                sent = 'Positive' if score_val >= 4.0 else ('Negative' if score_val <= 2.5 else 'Neutral')
+
+                matched.append({
+                    'review_id': r.get('review_id', 0),
+                    'text': text,
+                    'score': score_val,
+                    'date': r.get('date', 'Recent'),
+                    'sentiment': sent,
+                    'aspect_spans': spans,
+                    'recency_weight': round(time_weight, 3),
+                    'combined_score': combined_score
+                })
+
+        if not matched:
+            for r in reviews:
+                delta_m = max(0, max_m - r.get('m', max_m))
+                time_weight = math.exp(-self.lambda_decay * delta_m)
+                score_val = r.get('score', 4.0)
+                matched.append({
+                    'review_id': r.get('review_id', 0),
+                    'text': r.get('text', ''),
+                    'score': score_val,
+                    'date': r.get('date', 'Recent'),
+                    'sentiment': 'Positive' if score_val >= 4.0 else ('Negative' if score_val <= 2.5 else 'Neutral'),
+                    'aspect_spans': [],
+                    'recency_weight': round(time_weight, 3),
+                    'combined_score': time_weight
+                })
+
+        matched.sort(key=lambda x: x['combined_score'], reverse=True)
+        return matched
 
     def aggregate_sentiment(self, reviews: List[Dict[str, Any]]) -> Dict[str, Any]:
         if not reviews:
@@ -859,6 +879,8 @@ def clean_state_dict(raw_state_dict):
             clean_k = clean_k[7:]
         if clean_k.startswith('model.'):
             clean_k = clean_k[6:]
+        if clean_k.startswith('bart.'):
+            clean_k = clean_k[5:]
         cleaned[clean_k] = v
     return cleaned
 
@@ -879,8 +901,14 @@ class GenerativeQAPipeline:
     def _initialize(self, checkpoint_path: str):
         print(f"Loading Generative Model on {self.device}...")
 
-        # Priority 1: Search for fine-tuned checkpoints in order (v3 conversational first, then v2, then v1)
+        # Priority 1: Search for fine-tuned checkpoints in order (BART engine folder/pt first, then v3, v2, v1)
         cand_candidates = [
+            os.path.join(BASE_DIR, 'hotel_aspect_qa_bart_engine'),
+            os.path.join(BASE_DIR, 'model', 'hotel_aspect_qa_bart_engine'),
+            os.path.join(BASE_DIR, 'hotel_aspect_qa_bart_engine', 'pytorch_model.bin'),
+            os.path.join(BASE_DIR, 'model', 'hotel_aspect_qa_bart_engine', 'pytorch_model.bin'),
+            os.path.join(BASE_DIR, 'model', 'best_model.pt'),
+            os.path.join(BASE_DIR, 'best_model.pt'),
             os.path.join(BASE_DIR, 'model', 'model_v3_conversational_bart.pt'),
             os.path.join(BASE_DIR, 'model_v3_conversational_bart.pt'),
             os.path.join(BASE_DIR, 'model', 'model_v2_bart.pt'),
@@ -1200,7 +1228,7 @@ class ConversationalQABot:
         candidates.sort(key=lambda x: x[0], reverse=True)
         return [(c[1], c[2]) for c in candidates[:top_n]]
 
-    def answer_query(self, session_id: str, user_query: str, selected_hotel: Optional[str] = None) -> Dict[str, Any]:
+    def answer_query(self, session_id: str, user_query: str, selected_hotel: Optional[str] = None, action: Optional[str] = None) -> Dict[str, Any]:
         state = self.sessions.get_session(session_id)
         with state.lock:
             clean_q = clean_vietnamese_text(user_query).strip() or user_query.strip()
@@ -1271,20 +1299,31 @@ class ConversationalQABot:
                 ]
                 rev_context = "\n".join(rev_lines) if rev_lines else "No specific customer reviews available."
 
+                # Check if this inquiry is an explicit greeting or welcome request
+                is_greeting = (action == 'greeting') or any(clean_q.lower().strip().startswith(g) for g in ['hello', 'hi', 'xin chao', 'xin chào', 'welcome', 'introduce'])
+
                 # Conditioned Prompt matching training architecture
                 chat_hist_str = "None"
                 if state.history:
                     last_turn = state.history[-1]
                     chat_hist_str = f"User: {last_turn.get('user', '')}\nAssistant: {last_turn.get('bot', '')}"
 
-                prompt = (
-                    f"Answer the user inquiry based on the hotel information and customer reviews below.\n"
-                    f"Chat History: {chat_hist_str}\n"
-                    f"User Inquiry: {clean_q}\n"
-                    f"Hotel: {h_name} | Star Rating: {star_label} | Total Reviews: {tot_revs} | Location: {loc} | Address: {addr} | Average Score: {avg_score:.1f}/5.0\n"
-                    f"Relevant Reviews (Ranked by Feature 10 Recency Weight w = exp(-0.03 * delta_m)):\n"
-                    f"{rev_context}"
-                )
+                if is_greeting:
+                    prompt = (
+                        f"Instruction: Generate a welcoming, professional AI concierge greeting for {h_name}.\n"
+                        f"Hotel: {h_name} | Star Rating: {star_label} | Location: {loc} | Address: {addr} | Rating: {avg_score:.1f}/5.0 stars with {tot_revs} reviews.\n"
+                        f"Recent Guest Highlights:\n{rev_context}\n"
+                        f"Task: Warmly welcome the guest to {h_name}, briefly introduce the property with its verified rating, and invite them to inquire about customer service, facilities, amenities (pool/dining), loyalty, or branding."
+                    )
+                else:
+                    prompt = (
+                        f"Inquiry: {clean_q}\n"
+                        f"Hotel: {h_name} | Stars: {star_label} | Rating: {avg_score:.1f}/5.0 | Location: {loc}\n"
+                        f"Target Aspect: {aspect}\n"
+                        f"Extracted Guest Reviews (Feature 10 Weighted):\n"
+                        f"{rev_context}\n"
+                        f"Task: Directly answer the user's inquiry based strictly on the extracted review evidence above. Synthesize what verified guests report into a fluent, cohesive answer without using repetitive formulaic templates."
+                    )
 
                 bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
                 asp_id = ASPECTS.index(aspect) if aspect in ASPECTS else None
@@ -1292,26 +1331,36 @@ class ConversationalQABot:
                 if not neural_ans:
                     try:
                         rev_quotes = [r['text'] for r in cand_reviews if r.get('text')]
-                        neural_ans = synthesize_concierge_answer(
-                            h_name=h_name,
-                            aspect=aspect,
-                            consensus=consensus,
-                            quotes=rev_quotes,
-                            star=star_label,
-                            score=avg_score,
-                            is_followup=was_coref
-                        )
+                        if is_greeting:
+                            neural_ans = (
+                                f"Welcome to {h_name}! Located in {loc}, this {star_label} property has earned an average rating of {avg_score:.1f}/5.0 stars based on verified guest feedback. "
+                                f"Guests frequently highlight our {aspect.lower()} and hospitable environment. "
+                                f"How may I assist you today with information regarding our rooms, staff service, swimming pool, dining amenities, or booking recommendations?"
+                            )
+                        else:
+                            neural_ans = synthesize_concierge_answer(
+                                h_name=h_name,
+                                aspect=aspect,
+                                consensus=consensus,
+                                quotes=rev_quotes,
+                                star=star_label,
+                                score=avg_score,
+                                is_followup=was_coref
+                            )
                     except Exception:
                         neural_ans = f"Regarding {aspect.lower()} at {h_name}, guest reviews reflect favorable impressions with an average score of {avg_score:.1f}/5.0 stars."
 
-                # Format original reviews data for UI
+                # Retrieve ALL original reviews matching this exact aspect for full UI pagination ("View original reviews")
+                all_aspect_reviews = self.retriever.retrieve_all_for_aspect(matched_hotel, aspect)
                 original_reviews_data = []
-                for r in cand_reviews:
+                for r in all_aspect_reviews:
                     original_reviews_data.append({
-                        "date": r['date'],
-                        "score": r['score'],
-                        "recency_weight": round(r['recency_weight'], 3),
-                        "text": r['text']
+                        "date": r.get('date', 'Recent'),
+                        "score": r.get('score', 4.0),
+                        "sentiment": r.get('sentiment', 'Positive'),
+                        "recency_weight": round(r.get('recency_weight', 1.0), 3),
+                        "text": r.get('text', ''),
+                        "aspect_spans": r.get('aspect_spans', [])
                     })
 
                 response_payload = {
@@ -1702,7 +1751,8 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     if BOT is None:
                         BOT = ConversationalQABot(HOTEL_DATABASE)
 
-            result = BOT.answer_query(session_id, query, selected_hotel=selected_hotel)
+            action = data.get('action')
+            result = BOT.answer_query(session_id, query, selected_hotel=selected_hotel, action=action)
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')

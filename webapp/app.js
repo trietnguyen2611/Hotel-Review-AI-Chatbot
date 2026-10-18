@@ -806,66 +806,152 @@
         elements.messagesList.appendChild(row);
     }
 
+
+
+    function highlightSpansInText(text, spans) {
+        if (!text) return '';
+        if (!spans || !Array.isArray(spans) || spans.length === 0) return escapeHtml(text);
+
+        // Find match ranges in raw text
+        const intervals = [];
+        const lowerText = text.toLowerCase();
+        for (const span of spans) {
+            if (!span || span.length < 3) continue;
+            const spanLower = span.toLowerCase();
+            let startPos = 0;
+            let idx = lowerText.indexOf(spanLower, startPos);
+            while (idx !== -1) {
+                intervals.push([idx, idx + span.length]);
+                idx = lowerText.indexOf(spanLower, idx + span.length);
+            }
+        }
+        if (intervals.length === 0) return escapeHtml(text);
+
+        // Merge overlapping or adjacent intervals
+        intervals.sort((a, b) => a[0] - b[0]);
+        const merged = [intervals[0]];
+        for (let i = 1; i < intervals.length; i++) {
+            const last = merged[merged.length - 1];
+            const curr = intervals[i];
+            if (curr[0] <= last[1]) {
+                last[1] = Math.max(last[1], curr[1]);
+            } else {
+                merged.push(curr);
+            }
+        }
+
+        // Construct safe HTML
+        let result = '';
+        let lastIdx = 0;
+        for (const [start, end] of merged) {
+            result += escapeHtml(text.substring(lastIdx, start));
+            result += `<mark class="aspect-highlight">${escapeHtml(text.substring(start, end))}</mark>`;
+            lastIdx = end;
+        }
+        result += escapeHtml(text.substring(lastIdx));
+        return result;
+    }
+
+    function renderSingleReviewCardHtml(r) {
+        const sentimentClass = r.sentiment === 'Positive' ? 'badge-positive' : (r.sentiment === 'Negative' ? 'badge-negative' : 'badge-neutral');
+        const highlightedText = highlightSpansInText(r.text, r.aspect_spans);
+
+        return `
+            <div class="review-item-card">
+                <div class="review-item-header">
+                    <div class="review-item-header-left">
+                        ${SVG.calendar}
+                        <span>${escapeHtml(r.date || 'Recent')}</span>
+                        <span style="display:inline-flex; align-items:center; gap:2px; margin-left:6px; color:var(--warning);">
+                            ${SVG.star} ${r.score}/5.0
+                        </span>
+                        ${r.sentiment ? `<span class="review-item-badge ${sentimentClass}">${escapeHtml(r.sentiment)}</span>` : ''}
+                    </div>
+                    <div class="review-item-weight" title="Feature 10 Exponential Recency Weight w = exp(-0.03 * delta_m)">
+                        ${SVG.weight} Weight: ${r.recency_weight}
+                    </div>
+                </div>
+                <div class="review-item-text">
+                    &ldquo;${highlightedText}&rdquo;
+                </div>
+            </div>
+        `;
+    }
+
+    window.__loadMoreReviews = function(toggleId, pageSize = 5) {
+        const cache = window.__reviewsCache ? window.__reviewsCache[toggleId] : null;
+        if (!cache) return;
+        const listBody = document.getElementById('listBody_' + toggleId);
+        const itemsWrap = document.getElementById('itemsWrap_' + toggleId);
+        const btn = document.getElementById('loadMoreBtn_' + toggleId);
+        if (!listBody || !itemsWrap) return;
+
+        let currentOffset = parseInt(listBody.getAttribute('data-offset') || '5', 10);
+        const nextBatch = cache.slice(currentOffset, currentOffset + pageSize);
+        const newHtml = nextBatch.map(r => renderSingleReviewCardHtml(r)).join('');
+        itemsWrap.insertAdjacentHTML('beforeend', newHtml);
+
+        currentOffset += nextBatch.length;
+        listBody.setAttribute('data-offset', currentOffset.toString());
+
+        const remaining = cache.length - currentOffset;
+        if (remaining > 0 && btn) {
+            btn.innerHTML = `${SVG.chevron}<span>Xem thêm đánh giá (${remaining} còn lại)</span>`;
+        } else if (btn) {
+            btn.remove();
+        }
+    };
+
     function renderBotMessageNode(data) {
         const row = document.createElement('div');
         row.className = 'msg-row bot';
 
-        // 1. Meta Badges
-        const hotelName = data.hotel_name || (data.hotel_info && data.hotel_info.hotel_name);
-        const star = data.star || (data.hotel_info && data.hotel_info.star);
-        const score = data.score != null ? data.score : (data.hotel_info && data.hotel_info.score);
-        const aspectTitle = data.aspect_title || data.predicted_aspect || (data.aspect ? (data.aspect) : '');
-        const sentiment = data.sentiment || data.sentiment_consensus;
-
+        // 1. Hotel Metadata Header
         let metaHtml = '';
-        if (hotelName) {
-            const starClass = star && star.includes('star') ? 'star' : '';
-            const sentimentClass = sentiment ? `sentiment-${sentiment.toLowerCase()}` : '';
-
+        if (data.hotel_name) {
+            const starText = data.star || 'Standard';
+            const scoreText = (typeof data.score === 'number' && !isNaN(data.score)) ? data.score.toFixed(1) : '4.5';
             metaHtml = `
-                <div class="hotel-meta-row">
-                    <span class="meta-pill">
+                <div class="msg-hotel-meta">
+                    <span class="hotel-meta-badge">
                         ${SVG.hotel}
-                        <span>${escapeHtml(hotelName)}</span>
+                        <strong>${escapeHtml(data.hotel_name)}</strong>
                     </span>
-                    ${star ? `
-                        <span class="meta-pill ${starClass}">
-                            ${SVG.star}
-                            <span>${escapeHtml(star)}</span>
+                    <span class="hotel-meta-tag star-tag">
+                        ${SVG.starOutline} ${escapeHtml(starText)}
+                    </span>
+                    <span class="hotel-meta-tag score-tag">
+                        ${SVG.star} ${scoreText}
+                    </span>
+                    ${data.aspect ? `
+                        <span class="hotel-meta-tag aspect-tag">
+                            ${SVG.sparkles} ${escapeHtml(data.aspect)}
                         </span>
                     ` : ''}
-                    ${score != null ? `
-                        <span class="meta-pill" style="color: var(--warning);">
-                            ★ ${Number(score).toFixed(1)}
-                        </span>
-                    ` : ''}
-                    ${aspectTitle ? `
-                        <span class="meta-pill aspect">
-                            ${SVG.bot}
-                            <span>${escapeHtml(aspectTitle)}</span>
-                        </span>
-                    ` : ''}
-                    ${sentiment ? `
-                        <span class="meta-pill ${sentimentClass}">
-                            <span>${escapeHtml(sentiment)}</span>
+                    ${data.sentiment ? `
+                        <span class="hotel-meta-tag sentiment-tag sentiment-${data.sentiment.toLowerCase()}">
+                            ${escapeHtml(data.sentiment)}
                         </span>
                     ` : ''}
                 </div>
             `;
         }
 
-        // 2. Google Maps Embed Card (Zero emojis)
+        // 2. Google Maps Interactive Embed Card
         let mapsHtml = '';
         if (data.maps_card && data.maps_card.embed_url) {
             mapsHtml = `
-                <div class="maps-card-wrapper">
-                    <div class="maps-header">
-                        <div class="maps-title">
+                <div class="maps-embed-card">
+                    <div class="maps-embed-header">
+                        <div class="maps-header-left">
                             ${SVG.mapPin}
-                            <span>${escapeHtml(data.maps_card.hotel_name || 'Hotel Location')}</span>
+                            <div>
+                                <div class="maps-hotel-name">${escapeHtml(data.maps_card.hotel_name)}</div>
+                                <div class="maps-hotel-address">${escapeHtml(data.maps_card.address || data.maps_card.location)}</div>
+                            </div>
                         </div>
-                        <a href="${escapeHtml(data.maps_card.search_url)}" target="_blank" rel="noopener noreferrer" class="maps-link-btn">
-                            <span>Open in Google Maps</span>
+                        <a href="${escapeHtml(data.maps_card.search_url)}" target="_blank" rel="noopener noreferrer" class="maps-open-btn" title="Open in Google Maps">
+                            <span>Open Maps</span>
                             ${SVG.externalLink}
                         </a>
                     </div>
@@ -874,28 +960,23 @@
             `;
         }
 
-        // 3. Collapsible Multi-Review Citations (Feature 10 Weighted)
+        // 3. Collapsible Multi-Review Citations (Max 5 per view with "Xem thêm" pagination)
         let collapsibleHtml = '';
         if (data.original_reviews && data.original_reviews.length > 0) {
-            const reviewItems = data.original_reviews.map(r => `
-                <div class="review-item-card">
-                    <div class="review-item-header">
-                        <div class="review-item-header-left">
-                            ${SVG.calendar}
-                            <span>${escapeHtml(r.date)}</span>
-                            <span style="display:inline-flex; align-items:center; gap:2px; margin-left:6px; color:var(--warning);">
-                                ${SVG.star} ${r.score}/5.0
-                            </span>
-                        </div>
-                        <div class="review-item-weight" title="Feature 10 Exponential Recency Weight w = exp(-0.03 * delta_m)">
-                            ${SVG.weight} Weight: ${r.recency_weight}
-                        </div>
-                    </div>
-                    <div class="review-item-text">
-                        &ldquo;${escapeHtml(r.text)}&rdquo;
-                    </div>
-                </div>
-            `).join('');
+            const toggleId = 'rev_toggle_' + Math.random().toString(36).substring(2, 9);
+            window.__reviewsCache = window.__reviewsCache || {};
+            window.__reviewsCache[toggleId] = data.original_reviews;
+
+            const initialReviews = data.original_reviews.slice(0, 5);
+            const initialHtml = initialReviews.map(r => renderSingleReviewCardHtml(r)).join('');
+            const remaining = data.original_reviews.length - 5;
+
+            const loadMoreBtnHtml = remaining > 0 ? `
+                <button type="button" class="load-more-reviews-btn" id="loadMoreBtn_${toggleId}" onclick="window.__loadMoreReviews('${toggleId}', 5)">
+                    ${SVG.chevron}
+                    <span>Xem thêm đánh giá (${remaining} còn lại)</span>
+                </button>
+            ` : '';
 
             collapsibleHtml = `
                 <details class="original-reviews-toggle">
@@ -906,8 +987,11 @@
                         </div>
                         ${SVG.chevron}
                     </summary>
-                    <div class="reviews-list-body">
-                        ${reviewItems}
+                    <div class="reviews-list-body" id="listBody_${toggleId}" data-offset="5">
+                        <div class="reviews-items-container" id="itemsWrap_${toggleId}">
+                            ${initialHtml}
+                        </div>
+                        ${loadMoreBtnHtml}
                     </div>
                 </details>
             `;
@@ -1021,25 +1105,15 @@
     // -------------------------------------------------------------------------
     // Hotel Selection Hub & Active Hotel Management
     // -------------------------------------------------------------------------
-    const HOTEL_PHOTO_FALLBACKS = [
-        'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=800&q=80'
-    ];
-
     function resolveHotelPhotoUrl(hotel) {
         if (hotel.photo_url && typeof hotel.photo_url === 'string' && hotel.photo_url.trim()) {
-            return hotel.photo_url.trim();
+            const p = hotel.photo_url.trim();
+            // Accept authentic Google Maps / Street View URLs only
+            if (p.includes('maps.googleapis.com') || p.includes('googleusercontent.com') || p.includes('maps.gstatic.com')) {
+                return p;
+            }
         }
-        let hash = 0;
-        const key = (hotel.hotel_name || hotel.norm_key || 'hotel').toLowerCase();
-        for (let i = 0; i < key.length; i++) {
-            hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-        }
-        return HOTEL_PHOTO_FALLBACKS[hash % HOTEL_PHOTO_FALLBACKS.length];
+        return null;
     }
 
     let allLoadedHotels = [];
@@ -1085,8 +1159,6 @@
             return;
         }
 
-        const fallbackPhoto = HOTEL_PHOTO_FALLBACKS[0];
-
         elements.hotelSelectionGrid.innerHTML = hotels.map(h => {
             const isSelected = (selNormKey && h.norm_key === selNormKey) || (selName && h.hotel_name === selName);
             const mapsUrl = h.maps_search_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(h.hotel_name + ' ' + (h.location || 'Vietnam')));
@@ -1095,22 +1167,34 @@
             const revCount = (typeof h.review_count === 'number' && !isNaN(h.review_count)) ? h.review_count : 0;
             const starVal = h.star || '4-star';
 
+            const mediaHtml = photoUrl ? `
+                <div class="hotel-card-media" style="display: none;">
+                    <div class="hotel-card-media-skeleton"></div>
+                    <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(h.hotel_name)}" loading="lazy"
+                         onload="this.parentElement.style.display='block'; this.classList.add('loaded');"
+                         onerror="this.remove(); this.parentElement.style.display='none';">
+                    <div class="hotel-card-media-gradient"></div>
+                    <div class="card-badge-top-left">
+                        <span class="card-star-badge">${escapeHtml(starVal)}</span>
+                        <span class="card-score-badge">★ ${scoreVal}</span>
+                    </div>
+                    <div class="card-badge-top-right">
+                        <span class="card-rev-badge">${revCount} revs</span>
+                    </div>
+                </div>
+            ` : `
+                <div class="hotel-card-top-header">
+                    <div class="card-badges-row">
+                        <span class="card-star-badge">${escapeHtml(starVal)}</span>
+                        <span class="card-score-badge">★ ${scoreVal}</span>
+                        <span class="card-rev-badge">${revCount} revs</span>
+                    </div>
+                </div>
+            `;
+
             return `
                 <div class="hotel-card ${isSelected ? 'selected' : ''}" data-norm-key="${escapeHtml(h.norm_key)}" role="button" tabindex="0">
-                    <div class="hotel-card-media">
-                        <div class="hotel-card-media-skeleton"></div>
-                        <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(h.hotel_name)}" loading="lazy"
-                             onload="this.classList.add('loaded');"
-                             onerror="if(this.src!=='${fallbackPhoto}'){this.src='${fallbackPhoto}';}else{this.classList.add('loaded');}">
-                        <div class="hotel-card-media-gradient"></div>
-                        <div class="card-badge-top-left">
-                            <span class="card-star-badge">${escapeHtml(starVal)}</span>
-                            <span class="card-score-badge">★ ${scoreVal}</span>
-                        </div>
-                        <div class="card-badge-top-right">
-                            <span class="card-rev-badge">${revCount} revs</span>
-                        </div>
-                    </div>
+                    ${mediaHtml}
                     <div class="hotel-card-body">
                         <h4 class="hotel-card-name" title="${escapeHtml(h.hotel_name)}">${escapeHtml(h.hotel_name)}</h4>
                         <div class="hotel-card-loc">
@@ -1143,7 +1227,6 @@
             switchingHotelForConvId = null;
             if (conv) {
                 conv.selectedHotel = hotel;
-                // If title is default or previously hotel-named, update it
                 if (!conv.title || conv.title === 'New Conversation' || conversations.some(other => other.id !== conv.id && other.title === conv.title)) {
                     conv.title = hotel.hotel_name;
                 }
@@ -1158,36 +1241,40 @@
         // Standard flow: Create a brand new conversation dedicated to this hotel
         const newConv = createNewConversationData(hotel.hotel_name);
         newConv.selectedHotel = hotel;
-
-        const photoUrl = resolveHotelPhotoUrl(hotel);
-        const scoreVal = (typeof hotel.score === 'number' && !isNaN(hotel.score)) ? hotel.score.toFixed(1) : '4.5';
-        const revCount = (typeof hotel.review_count === 'number' && !isNaN(hotel.review_count)) ? hotel.review_count : 0;
-
-        const introMsg = {
-            role: 'bot',
-            data: {
-                hotel_info: {
-                    hotel_name: hotel.hotel_name,
-                    star: hotel.star,
-                    score: hotel.score,
-                    address: hotel.address,
-                    location: hotel.location,
-                    total_reviews: revCount,
-                    photo_url: photoUrl
-                },
-                answer: `Xin chào! Bạn đang tìm hiểu về khách sạn **${hotel.hotel_name}** (${hotel.star}, đánh giá ${scoreVal}/5.0★ dựa trên ${revCount} lượt đánh giá tại ${hotel.location}).\n\nBạn có thể hỏi bất kỳ thông tin nào về chất lượng phòng, dịch vụ nhân viên, ẩm thực & buffet sáng, hồ bơi, hoặc chọn nhanh các chủ đề bên dưới để khám phá ngay:`,
-                predicted_aspect: "Overview",
-                aspect_confidence: 1.0,
-                sentiment_consensus: "Positive",
-                predicted_rating: hotel.score,
-                cited_reviews: []
-            },
-            timestamp: Date.now()
-        };
-        newConv.messages.push(introMsg);
         conversations.unshift(newConv);
         saveConversations();
         showChatWorkspaceView(newConv);
+        updateActiveHotelBanner();
+
+        // Model generates the greeting completely - zero canned UI templates
+        const typingId = appendTypingIndicator();
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: newConv.sessionId || newConv.id,
+                query: `Hello, please introduce ${hotel.hotel_name} and welcome the traveler.`,
+                selected_hotel: hotel.hotel_name,
+                action: 'greeting'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            removeTypingIndicator(typingId);
+            renderBotMessageNode(data);
+            newConv.messages.push({
+                role: 'bot',
+                data: data,
+                timestamp: Date.now()
+            });
+            saveConversations();
+            scrollToBottom();
+        })
+        .catch(err => {
+            console.error('Greeting fetch error:', err);
+            removeTypingIndicator(typingId);
+            renderErrorMessageNode('Could not generate greeting from model.');
+        });
     }
 
     function deselectHotel() {

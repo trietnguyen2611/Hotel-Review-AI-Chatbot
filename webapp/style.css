@@ -1172,6 +1172,63 @@ html, body {
     font-style: italic;
 }
 
+.aspect-highlight {
+    background: rgba(37, 99, 235, 0.15);
+    color: var(--primary);
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-style: normal;
+    border-bottom: 1.5px solid var(--primary);
+}
+
+.review-item-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.review-item-badge.badge-positive {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+}
+
+.review-item-badge.badge-negative {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+}
+
+.review-item-badge.badge-neutral {
+    background: rgba(234, 179, 8, 0.15);
+    color: #ca8a04;
+}
+
+.load-more-reviews-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 9px 14px;
+    margin-top: 4px;
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-sm);
+    color: var(--primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.load-more-reviews-btn:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary-dark, #1d4ed8);
+}
+
+
 /* --------------------------------------------------------------------------
    Floating Prompt Input Bar (Glassmorphism & Frosted Blur)
    -------------------------------------------------------------------------- */
@@ -1734,6 +1791,17 @@ html, body {
     -webkit-backdrop-filter: blur(8px);
     color: #f1f5f9;
     border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.hotel-card-top-header {
+    padding: 12px 14px 4px 14px;
+}
+
+.hotel-card-top-header .card-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 /* Hotel Card Content Body */
