@@ -823,13 +823,18 @@ class ConversationalQABot:
                 rev_context = "\n".join(rev_lines) if rev_lines else "No specific customer reviews available."
 
                 # Conditioned Prompt matching training architecture
+                chat_hist_str = "None"
+                if state.history:
+                    last_turn = state.history[-1]
+                    chat_hist_str = f"User: {last_turn.get('user', '')}\nAssistant: {last_turn.get('bot', '')}"
+
                 prompt = (
                     f"Answer the user inquiry based on the hotel information and customer reviews below.\n"
+                    f"Chat History: {chat_hist_str}\n"
                     f"User Inquiry: {clean_q}\n"
                     f"Hotel: {h_name} | Star Rating: {star_label} | Total Reviews: {tot_revs} | Location: {loc} | Address: {addr} | Average Score: {avg_score:.1f}/5.0\n"
                     f"Relevant Reviews (Ranked by Feature 10 Recency Weight w = exp(-0.03 * delta_m)):\n"
-                    f"{rev_context}\n"
-                    f"Answer in natural language:"
+                    f"{rev_context}"
                 )
 
                 bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
