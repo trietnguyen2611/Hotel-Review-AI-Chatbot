@@ -112,6 +112,11 @@
                     </div>
                 </div>
                 <div class="header-right">
+                    <!-- Browse Hotels Button -->
+                    <button class="topbar-browse-btn" id="topbarBrowseBtn" type="button" title="Browse and select hotel">
+                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/></svg>
+                        <span>Hotels</span>
+                    </button>
                     <!-- Project Models Selector Dropdown (Folder model/) -->
                     <div class="model-dropdown-wrapper" id="modelDropdownWrapper">
                         <button class="model-selector-btn" id="modelSelectorBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Select active model from model/ folder">
@@ -210,13 +215,19 @@
                             <strong class="active-hotel-title" id="activeHotelTitle">Pullman Hanoi</strong>
                             <span class="active-hotel-tag" id="activeHotelTag">5-star · 4.0★</span>
                         </div>
-                        <button type="button" class="deselect-btn" id="deselectHotelBtn" title="Clear hotel focus">
-                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                <line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                            <span>Deselect</span>
-                        </button>
+                        <div class="active-hotel-actions">
+                            <button type="button" class="change-hotel-btn" id="changeHotelBtn" title="Choose another hotel">
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/></svg>
+                                <span>Switch Hotel</span>
+                            </button>
+                            <button type="button" class="deselect-btn" id="deselectHotelBtn" title="Clear hotel focus">
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                <span>Deselect</span>
+                            </button>
+                        </div>
                     </div>
                     <!-- Quick Aspect Pills (100% Vector SVGs, Zero Emojis) -->
                     <div class="quick-aspect-pills" id="quickAspectPills">

@@ -62,6 +62,7 @@
         modelDropdownMenu: document.getElementById('modelDropdownMenu'),
         modelDropdownList: document.getElementById('modelDropdownList'),
 
+        topbarBrowseBtn: document.getElementById('topbarBrowseBtn'),
         hotelCarouselSection: document.getElementById('hotelCarouselSection'),
         cityFilterBar: document.getElementById('cityFilterBar'),
         hotelSearchInput: document.getElementById('hotelSearchInput'),
@@ -70,6 +71,7 @@
         activeHotelBanner: document.getElementById('activeHotelBanner'),
         activeHotelTitle: document.getElementById('activeHotelTitle'),
         activeHotelTag: document.getElementById('activeHotelTag'),
+        changeHotelBtn: document.getElementById('changeHotelBtn'),
         deselectHotelBtn: document.getElementById('deselectHotelBtn'),
         quickAspectPills: document.getElementById('quickAspectPills'),
 
@@ -225,7 +227,17 @@
         renderActiveConversationMessages();
         updateActiveHotelBanner();
         highlightSelectedCard();
+
+        // Main screen displays hotel selection cards first
+        if (elements.hotelCarouselSection) {
+            elements.hotelCarouselSection.classList.remove('collapsed');
+        }
+        if (elements.carouselToggleBtn) {
+            elements.carouselToggleBtn.classList.remove('collapsed');
+        }
+
         elements.promptInput.value = '';
+        elements.promptInput.placeholder = 'Ask about a hotel or select a card above...';
         elements.sendBtn.disabled = true;
         elements.promptInput.focus();
 
@@ -242,6 +254,26 @@
         renderActiveConversationMessages();
         updateActiveHotelBanner();
         highlightSelectedCard();
+
+        const conv = getActiveConversation();
+        if (conv && conv.selectedHotel) {
+            if (elements.hotelCarouselSection) {
+                elements.hotelCarouselSection.classList.add('collapsed');
+            }
+            if (elements.carouselToggleBtn) {
+                elements.carouselToggleBtn.classList.add('collapsed');
+            }
+            elements.promptInput.placeholder = `Ask anything about ${conv.selectedHotel.hotel_name}...`;
+        } else {
+            if (elements.hotelCarouselSection) {
+                elements.hotelCarouselSection.classList.remove('collapsed');
+            }
+            if (elements.carouselToggleBtn) {
+                elements.carouselToggleBtn.classList.remove('collapsed');
+            }
+            elements.promptInput.placeholder = 'Ask about a hotel or select a card above...';
+        }
+
         elements.promptInput.value = '';
         elements.sendBtn.disabled = true;
         elements.promptInput.focus();
@@ -981,8 +1013,16 @@
 
         elements.hotelCarouselTrack.innerHTML = hotels.map(h => {
             const isSelected = (selNormKey && h.norm_key === selNormKey) || (selName && h.hotel_name === selName);
+            const mapsUrl = h.maps_search_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(h.hotel_name + ' ' + (h.location || 'Vietnam')));
+            const mediaHtml = (h.photo_url && h.photo_url.trim()) ? `
+                    <div class="hotel-card-media" style="display: none;">
+                        <img src="${escapeHtml(h.photo_url.trim())}" alt="${escapeHtml(h.hotel_name)}" loading="lazy"
+                             onload="this.parentElement.style.display='block';"
+                             onerror="this.parentElement.style.display='none'; this.remove();">
+                    </div>` : '';
             return `
                 <div class="hotel-card ${isSelected ? 'selected' : ''}" data-norm-key="${escapeHtml(h.norm_key)}" role="button" tabindex="0">
+                    ${mediaHtml}
                     <div class="hotel-card-top">
                         <span class="card-star-badge">${escapeHtml(h.star)}</span>
                         <span class="card-score-badge">★ ${h.score.toFixed(1)}</span>
@@ -995,8 +1035,12 @@
                     </div>
                     ${h.sample_snippet ? `<p class="hotel-card-snippet">"${escapeHtml(h.sample_snippet)}"</p>` : ''}
                     <div class="hotel-card-footer">
-                        <span class="select-hint">Click to inquire</span>
+                        <span class="select-hint">Select &amp; Inquire →</span>
                         <span class="selected-indicator">✓ Selected</span>
+                        <a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer" class="card-maps-link" title="Open on Google Maps" onclick="event.stopPropagation();">
+                            ${SVG.externalLink}
+                            <span>Maps</span>
+                        </a>
                     </div>
                 </div>
             `;
@@ -1010,6 +1054,49 @@
         saveConversations();
         updateActiveHotelBanner();
         highlightSelectedCard();
+
+        // Collapse carousel to focus on chat
+        if (elements.hotelCarouselSection) {
+            elements.hotelCarouselSection.classList.add('collapsed');
+        }
+        if (elements.carouselToggleBtn) {
+            elements.carouselToggleBtn.classList.add('collapsed');
+        }
+
+        // Update placeholder
+        elements.promptInput.placeholder = `Ask anything about ${hotel.hotel_name}...`;
+
+        // If conversation is empty, display a welcome concierge greeting for the hotel
+        if (conv.messages.length === 0) {
+            if (elements.welcomeHero && elements.welcomeHero.parentNode) {
+                elements.welcomeHero.remove();
+            }
+            const introMsg = {
+                role: 'bot',
+                data: {
+                    hotel_info: {
+                        hotel_name: hotel.hotel_name,
+                        star: hotel.star,
+                        score: hotel.score,
+                        address: hotel.address,
+                        location: hotel.location,
+                        total_reviews: hotel.review_count
+                    },
+                    answer: `You are now exploring **${hotel.hotel_name}** (${hotel.star}, rated ${hotel.score.toFixed(1)}/5.0 stars with ${hotel.review_count} verified reviews in ${hotel.location}). What would you like to know about its customer service, breakfast quality, room comfort, or swimming pool? Ask any question or tap a quick topic below.`,
+                    predicted_aspect: "Overview",
+                    aspect_confidence: 1.0,
+                    sentiment_consensus: "Positive",
+                    predicted_rating: hotel.score,
+                    cited_reviews: []
+                },
+                timestamp: Date.now()
+            };
+            conv.messages.push(introMsg);
+            saveConversations();
+            renderBotMessageNode(introMsg.data);
+            scrollToBottom();
+        }
+
         elements.promptInput.focus();
     }
 
@@ -1020,6 +1107,15 @@
         saveConversations();
         updateActiveHotelBanner();
         highlightSelectedCard();
+
+        // Expand carousel to allow selecting hotel again
+        if (elements.hotelCarouselSection) {
+            elements.hotelCarouselSection.classList.remove('collapsed');
+        }
+        if (elements.carouselToggleBtn) {
+            elements.carouselToggleBtn.classList.remove('collapsed');
+        }
+        elements.promptInput.placeholder = 'Ask about a hotel or select a card above...';
     }
 
     function updateActiveHotelBanner() {
@@ -1085,6 +1181,29 @@
             });
         }
 
+        if (elements.changeHotelBtn) {
+            elements.changeHotelBtn.addEventListener('click', () => {
+                if (elements.hotelCarouselSection) {
+                    elements.hotelCarouselSection.classList.remove('collapsed');
+                }
+                if (elements.carouselToggleBtn) {
+                    elements.carouselToggleBtn.classList.remove('collapsed');
+                }
+                elements.hotelCarouselSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
+        if (elements.topbarBrowseBtn) {
+            elements.topbarBrowseBtn.addEventListener('click', () => {
+                if (elements.hotelCarouselSection) {
+                    const isCollapsed = elements.hotelCarouselSection.classList.toggle('collapsed');
+                    if (elements.carouselToggleBtn) {
+                        elements.carouselToggleBtn.classList.toggle('collapsed', isCollapsed);
+                    }
+                }
+            });
+        }
+
         if (elements.cityFilterBar) {
             elements.cityFilterBar.addEventListener('click', (e) => {
                 const pill = e.target.closest('.city-pill');
@@ -1142,5 +1261,25 @@
     initModelSelector();
     initHotelCarousel();
     updateActiveHotelBanner();
+
+    // Synchronize carousel state and prompt placeholder based on active conversation
+    const initialConv = getActiveConversation();
+    if (initialConv && initialConv.selectedHotel) {
+        if (elements.hotelCarouselSection) {
+            elements.hotelCarouselSection.classList.add('collapsed');
+        }
+        if (elements.carouselToggleBtn) {
+            elements.carouselToggleBtn.classList.add('collapsed');
+        }
+        elements.promptInput.placeholder = `Ask anything about ${initialConv.selectedHotel.hotel_name}...`;
+    } else {
+        if (elements.hotelCarouselSection) {
+            elements.hotelCarouselSection.classList.remove('collapsed');
+        }
+        if (elements.carouselToggleBtn) {
+            elements.carouselToggleBtn.classList.remove('collapsed');
+        }
+        elements.promptInput.placeholder = 'Ask about a hotel or select a card above...';
+    }
 
 })();
