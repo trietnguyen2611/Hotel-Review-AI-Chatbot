@@ -559,6 +559,10 @@ class HotelAspectQA_GenerativeBERT(nn.Module):
             encoder_outputs = self.seq2seq.encoder(input_ids=enc['input_ids'], attention_mask=enc['attention_mask'])
             seq_rep = encoder_outputs.last_hidden_state
             if dense_features is not None:
+                if not isinstance(dense_features, torch.Tensor):
+                    dense_features = torch.tensor(dense_features, dtype=torch.float)
+                if dense_features.ndim == 1:
+                    dense_features = dense_features.unsqueeze(0)
                 feat_emb = self.feature_proj(dense_features.to(dev))
                 fused_seq = seq_rep + feat_emb.unsqueeze(1) * 0.1
             else:
