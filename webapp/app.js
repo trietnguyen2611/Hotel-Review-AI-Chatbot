@@ -647,11 +647,9 @@
         try {
             const chatPayload = {
                 session_id: conv.sessionId,
-                query: query
+                query: query,
+                selected_hotel: (conv.selectedHotel && conv.selectedHotel.hotel_name) ? conv.selectedHotel.hotel_name : ""
             };
-            if (conv.selectedHotel && conv.selectedHotel.hotel_name) {
-                chatPayload.selected_hotel = conv.selectedHotel.hotel_name;
-            }
 
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -942,8 +940,10 @@
     let currentFilterCity = 'all';
     let currentSearchQuery = '';
     let searchDebounceTimer = null;
+    let fetchHotelsRequestId = 0;
 
     async function fetchHotels(city = 'all', search = '') {
+        const requestId = ++fetchHotelsRequestId;
         try {
             const params = new URLSearchParams();
             if (city && city !== 'all') params.set('city', city);
@@ -953,9 +953,14 @@
             const res = await fetch(`/api/hotels?${params.toString()}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
+            
+            // Guard against race conditions from rapid clicking
+            if (requestId !== fetchHotelsRequestId) return;
+
             allLoadedHotels = data.hotels || [];
             renderHotelCarousel(allLoadedHotels);
         } catch (e) {
+            if (requestId !== fetchHotelsRequestId) return;
             console.warn('Could not fetch hotels:', e);
             if (elements.hotelCarouselTrack) {
                 elements.hotelCarouselTrack.innerHTML = '<div class="hotel-card-skeleton">Unable to load hotels. Please ensure the backend server is running.</div>';
@@ -1060,6 +1065,16 @@
                 const found = allLoadedHotels.find(h => h.norm_key === normKey);
                 if (found) {
                     selectHotel(found);
+                }
+            });
+
+            elements.hotelCarouselTrack.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const card = e.target.closest('.hotel-card');
+                    if (card) {
+                        e.preventDefault();
+                        card.click();
+                    }
                 }
             });
         }

@@ -786,7 +786,7 @@ html, body {
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    padding: 76px 32px 140px 32px; /* Generous top padding for transparent bar, bottom for floating prompt */
+    padding: 16px 32px 140px 32px; /* 16px top padding below hotel carousel, 140px bottom for prompt bar */
     scroll-behavior: smooth;
 
     /* The Scroll Fade Mask: smoothly attenuates content as it scrolls up under the transparent topbar */

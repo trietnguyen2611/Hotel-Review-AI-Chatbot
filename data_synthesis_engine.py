@@ -1,24 +1,3 @@
-"""
-data_synthesis_engine.py
-========================
-Non-Formulaic Conversational Response Synthesis Engine for Hotel Review QA.
-
-Design Principles:
-1. STRICT ZERO-FORMULA RULE:
-   Never recite robotic metadata strings like:
-   "Guests at {h_name} ({star}, {tot_revs} total reviews) share predominantly positive feedback regarding {asp} across {count} related reviews."
-2. 12 DISTINCT SYNTACTIC ARCHETYPES:
-   Rotates across 12 diverse conversational sentence structures, speaking naturally
-   as a hospitable travel concierge answering a traveler's direct inquiry.
-3. SEAMLESS QUOTE BLENDING:
-   Quotes from verified customer reviews are woven into sentences with varied attribution verbs
-   ("one guest remarked", "reviews describe it as", "several travelers highlighted").
-4. SENTIMENT-ADAPTIVE TONE:
-   - Positive (score >= 3.8): Warm, confident, highlighting strengths and delights.
-   - Mixed/Neutral (3.0 - 3.7): Balanced, acknowledging strengths while noting nuances.
-   - Critical (< 3.0): Candid, objective advice pointing out reported shortcomings.
-"""
-
 import random
 import re
 from typing import List, Optional, Dict, Any
@@ -123,7 +102,8 @@ def synthesize_concierge_answer(
                 raw_quote = cleaned
                 break
 
-    is_positive = (consensus.lower() == 'positive') or (score >= 3.8 and consensus.lower() != 'critical')
+    valid_score = float(score) if score is not None else 4.0
+    is_positive = (consensus.lower() == 'positive') or (valid_score >= 3.8 and consensus.lower() != 'critical')
     attr_verb = rng.choice(ATTRIBUTION_VERBS_POS if is_positive else ATTRIBUTION_VERBS_CRIT)
     quote_clause = f' ({attr_verb}: "{raw_quote}")' if raw_quote else ""
 
@@ -201,9 +181,10 @@ def synthesize_hotel_overview(
                 quote_str = f' Guests frequently note: "{cleaned}".'
                 break
 
+    valid_score = float(score) if score is not None else 4.0
     patterns = [
-        f"{h_name} is a {star} accommodation in {loc}, situated at {addr}. Guests generally rate their stay favorably at {score:.1f} out of 5.0 stars, appreciating its accessible location and welcoming ambiance.{quote_str}",
-        f"Located at {addr} in {loc}, {h_name} offers {star} accommodations with an average guest rating of {score:.1f}/5.0 stars. It is well-regarded for providing reliable hospitality and comfortable facilities.{quote_str}",
-        f"For travelers visiting {loc}, {h_name} ({star}) provides quality lodging at {addr}. Customer feedback averages {score:.1f}/5.0 stars, reflecting consistent comfort and attentive service standards.{quote_str}"
+        f"{h_name} is a {star} accommodation in {loc}, situated at {addr}. Guests generally rate their stay favorably at {valid_score:.1f} out of 5.0 stars, appreciating its accessible location and welcoming ambiance.{quote_str}",
+        f"Located at {addr} in {loc}, {h_name} offers {star} accommodations with an average guest rating of {valid_score:.1f}/5.0 stars. It is well-regarded for providing reliable hospitality and comfortable facilities.{quote_str}",
+        f"For travelers visiting {loc}, {h_name} ({star}) provides quality lodging at {addr}. Customer feedback averages {valid_score:.1f}/5.0 stars, reflecting consistent comfort and attentive service standards.{quote_str}"
     ]
     return rng.choice(patterns)

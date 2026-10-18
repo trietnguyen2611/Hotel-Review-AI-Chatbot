@@ -953,18 +953,21 @@ class ConversationalQABot:
             matched_hotel = None
             was_coref = False
 
-            if selected_hotel:
-                clean_sel = clean_vietnamese_text(selected_hotel).lower()
-                for h_k, h_val in self.database.items():
-                    if h_k == clean_sel or clean_vietnamese_text(h_val.get('hotel_name', '')).lower() == clean_sel:
-                        matched_hotel = h_val
-                        break
-                if not matched_hotel:
-                    matched_hotel = self.matcher.match(selected_hotel)
-                if matched_hotel:
-                    state.current_hotel = matched_hotel
+            if selected_hotel is not None:
+                if not selected_hotel or str(selected_hotel).strip() == "":
+                    state.current_hotel = None
+                else:
+                    clean_sel = clean_vietnamese_text(str(selected_hotel)).lower()
+                    for h_k, h_val in self.database.items():
+                        if h_k == clean_sel or clean_vietnamese_text(h_val.get('hotel_name', '')).lower() == clean_sel:
+                            matched_hotel = h_val
+                            break
+                    if not matched_hotel:
+                        matched_hotel = self.matcher.match(str(selected_hotel))
+                    if matched_hotel:
+                        state.current_hotel = matched_hotel
 
-            if not matched_hotel:
+            if not matched_hotel and intent != 'recommendation':
                 matched_hotel = self.matcher.match(user_query)
                 if matched_hotel:
                     state.current_hotel = matched_hotel
@@ -972,9 +975,6 @@ class ConversationalQABot:
                     'it', 'hotel', 'resort', 'service', 'star', 'location', 'address', 'room',
                     'breakfast', 'pool', 'stay', 'price', 'here', 'there', 'this'
                 ] + [kw for kws in ASPECT_KEYWORDS.values() for kw in kws]):
-                    matched_hotel = state.current_hotel
-                    was_coref = True
-                elif state.current_hotel:
                     matched_hotel = state.current_hotel
                     was_coref = True
 
@@ -1307,8 +1307,10 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 load_hotel_database()
 
             query_params = urllib.parse.parse_qs(parsed.query)
-            city_filter = query_params.get('city', ['all'])[0].strip().lower()
-            search_filter = query_params.get('search', [''])[0].strip().lower()
+            raw_city = query_params.get('city', ['all'])[0].strip()
+            city_filter = clean_vietnamese_text(raw_city).lower()
+            raw_search = query_params.get('search', [''])[0].strip()
+            search_filter = clean_vietnamese_text(raw_search).lower()
             try:
                 limit = min(max(int(query_params.get('limit', [40])[0]), 1), 100)
             except (ValueError, TypeError):
