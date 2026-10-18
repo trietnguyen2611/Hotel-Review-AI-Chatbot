@@ -840,9 +840,6 @@ class ConversationalQABot:
                 bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
                 neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_context)
 
-                if not neural_ans:
-                    neural_ans = f"{h_name} is a {star_label} property in {loc}, with {tot_revs} reviews documented. Average guest satisfaction is rated {avg_score:.1f} out of 5.0 stars."
-
                 # Format original reviews data for UI
                 original_reviews_data = []
                 for r in cand_reviews:
@@ -909,9 +906,6 @@ class ConversationalQABot:
                 bert_ctx = f"Recommended hotels in Vietnam: {ctx}"
                 neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_ctx)
 
-                if not neural_ans:
-                    neural_ans = f"Based on verified guest reviews, recommended accommodations include {top_h.get('hotel_name')} ({top_h.get('star', 'Standard')}) in {top_h.get('location', 'Vietnam')}, rated {top_h.get('score', 4.0):.1f}/5.0 stars."
-
                 response_payload = {
                     "answer": neural_ans,
                     "hotel_name": top_h.get('hotel_name'),
@@ -935,13 +929,10 @@ class ConversationalQABot:
             gen_prompt = (
                 f"You are a helpful AI assistant specializing in hotel reviews, travel and accommodations in Vietnam. "
                 f"Answer the user inquiry directly in helpful, natural conversational language:\n"
-                f"User Inquiry: {clean_q}\n"
+                f"User Inq/uiry: {clean_q}\n"
                 f"Answer:"
             )
             neural_ans = self.pipeline.generate(gen_prompt, context_text="AI Assistant for hotel accommodations and verified guest reviews across Vietnam.")
-
-            if not neural_ans:
-                neural_ans = "Hello, I am your AI assistant specializing in hotel reviews, service quality, and accommodations across Vietnam. How can I help you today?"
 
             response_payload = {
                 "answer": neural_ans,
