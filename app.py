@@ -449,6 +449,27 @@ def load_hotel_database(parquet_path: str = 'data/df/hotel_reviews.parquet') -> 
         if m_val > hotels_dict[norm_key]['max_m']:
             hotels_dict[norm_key]['max_m'] = m_val
 
+    # Precompute static display attributes and normalized fields once at load time
+    for norm_key, h in hotels_dict.items():
+        revs = h.get('reviews', [])
+        rev_count = len(revs)
+        score = float(h.get('score', 4.0))
+        h['review_count'] = rev_count
+        h['pop_score'] = score * math.log1p(rev_count)
+        snippet = ""
+        if revs:
+            first_text = revs[0].get('text', '').strip()
+            snippet = (first_text[:110] + '...') if len(first_text) > 110 else first_text
+        h['sample_snippet'] = snippet
+        h_name = h.get('hotel_name', '')
+        h_loc = h.get('location', '')
+        h_addr = h.get('hotel_address', '')
+        h['maps_search_url'] = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(h_name + ' ' + (h_addr or h_loc or 'Vietnam'))}"
+        h['loc_norm'] = clean_vietnamese_text(h_loc).lower()
+        h['addr_norm'] = clean_vietnamese_text(h_addr).lower()
+        h['name_norm'] = clean_vietnamese_text(h_name).lower()
+        h['search_blob'] = f"{h['name_norm']} {h['loc_norm']} {h['addr_norm']}"
+
     global HOTEL_DATABASE, ALL_HOTEL_NAMES, PROVINCES_METADATA
     HOTEL_DATABASE = hotels_dict
     ALL_HOTEL_NAMES = [h['hotel_name'] for h in hotels_dict.values()]
@@ -1672,58 +1693,28 @@ class QAChatHandler(BaseHTTPRequestHandler):
 
             results = []
             for norm_key, h in HOTEL_DATABASE.items():
-                h_name = h.get('hotel_name', '')
-                h_loc = h.get('location', '')
-                h_addr = h.get('hotel_address', '')
-                revs = h.get('reviews', [])
-                rev_count = len(revs)
-                score = float(h.get('score', 4.0))
-
-                # Normalize strings once per hotel
-                loc_norm = clean_vietnamese_text(h_loc).lower()
-                addr_norm = clean_vietnamese_text(h_addr).lower()
-
                 # Province / City filter
                 if city_aliases:
-                    if not any(a in loc_norm or a in addr_norm for a in city_aliases):
+                    if not any(a in h.get('loc_norm', '') for a in city_aliases):
                         continue
 
                 # Search query filter (matches hotel name, location, address)
                 if search_filter:
-                    name_norm = clean_vietnamese_text(h_name).lower()
-                    combo = f"{name_norm} {loc_norm} {addr_norm}"
-                    if search_filter not in combo:
+                    if search_filter not in h.get('search_blob', ''):
                         continue
 
-                # Popularity score: score * log(review_count + 1)
-                pop_score = score * math.log1p(rev_count)
-
-                # Short review snippet
-                snippet = ""
-                if revs:
-                    first_text = revs[0].get('text', '').strip()
-                    snippet = (first_text[:110] + '...') if len(first_text) > 110 else first_text
-
-                photo_url = h.get('photo_url') or get_hotel_image_url(h_name, h_loc, h_addr)
-                maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
-                if maps_api_key:
-                    query_loc = urllib.parse.quote(f"{h_name}, {h_addr}")
-                    photo_url = f"https://maps.googleapis.com/maps/api/streetview?size=480x280&location={query_loc}&fov=90&key={maps_api_key}"
-
-                maps_search_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(h_name + ' ' + (h_addr or h_loc or 'Vietnam'))}"
-
                 results.append({
-                    'hotel_name': h_name,
+                    'hotel_name': h.get('hotel_name', ''),
                     'norm_key': norm_key,
                     'star': h.get('star', 'Standard'),
-                    'score': round(score, 1),
-                    'location': h_loc or 'Vietnam',
-                    'address': h_addr or 'Vietnam',
-                    'review_count': rev_count,
-                    'sample_snippet': snippet,
-                    'pop_score': pop_score,
-                    'photo_url': photo_url,
-                    'maps_search_url': maps_search_url
+                    'score': round(float(h.get('score', 4.0)), 1),
+                    'location': h.get('location') or 'Vietnam',
+                    'address': h.get('hotel_address') or 'Vietnam',
+                    'review_count': h.get('review_count', 0),
+                    'sample_snippet': h.get('sample_snippet', ''),
+                    'pop_score': h.get('pop_score', 0.0),
+                    'photo_url': h.get('photo_url'),
+                    'maps_search_url': h.get('maps_search_url', '')
                 })
 
             results.sort(key=lambda x: x['pop_score'], reverse=True)
@@ -1742,7 +1733,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 'has_more': has_more,
                 'returned': len(paginated_hotels),
                 'hotels': paginated_hotels,
-                'provinces': PROVINCES_METADATA
+                'provinces': PROVINCES_METADATA if offset == 0 else []
             }).encode('utf-8'))
             return
 
