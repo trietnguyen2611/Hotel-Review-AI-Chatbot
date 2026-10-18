@@ -17,7 +17,8 @@ from typing import List, Dict, Any, Tuple, Optional
 
 import torch
 import torch.nn as nn
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModel
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModel, EncoderDecoderModel
+from transformers.modeling_outputs import BaseModelOutput
 
 try:
     from safetensors.torch import load_file as safetensors_load_file
@@ -460,6 +461,124 @@ class BertMultiTaskQA(nn.Module):
         }
 
 
+class HotelAspectQA_GenerativeBERT(nn.Module):
+    """
+    Unified Architecture combining:
+    1. Pretrained BERT Encoder with 10-Feature Dense Context Fusion (Residual).
+    2. KDD 2025 PLMR Aspect Rationale Generator (soft mask m_a).
+    3. Aspect, Sentiment & 5-Level Ordinal Rating Heads (Weighted CORN Loss).
+    4. Autoregressive BERT Decoder (BERT2BERT) for End-to-End Natural Answer Generation.
+    """
+    def __init__(self, model_name: str = 'bert-base-uncased', num_features: int = 10, num_aspects: int = 6, num_sentiments: int = 3, num_classes: int = 5):
+        super().__init__()
+        self.seq2seq = EncoderDecoderModel.from_encoder_decoder_pretrained(model_name, model_name)
+        self.seq2seq.config.decoder_start_token_id = 101
+        self.seq2seq.config.pad_token_id = 0
+        self.seq2seq.config.eos_token_id = 102
+        if hasattr(self.seq2seq, 'generation_config') and self.seq2seq.generation_config is not None:
+            self.seq2seq.generation_config.decoder_start_token_id = 101
+            self.seq2seq.generation_config.pad_token_id = 0
+            self.seq2seq.generation_config.eos_token_id = 102
+
+        h_dim = self.seq2seq.config.encoder.hidden_size
+
+        self.feature_proj = nn.Sequential(
+            nn.Linear(num_features, 64),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(64, h_dim)
+        )
+        self.rationale_generator = nn.Sequential(
+            nn.Linear(h_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_aspects),
+            nn.Sigmoid()
+        )
+        self.aspect_classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(h_dim, 256),
+            nn.GELU(),
+            nn.Linear(256, num_aspects)
+        )
+        self.sentiment_classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(h_dim, 256),
+            nn.GELU(),
+            nn.Linear(256, num_sentiments)
+        )
+        self.rating_predictor = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(h_dim, 256),
+            nn.GELU(),
+            nn.Linear(256, num_classes - 1)
+        )
+
+    def forward(self, input_ids, attention_mask=None, dense_features=None, labels=None):
+        encoder_outputs = self.seq2seq.encoder(input_ids=input_ids, attention_mask=attention_mask)
+        seq_rep = encoder_outputs.last_hidden_state
+        pooled_rep = seq_rep[:, 0, :]
+        if dense_features is not None:
+            feat_emb = self.feature_proj(dense_features)
+            fused_cls = pooled_rep + feat_emb
+            fused_seq = seq_rep + feat_emb.unsqueeze(1) * 0.1
+        else:
+            fused_cls = pooled_rep
+            fused_seq = seq_rep
+
+        masks = self.rationale_generator(fused_seq)
+        if attention_mask is not None:
+            masks = masks * attention_mask.unsqueeze(-1).float()
+
+        aspect_logits = self.aspect_classifier(fused_cls)
+        sentiment_logits = self.sentiment_classifier(fused_cls)
+        rating_logits = self.rating_predictor(fused_cls)
+
+        encoder_container = BaseModelOutput(last_hidden_state=fused_seq)
+        seq2seq_outputs = self.seq2seq(
+            encoder_outputs=encoder_container,
+            attention_mask=attention_mask,
+            labels=labels
+        )
+        return {
+            'gen_loss': seq2seq_outputs.loss if labels is not None else None,
+            'gen_logits': seq2seq_outputs.logits,
+            'aspect_logits': aspect_logits,
+            'sentiment_logits': sentiment_logits,
+            'rating_logits': rating_logits,
+            'masks': masks
+        }
+
+    def generate_answer(self, tokenizer, prompt_text: str, dense_features=None, max_new_tokens: int = 150, device=None) -> str:
+        self.eval()
+        dev = device if device is not None else next(self.parameters()).device
+        enc = tokenizer(prompt_text, max_length=384, truncation=True, return_tensors='pt').to(dev)
+        cls_id = tokenizer.cls_token_id or 101
+        pad_id = tokenizer.pad_token_id or 0
+        sep_id = tokenizer.sep_token_id or 102
+        with torch.no_grad():
+            encoder_outputs = self.seq2seq.encoder(input_ids=enc['input_ids'], attention_mask=enc['attention_mask'])
+            seq_rep = encoder_outputs.last_hidden_state
+            if dense_features is not None:
+                feat_emb = self.feature_proj(dense_features.to(dev))
+                fused_seq = seq_rep + feat_emb.unsqueeze(1) * 0.1
+            else:
+                fused_seq = seq_rep
+            encoder_container = BaseModelOutput(last_hidden_state=fused_seq)
+            gen_ids = self.seq2seq.generate(
+                encoder_outputs=encoder_container,
+                attention_mask=enc['attention_mask'],
+                max_new_tokens=max_new_tokens,
+                num_beams=3,
+                no_repeat_ngram_size=3,
+                length_penalty=1.0,
+                early_stopping=True,
+                decoder_start_token_id=cls_id,
+                pad_token_id=pad_id,
+                eos_token_id=sep_id
+            )
+        return tokenizer.decode(gen_ids[0], skip_special_tokens=True).strip()
+
+
 def clean_state_dict(raw_state_dict):
     """
     Cleans PyTorch checkpoints by stripping DataParallel ('module.')
@@ -500,12 +619,16 @@ class GenerativeQAPipeline:
     def _initialize(self, checkpoint_path: str):
         print(f"Loading Generative Model on {self.device}...")
 
-        # Priority 1: Search for fine-tuned checkpoints in order
+        # Priority 1: Search for fine-tuned checkpoints in order (Generative v2 first)
         cand_candidates = [
+            os.path.join(BASE_DIR, 'model', 'model_v2_bart.pt'),
+            os.path.join(BASE_DIR, 'model_v2_bart.pt'),
             os.path.join(BASE_DIR, 'model', 'model_v2.pt'),
+            os.path.join(BASE_DIR, 'model_v2.pt'),
+            os.path.join(BASE_DIR, 'model.pt'),
+            os.path.join(BASE_DIR, 'model', 'model_v1.pt'),
             os.path.join(BASE_DIR, checkpoint_path),
             checkpoint_path,
-            os.path.join(BASE_DIR, 'model.pt'),
             os.path.join(BASE_DIR, 'model', 'modelv1.pt')
         ]
         for p in cand_candidates:
@@ -541,8 +664,8 @@ class GenerativeQAPipeline:
                 if os.path.isdir(custom_model_path):
                     self.tokenizer = AutoTokenizer.from_pretrained(custom_model_path)
                     self.model = AutoModelForSeq2SeqLM.from_pretrained(custom_model_path).to(self.device)
-                    self.model.eval()
                     self.model_type = 'seq2seq'
+                    self.model.eval()
                     self.loaded_successfully = True
                     self.active_model_name = os.path.basename(custom_model_path)
                     print(f"Successfully reloaded model directory from {custom_model_path}.")
@@ -560,10 +683,40 @@ class GenerativeQAPipeline:
 
                 cleaned_dict = clean_state_dict(state_dict)
 
-                # Architecture detection: BERT vs Seq2Seq (FLAN-T5)
-                is_bert = any(k.startswith('bert.') or 'qa_outputs.weight' in k or 'aspect_classifier.1.weight' in k for k in cleaned_dict.keys())
+                # Architecture detection:
+                # 1. Generative BERT (BERT2BERT / HotelAspectQA_GenerativeBERT)
+                is_gen_bert = any('seq2seq.' in k or 'encoder.bert.' in k or 'decoder.bert.' in k for k in cleaned_dict.keys())
+                # 2. BART Seq2Seq
+                is_bart = any('model.encoder.layers' in k or 'model.decoder.layers' in k for k in cleaned_dict.keys()) or 'bart' in custom_model_path.lower()
+                # 3. Extractive Multi-Task BERT
+                is_extractive_bert = any(k.startswith('bert.') or 'qa_outputs.weight' in k for k in cleaned_dict.keys()) and not is_gen_bert
 
-                if is_bert:
+                if is_gen_bert:
+                    print(f"Detected HotelAspectQA_GenerativeBERT architecture in {custom_model_path}")
+                    self.tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+                    m_bert = HotelAspectQA_GenerativeBERT()
+                    m_bert.seq2seq.config.decoder_start_token_id = self.tokenizer.cls_token_id
+                    m_bert.seq2seq.config.pad_token_id = self.tokenizer.pad_token_id
+                    m_bert.seq2seq.config.eos_token_id = self.tokenizer.sep_token_id
+                    if hasattr(m_bert.seq2seq, 'generation_config') and m_bert.seq2seq.generation_config is not None:
+                        m_bert.seq2seq.generation_config.decoder_start_token_id = self.tokenizer.cls_token_id
+                        m_bert.seq2seq.generation_config.pad_token_id = self.tokenizer.pad_token_id
+                        m_bert.seq2seq.generation_config.eos_token_id = self.tokenizer.sep_token_id
+                    missing, unexpected = m_bert.load_state_dict(cleaned_dict, strict=False)
+                    print(f"Loaded Generative BERT. Missing: {len(missing)}, Unexpected: {len(unexpected)}")
+                    self.model = m_bert.to(self.device)
+                    self.model.eval()
+                    self.model_type = 'generative_bert'
+                elif is_bart:
+                    print(f"Detected BART Seq2Seq architecture in {custom_model_path}")
+                    self.tokenizer = AutoTokenizer.from_pretrained('facebook/bart-base')
+                    bart_m = AutoModelForSeq2SeqLM.from_pretrained('facebook/bart-base')
+                    missing, unexpected = bart_m.load_state_dict(cleaned_dict, strict=False)
+                    print(f"Loaded BART Seq2Seq. Missing: {len(missing)}, Unexpected: {len(unexpected)}")
+                    self.model = bart_m.to(self.device)
+                    self.model.eval()
+                    self.model_type = 'seq2seq'
+                elif is_extractive_bert:
                     print(f"Detected Extractive Multi-Task BERT architecture in {custom_model_path}")
                     self.tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
                     bert_m = BertMultiTaskQA('bert-base-uncased')
@@ -598,7 +751,24 @@ class GenerativeQAPipeline:
 
         try:
             with self.inference_lock:
-                if self.model_type == 'extractive_bert':
+                if self.model_type == 'generative_bert':
+                    if hasattr(self.model, 'generate_answer'):
+                        ans = self.model.generate_answer(self.tokenizer, prompt_text, max_new_tokens=max_new_tokens, device=self.device)
+                    else:
+                        enc = self.tokenizer(prompt_text, max_length=512, truncation=True, return_tensors='pt').to(self.device)
+                        with torch.no_grad():
+                            outputs = self.model.seq2seq.generate(
+                                input_ids=enc['input_ids'],
+                                attention_mask=enc['attention_mask'],
+                                max_new_tokens=max_new_tokens,
+                                num_beams=3,
+                                no_repeat_ngram_size=3
+                            )
+                        ans = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+                    if ans:
+                        return ans
+                    return ""
+                elif self.model_type == 'extractive_bert':
                     q = prompt_text
                     ctx = context_text or prompt_text
                     inputs = self.tokenizer(q, ctx, max_length=512, truncation=True, return_tensors='pt').to(self.device)
@@ -839,6 +1009,8 @@ class ConversationalQABot:
 
                 bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
                 neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_context)
+                if not neural_ans:
+                    neural_ans = f"{h_name} is a {star_label} property in {loc}, with {tot_revs} reviews documented. Average guest satisfaction is rated {avg_score:.1f} out of 5.0 stars."
 
                 # Format original reviews data for UI
                 original_reviews_data = []
@@ -905,6 +1077,8 @@ class ConversationalQABot:
 
                 bert_ctx = f"Recommended hotels in Vietnam: {ctx}"
                 neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_ctx)
+                if not neural_ans:
+                    neural_ans = f"Based on verified guest reviews, recommended accommodations include {top_h.get('hotel_name')} ({top_h.get('star', 'Standard')}) in {top_h.get('location', 'Vietnam')}, rated {top_h.get('score', 4.0):.1f}/5.0 stars."
 
                 response_payload = {
                     "answer": neural_ans,
@@ -929,10 +1103,12 @@ class ConversationalQABot:
             gen_prompt = (
                 f"You are a helpful AI assistant specializing in hotel reviews, travel and accommodations in Vietnam. "
                 f"Answer the user inquiry directly in helpful, natural conversational language:\n"
-                f"User Inq/uiry: {clean_q}\n"
+                f"User Inquiry: {clean_q}\n"
                 f"Answer:"
             )
             neural_ans = self.pipeline.generate(gen_prompt, context_text="AI Assistant for hotel accommodations and verified guest reviews across Vietnam.")
+            if not neural_ans:
+                neural_ans = "Hello, I am your AI assistant specializing in hotel reviews, service quality, and accommodations across Vietnam. How can I help you today?"
 
             response_payload = {
                 "answer": neural_ans,
