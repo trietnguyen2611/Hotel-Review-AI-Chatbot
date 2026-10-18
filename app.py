@@ -10,6 +10,7 @@ import difflib
 import threading
 import random
 import urllib.parse
+import hashlib
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from collections import defaultdict
@@ -338,6 +339,60 @@ def synthesize_hotel_overview(
 HOTEL_DATABASE: Dict[str, Dict[str, Any]] = {}
 ALL_HOTEL_NAMES: List[str] = []
 
+HOTEL_IMAGE_POOL = {
+    'beach': [
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1561501900-3701fa6a0864?auto=format&fit=crop&w=640&q=80"
+    ],
+    'heritage': [
+        "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=640&q=80"
+    ],
+    'city': [
+        "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=640&q=80"
+    ],
+    'mountain': [
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=640&q=80",
+        "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=640&q=80"
+    ]
+}
+
+def get_hotel_image_url(h_name: str, location: str = '', addr: str = '') -> str:
+    maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
+    if maps_api_key:
+        query_loc = urllib.parse.quote(f"{h_name}, {addr or location}")
+        return f"https://maps.googleapis.com/maps/api/streetview?size=480x280&location={query_loc}&fov=90&key={maps_api_key}"
+
+    combined = f"{location} {addr} {h_name}".lower()
+    if any(k in combined for k in ['da nang', 'danang', 'phu quoc', 'nha trang', 'vung tau', 'phan thiet', 'beach', 'resort', 'island', 'ocean', 'sea', 'coast', 'bay']):
+        category = 'beach'
+    elif any(k in combined for k in ['hoi an', 'hoian', 'hue', 'old quarter', 'ma may', 'hang', 'pho co', 'heritage', 'boutique', 'temple', 'ancient']):
+        category = 'heritage'
+    elif any(k in combined for k in ['da lat', 'dalat', 'sapa', 'mountain', 'valley', 'pine', 'ninh binh', 'hills']):
+        category = 'mountain'
+    else:
+        category = 'city'
+
+    pool = HOTEL_IMAGE_POOL[category]
+    h_hash = int(hashlib.md5(h_name.encode('utf-8')).hexdigest(), 16)
+    return pool[h_hash % len(pool)]
+
 def load_hotel_database(parquet_path: str = 'data/df/hotel_reviews.parquet') -> Dict[str, Dict[str, Any]]:
     global HOTEL_DATABASE, ALL_HOTEL_NAMES
     import pandas as pd
@@ -367,14 +422,17 @@ def load_hotel_database(parquet_path: str = 'data/df/hotel_reviews.parquet') -> 
         if norm_key not in hotels_dict:
             star_raw = str(row.get('star', '')).replace('-star', '').strip()
             star_label = f"{star_raw}-star" if star_raw and star_raw != '0' else 'Standard'
+            loc = clean_location(str(row.get('location', '')).strip())
+            addr = clean_address(str(row.get('hotel_address', 'Vietnam')).strip())
             hotels_dict[norm_key] = {
                 'raw_name': raw_name,
                 'hotel_name': clean_name,
                 'norm_key': norm_key,
                 'star': star_label,
                 'score': float(row.get('score', 4.0)),
-                'hotel_address': clean_address(str(row.get('hotel_address', 'Vietnam')).strip()),
-                'location': clean_location(str(row.get('location', '')).strip()),
+                'hotel_address': addr,
+                'location': loc,
+                'photo_url': get_hotel_image_url(clean_name, loc, addr),
                 'reviews': [],
                 'max_m': 0
             }
@@ -686,7 +744,7 @@ class HotelAspectQA_GenerativeBERT(nn.Module):
             nn.Linear(256, num_classes - 1)
         )
 
-    def forward(self, input_ids, attention_mask=None, dense_features=None, labels=None):
+    def forward(self, input_ids, attention_mask=None, dense_features=None, labels=None, decoder_input_ids=None, aspect_id=None):
         encoder_outputs = self.seq2seq.encoder(input_ids=input_ids, attention_mask=attention_mask)
         seq_rep = encoder_outputs.last_hidden_state
         pooled_rep = seq_rep[:, 0, :]
@@ -706,11 +764,20 @@ class HotelAspectQA_GenerativeBERT(nn.Module):
         sentiment_logits = self.sentiment_classifier(fused_cls)
         rating_logits = self.rating_predictor(fused_cls)
 
-        encoder_container = BaseModelOutput(last_hidden_state=fused_seq)
+        # Aspect-Conditioned Rationale Injection
+        if aspect_id is not None:
+            asp_idx = aspect_id.view(-1, 1, 1).expand(-1, fused_seq.size(1), 1)
+            asp_mask = masks.gather(-1, asp_idx)
+            evidence_seq = fused_seq * (1.0 + asp_mask)
+        else:
+            evidence_seq = fused_seq
+
+        encoder_container = BaseModelOutput(last_hidden_state=evidence_seq)
         seq2seq_outputs = self.seq2seq(
             encoder_outputs=encoder_container,
             attention_mask=attention_mask,
-            labels=labels
+            labels=labels,
+            decoder_input_ids=decoder_input_ids
         )
         return {
             'gen_loss': seq2seq_outputs.loss if labels is not None else None,
@@ -721,7 +788,7 @@ class HotelAspectQA_GenerativeBERT(nn.Module):
             'masks': masks
         }
 
-    def generate_answer(self, tokenizer, prompt_text: str, dense_features=None, max_new_tokens: int = 150, device=None) -> str:
+    def generate_answer(self, tokenizer, prompt_text: str, dense_features=None, aspect_id=None, max_new_tokens: int = 150, device=None) -> str:
         self.eval()
         dev = device if device is not None else next(self.parameters()).device
         enc = tokenizer(prompt_text, max_length=384, truncation=True, return_tensors='pt').to(dev)
@@ -738,14 +805,30 @@ class HotelAspectQA_GenerativeBERT(nn.Module):
                     dense_features = dense_features.unsqueeze(0)
                 feat_emb = self.feature_proj(dense_features.to(dev))
                 fused_seq = seq_rep + feat_emb.unsqueeze(1) * 0.1
+                fused_cls = seq_rep[:, 0, :] + feat_emb
             else:
                 fused_seq = seq_rep
-            encoder_container = BaseModelOutput(last_hidden_state=fused_seq)
+                fused_cls = seq_rep[:, 0, :]
+
+            # Predict aspect if not supplied
+            if aspect_id is None:
+                aspect_logits = self.aspect_classifier(fused_cls)
+                aspect_id = torch.argmax(aspect_logits, dim=-1)
+            elif not isinstance(aspect_id, torch.Tensor):
+                aspect_id = torch.tensor([aspect_id], device=dev)
+
+            # PLMR rationale mask injection to steer cross-attention to relevant review spans
+            masks = self.rationale_generator(fused_seq) * enc['attention_mask'].unsqueeze(-1).float()
+            asp_idx = aspect_id.view(-1, 1, 1).expand(-1, fused_seq.size(1), 1)
+            asp_mask = masks.gather(-1, asp_idx)
+            evidence_seq = fused_seq * (1.0 + asp_mask)
+
+            encoder_container = BaseModelOutput(last_hidden_state=evidence_seq)
             gen_ids = self.seq2seq.generate(
                 encoder_outputs=encoder_container,
                 attention_mask=enc['attention_mask'],
                 max_new_tokens=max_new_tokens,
-                num_beams=3,
+                num_beams=4,
                 no_repeat_ngram_size=3,
                 length_penalty=1.0,
                 early_stopping=True,
@@ -924,7 +1007,7 @@ class GenerativeQAPipeline:
                 print(f"Failed to reload model {custom_model_path}: {e}")
                 return False
 
-    def generate(self, prompt_text: str, max_new_tokens: int = 180, context_text: Optional[str] = None) -> str:
+    def generate(self, prompt_text: str, max_new_tokens: int = 180, context_text: Optional[str] = None, dense_features=None, aspect_id=None) -> str:
         if not self.loaded_successfully or self.model is None or self.tokenizer is None:
             return ""
 
@@ -932,7 +1015,7 @@ class GenerativeQAPipeline:
             with self.inference_lock:
                 if self.model_type == 'generative_bert':
                     if hasattr(self.model, 'generate_answer'):
-                        ans = self.model.generate_answer(self.tokenizer, prompt_text, max_new_tokens=max_new_tokens, device=self.device)
+                        ans = self.model.generate_answer(self.tokenizer, prompt_text, dense_features=dense_features, aspect_id=aspect_id, max_new_tokens=max_new_tokens, device=self.device)
                     else:
                         enc = self.tokenizer(prompt_text, max_length=512, truncation=True, return_tensors='pt').to(self.device)
                         with torch.no_grad():
@@ -940,7 +1023,7 @@ class GenerativeQAPipeline:
                                 input_ids=enc['input_ids'],
                                 attention_mask=enc['attention_mask'],
                                 max_new_tokens=max_new_tokens,
-                                num_beams=3,
+                                num_beams=4,
                                 no_repeat_ngram_size=3
                             )
                         ans = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
@@ -1203,7 +1286,8 @@ class ConversationalQABot:
                 )
 
                 bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
-                neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_context)
+                asp_id = ASPECTS.index(aspect) if aspect in ASPECTS else None
+                neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_context, aspect_id=asp_id)
                 if not neural_ans:
                     try:
                         rev_quotes = [r['text'] for r in cand_reviews if r.get('text')]
@@ -1240,6 +1324,7 @@ class ConversationalQABot:
                     "sentiment": consensus.capitalize(),
                     "confidence": 0.95,
                     "maps_card": maps_card,
+                    "photo_url": matched_hotel.get('photo_url') or get_hotel_image_url(h_name, matched_hotel.get('location', ''), addr),
                     "original_reviews": original_reviews_data,
                     "context_applied": was_coref
                 }
@@ -1298,6 +1383,7 @@ class ConversationalQABot:
                     "sentiment": "Positive",
                     "confidence": 0.90,
                     "maps_card": None,
+                    "photo_url": top_h.get('photo_url') or get_hotel_image_url(top_h.get('hotel_name', ''), top_h.get('location', ''), top_h.get('hotel_address', '')),
                     "original_reviews": orig_revs,
                     "context_applied": False
                 }
@@ -1517,7 +1603,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     first_text = revs[0].get('text', '').strip()
                     snippet = (first_text[:110] + '...') if len(first_text) > 110 else first_text
 
-                photo_url = None
+                photo_url = h.get('photo_url') or get_hotel_image_url(h_name, h_loc, h_addr)
                 maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
                 if maps_api_key:
                     query_loc = urllib.parse.quote(f"{h_name}, {h_addr}")
