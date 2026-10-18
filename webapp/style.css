@@ -816,9 +816,9 @@ html, body {
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    padding: 76px 32px 220px 32px;
+    padding: 76px 32px 120px 32px;
     scroll-behavior: smooth;
-    scroll-padding-bottom: 220px;
+    scroll-padding-bottom: 120px;
 
     /* Subtle top scroll mask that preserves content legibility */
     mask-image: linear-gradient(
@@ -1397,8 +1397,8 @@ html, body {
     }
 
     .messages-container {
-        padding: 72px 16px 240px 16px;
-        scroll-padding-bottom: 240px;
+        padding: 72px 16px 120px 16px;
+        scroll-padding-bottom: 120px;
     }
 
     .prompt-bar-container {
@@ -2034,169 +2034,3 @@ html, body {
     grid-column: 1 / -1;
 }
 
-/* --------------------------------------------------------------------------
-   Active Hotel Banner (Above Prompt Bar)
-   -------------------------------------------------------------------------- */
-.active-hotel-banner {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 14px;
-    margin-bottom: 10px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: var(--shadow-sm);
-    animation: bannerSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes bannerSlideUp {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.active-hotel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.active-hotel-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.active-hotel-pulse {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: var(--success);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-    animation: pulseGlow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-    flex-shrink: 0;
-}
-
-.active-hotel-prefix {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-}
-
-.active-hotel-title {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.active-hotel-tag {
-    font-size: 0.74rem;
-    color: var(--text-secondary);
-    padding: 1px 6px;
-    border-radius: var(--radius-pill);
-    background: var(--bg-badge);
-}
-
-.active-hotel-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.change-hotel-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-badge);
-    color: var(--text-primary);
-    font-size: 0.72rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 140ms ease;
-    flex-shrink: 0;
-}
-
-.change-hotel-btn:hover {
-    background: var(--primary-light);
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-.deselect-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--border-subtle);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 140ms ease;
-    flex-shrink: 0;
-}
-
-.deselect-btn:hover {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: var(--danger);
-}
-
-/* Quick Aspect Pills */
-.quick-aspect-pills {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-}
-
-.quick-aspect-pills::-webkit-scrollbar {
-    display: none;
-}
-
-.aspect-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-main);
-    color: var(--text-secondary);
-    font-size: 0.74rem;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 140ms ease;
-    user-select: none;
-}
-
-.aspect-pill:hover {
-    border-color: var(--primary);
-    background: var(--primary-light);
-    color: var(--primary);
-    transform: translateY(-1px);
-}

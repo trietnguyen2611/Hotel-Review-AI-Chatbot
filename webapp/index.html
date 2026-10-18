@@ -238,58 +238,6 @@
 
                 <!-- Floating Frosted Glass Prompt Bar -->
                 <div class="prompt-bar-container" id="promptBarContainer">
-                    <!-- Active Hotel Lock Banner with Quick Aspect Inquiries -->
-                    <div class="active-hotel-banner" id="activeHotelBanner" style="display: none;">
-                        <div class="active-hotel-header">
-                            <div class="active-hotel-badge">
-                                <span class="active-hotel-pulse"></span>
-                                <span class="active-hotel-prefix">Focus:</span>
-                                <strong class="active-hotel-title" id="activeHotelTitle">Pullman Hanoi</strong>
-                                <span class="active-hotel-tag" id="activeHotelTag">5-star · 4.0★</span>
-                            </div>
-                            <div class="active-hotel-actions">
-                                <button type="button" class="change-hotel-btn" id="changeHotelBtn" title="Choose another hotel">
-                                    <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/></svg>
-                                    <span>Switch Hotel</span>
-                                </button>
-                                <button type="button" class="deselect-btn" id="deselectHotelBtn" title="Clear hotel focus">
-                                    <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                                        <line x1="18" y1="6" x2="6" y2="18"/>
-                                        <line x1="6" y1="6" x2="18" y2="18"/>
-                                    </svg>
-                                    <span>Deselect</span>
-                                </button>
-                            </div>
-                        </div>
-                        <!-- Quick Aspect Pills (6 Canonical Dataset Aspects: Service, Facility, Experience, Amenity, Loyalty, Branding) -->
-                        <div class="quick-aspect-pills" id="quickAspectPills">
-                            <button type="button" class="aspect-pill" data-aspect="Service" data-query="How is the customer service and staff hospitality?">
-                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                <span>Service &amp; Staff</span>
-                            </button>
-                            <button type="button" class="aspect-pill" data-aspect="Facility" data-query="How are the rooms, beds, bathrooms, and room cleanliness?">
-                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9"/></svg>
-                                <span>Facility &amp; Rooms</span>
-                            </button>
-                            <button type="button" class="aspect-pill" data-aspect="Experience" data-query="What is the overall stay experience and atmosphere?">
-                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                                <span>Experience</span>
-                            </button>
-                            <button type="button" class="aspect-pill" data-aspect="Amenity" data-query="Does this hotel have a swimming pool, breakfast buffet, or spa?">
-                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>
-                                <span>Amenity &amp; Pool</span>
-                            </button>
-                            <button type="button" class="aspect-pill" data-aspect="Loyalty" data-query="Would guests recommend staying here or return again?">
-                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                                <span>Loyalty &amp; Return</span>
-                            </button>
-                            <button type="button" class="aspect-pill" data-aspect="Branding" data-query="Does the hotel uphold its brand reputation and boutique standards?">
-                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                                <span>Branding &amp; Quality</span>
-                            </button>
-                        </div>
-                    </div>
-
                     <form class="prompt-bar-glass" id="chatForm">
                         <textarea 
                             class="prompt-input-area" 

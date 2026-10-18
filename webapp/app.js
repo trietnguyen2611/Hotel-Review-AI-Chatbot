@@ -76,12 +76,6 @@
         loadMoreHotelsBtn: document.getElementById('loadMoreHotelsBtn'),
         loadMoreHotelsText: document.getElementById('loadMoreHotelsText'),
         allLoadedIndicator: document.getElementById('allLoadedIndicator'),
-        activeHotelBanner: document.getElementById('activeHotelBanner'),
-        activeHotelTitle: document.getElementById('activeHotelTitle'),
-        activeHotelTag: document.getElementById('activeHotelTag'),
-        changeHotelBtn: document.getElementById('changeHotelBtn'),
-        deselectHotelBtn: document.getElementById('deselectHotelBtn'),
-        quickAspectPills: document.getElementById('quickAspectPills'),
 
         messagesContainer: document.getElementById('messagesContainer'),
         messagesList: document.getElementById('messagesList'),
@@ -1405,22 +1399,7 @@
     }
 
     function updateActiveHotelBanner() {
-        const conv = getActiveConversation();
-        const banner = elements.activeHotelBanner;
-        if (!banner) return;
-
-        if (conv && conv.selectedHotel) {
-            banner.style.display = 'flex';
-            if (elements.activeHotelTitle) {
-                elements.activeHotelTitle.textContent = conv.selectedHotel.hotel_name;
-            }
-            if (elements.activeHotelTag) {
-                const scoreStr = typeof conv.selectedHotel.score === 'number' ? conv.selectedHotel.score.toFixed(1) : conv.selectedHotel.score;
-                elements.activeHotelTag.textContent = `${conv.selectedHotel.star} · ${scoreStr}★`;
-            }
-        } else {
-            banner.style.display = 'none';
-        }
+        // Focus bar removed for minimal UI
     }
 
     function highlightSelectedCard() {
@@ -1462,20 +1441,6 @@
                         card.click();
                     }
                 }
-            });
-        }
-
-        if (elements.deselectHotelBtn) {
-            elements.deselectHotelBtn.addEventListener('click', () => {
-                deselectHotel();
-            });
-        }
-
-        if (elements.changeHotelBtn) {
-            elements.changeHotelBtn.addEventListener('click', () => {
-                const conv = getActiveConversation();
-                switchingHotelForConvId = conv ? conv.id : null;
-                showHotelSelectionView();
             });
         }
 
@@ -1544,20 +1509,6 @@
                 if (hasMoreHotels && !isLoadingHotels) {
                     fetchHotels(currentFilterCity, currentSearchQuery, true);
                 }
-            });
-        }
-
-        if (elements.quickAspectPills) {
-            elements.quickAspectPills.addEventListener('click', (e) => {
-                const pill = e.target.closest('.aspect-pill');
-                if (!pill) return;
-                const query = pill.getAttribute('data-query');
-                if (!query || isRequestPending) return;
-                elements.promptInput.value = query;
-                elements.promptInput.dispatchEvent(new Event('input', { bubbles: true }));
-                elements.sendBtn.disabled = false;
-                elements.promptInput.focus();
-                elements.chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
             });
         }
 
