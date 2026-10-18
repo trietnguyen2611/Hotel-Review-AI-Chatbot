@@ -16,6 +16,22 @@ from socketserver import ThreadingMixIn
 from collections import defaultdict, Counter
 from typing import List, Dict, Any, Tuple, Optional
 
+# Auto-relaunch inside project virtual environment if dependencies are missing in current python
+try:
+    import torch
+    import transformers
+except ImportError:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    if sys.platform == 'win32':
+        venv_py = os.path.join(base_dir, '.venv', 'Scripts', 'python.exe')
+    else:
+        venv_py = os.path.join(base_dir, '.venv', 'bin', 'python')
+    if os.path.exists(venv_py) and os.path.abspath(sys.executable) != os.path.abspath(venv_py):
+        print(f"[Launcher] Switching to project virtual environment: {venv_py}")
+        os.execv(venv_py, [venv_py] + sys.argv)
+    else:
+        raise
+
 import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModel, EncoderDecoderModel
@@ -45,33 +61,58 @@ ASPECT_DISPLAY = {
 
 ASPECT_KEYWORDS = {
     'Amenity': [
-        'amenity', 'amenities', 'pool', 'swimming pool', 'swimming', 'swim', 'gym', 'fitness',
+        'amenity', 'amenities', 'pool', 'swimming pool', 'swimming', 'swim', 'be boi', 'bể bơi', 'ho boi', 'hồ bơi',
+        'gym', 'fitness', 'phong gym', 'phòng gym', 'tap the duc', 'tập thể dục',
         'breakfast', 'buffet', 'food', 'restaurant', 'dining', 'dish', 'dishes', 'coffee', 'tea',
-        'spa', 'massage', 'sauna', 'wifi', 'internet', 'parking', 'bar', 'rooftop', 'lounge', 'cocktail'
+        'an sang', 'ăn sáng', 'bua sang', 'bữa sáng', 'nha hang', 'nhà hàng', 'do an', 'đồ ăn', 'mon an', 'món ăn',
+        'thuc don', 'thực đơn', 'buffet sang', 'buffet sáng', 'ca phe', 'cà phê', 'nuoc uong', 'nước uống',
+        'spa', 'massage', 'sauna', 'xong hoi', 'xông hơi', 'tam hoi', 'tắm hơi',
+        'wifi', 'internet', 'mang', 'mạng', 'toc do mang', 'tốc độ mạng',
+        'parking', 'do xe', 'đỗ xe', 'bai do xe', 'bãi đỗ xe', 'gui xe', 'gửi xe',
+        'bar', 'rooftop', 'lounge', 'cocktail', 'quay bar', 'quầy bar', 'sky bar'
     ],
     'Service': [
         'service', 'staff', 'employee', 'waiter', 'reception', 'receptionist', 'check-in', 'checkout',
         'attitude', 'helpful', 'friendly', 'slow', 'hospitality', 'concierge', 'front desk',
-        'courteous', 'welcoming', 'polite', 'assistance', 'housekeeping', 'manager'
+        'courteous', 'welcoming', 'polite', 'assistance', 'housekeeping', 'manager',
+        'nhan vien', 'nhân viên', 'phuc vu', 'phục vụ', 'le tan', 'lễ tân', 'tiep tan', 'tiếp tân',
+        'thai do', 'thái độ', 'nhiet tinh', 'nhiệt tình', 'than thien', 'thân thiện', 'chu dao', 'chu đáo',
+        'chao don', 'chào đón', 'ho tro', 'hỗ trợ', 'don phong', 'dọn phòng', 'quan ly', 'quản lý',
+        'chuyen nghiep', 'chuyên nghiệp', 'nhanh nhen', 'nhanh nhẹn', 'cham chap', 'chậm chạp'
     ],
     'Facility': [
         'facility', 'facilities', 'room', 'rooms', 'bed', 'beds', 'bathroom', 'shower', 'bathtub',
         'clean', 'cleanliness', 'dirty', 'air conditioner', 'ac', 'tv', 'balcony', 'sheet', 'towel',
         'maintenance', 'spacious', 'water pressure', 'smell', 'noise', 'quiet', 'insulation', 'view',
-        'elevator', 'lift', 'stairs', 'building'
+        'elevator', 'lift', 'stairs', 'building',
+        'phong', 'phòng', 'phong ngu', 'phòng ngủ', 'giuong', 'giường', 'nem', 'nệm', 'chan ga', 'chăn ga',
+        've sinh', 'vệ sinh', 'toilet', 'nha tam', 'nhà tắm', 'bon tam', 'bồn tắm', 'voi sen', 'vòi sen',
+        'nuoc nong', 'nước nóng', 'sach se', 'sạch sẽ', 'ban', 'bẩn', 'mui', 'mùi', 'dieu hoa', 'điều hòa',
+        'may lanh', 'máy lạnh', 'tivi', 'ti vi', 'ban cong', 'ban công', 'tam nhin', 'tầm nhìn',
+        'on ao', 'ồn ào', 'yen tinh', 'yên tĩnh', 'cach am', 'cách âm', 'thang may', 'thang máy',
+        'co so vat chat', 'cơ sở vật chất', 'trang thiet bi', 'trang thiết bị', 'rong rai', 'rộng rãi', 'chat chep', 'chật chội'
     ],
     'Loyalty': [
         'loyalty', 'recommend', 'recommendation', 'return', 'come back', 'again', 'stay again',
-        'visit again', 'book again', 'next trip', 'next time', 'worth it', 'never again', 'wont return'
+        'visit again', 'book again', 'next trip', 'next time', 'worth it', 'never again', 'wont return',
+        'quay lai', 'quay lại', 'tro lai', 'trở lại', 'gioi thieu', 'giới thiệu', 'ung ho', 'ủng hộ',
+        'lan sau', 'lần sau', 'tiep tuc', 'tiếp tục', 'dang tien', 'đáng tiền', 'hai long', 'hài lòng',
+        'that vong', 'thất vọng', 'se quay lai', 'sẽ quay lại', 'khong quay lai', 'không quay lại'
     ],
     'Branding': [
         'brand', 'reputation', 'standard', 'prestige', 'luxury', 'chain', 'boutique', 'authentic',
         'expectations', 'value for money', 'price', 'cost', 'expensive', 'cheap', 'budget',
-        '5-star quality', 'star rating', 'classification'
+        '5-star quality', 'star rating', 'classification',
+        'gia', 'giá', 'gia ca', 'giá cả', 'gia phong', 'giá phòng', 'dat', 'đắt', 're', 'rẻ',
+        'chi phi', 'chi phí', 'thuong hieu', 'thương hiệu', 'dang cap', 'đẳng cấp', 'sang trong', 'sang trọng',
+        'tieu chuan', 'tiêu chuẩn', 'danh tieng', 'danh tiếng', 'hang sao', 'hạng sao', '5 sao', '4 sao',
+        'uy tin', 'uy tín'
     ],
     'Experience': [
         'experience', 'stay', 'trip', 'atmosphere', 'vibe', 'vacation', 'overall',
-        'general', 'pleasure', 'relaxing', 'impressive', 'disappointing', 'holiday', 'feeling', 'impression'
+        'general', 'pleasure', 'relaxing', 'impressive', 'disappointing', 'holiday', 'feeling', 'impression',
+        'trai nghiem', 'trải nghiệm', 'chuyen di', 'chuyến đi', 'ky nghi', 'kỳ nghỉ', 'khong khi', 'không khí',
+        'tong the', 'tổng thể', 'cam nhan', 'cảm nhận', 'thu gian', 'thư giãn', 'tuyet voi', 'tuyệt vời'
     ]
 }
 
@@ -934,10 +975,15 @@ def clean_state_dict(raw_state_dict):
         clean_k = k
         if clean_k.startswith('module.'):
             clean_k = clean_k[7:]
-        if clean_k.startswith('model.'):
-            clean_k = clean_k[6:]
         if clean_k.startswith('bart.'):
             clean_k = clean_k[5:]
+        # Only strip 'model.' wrapper if it's wrapping bert or seq2seq, but preserve native BART weights
+        if clean_k.startswith('model.') and not (
+            clean_k.startswith('model.encoder.') or
+            clean_k.startswith('model.decoder.') or
+            clean_k.startswith('model.shared.')
+        ):
+            clean_k = clean_k[6:]
         cleaned[clean_k] = v
     return cleaned
 
@@ -1222,10 +1268,21 @@ class ConversationalQABot:
         self.sessions = SessionManager()
 
     def detect_intent_and_aspect(self, query: str) -> Tuple[str, str]:
-        q = query.lower()
-        is_loc = any(k in q for k in ['where', 'address', 'location', 'map', 'situated', 'directions'])
-        is_star = any(k in q for k in ['how many stars', 'star rating', 'star level', 'classification', 'how many star'])
-        is_count = any(k in q for k in ['how many reviews', 'review count', 'total reviews', 'number of reviews'])
+        q_raw = query.lower()
+        q_clean = clean_vietnamese_text(query).lower()
+
+        is_loc = any(k in q_raw or k in q_clean for k in [
+            'where', 'address', 'location', 'map', 'situated', 'directions',
+            'o dau', 'dia chi', 'vi tri', 'cho nao', 'nam o dau'
+        ])
+        is_star = any(k in q_raw or k in q_clean for k in [
+            'how many stars', 'star rating', 'star level', 'classification', 'how many star',
+            'may sao', 'hang sao', 'hang may sao', 'tieu chuan may sao'
+        ])
+        is_count = any(k in q_raw or k in q_clean for k in [
+            'how many reviews', 'review count', 'total reviews', 'number of reviews',
+            'bao nhieu danh gia', 'so luong danh gia', 'tong danh gia'
+        ])
 
         if is_loc:
             return 'location', 'Facility'
@@ -1234,9 +1291,19 @@ class ConversationalQABot:
         if is_count:
             return 'review_count', 'Experience'
 
+        matched_aspect = None
+        best_kw_len = 0
         for asp, kws in ASPECT_KEYWORDS.items():
-            if any(kw in q for kw in kws):
-                return 'aspect_qa', asp
+            for kw in kws:
+                kw_len = len(kw)
+                if kw_len <= best_kw_len:
+                    continue
+                pattern = r'\b' + re.escape(kw) + r'\b'
+                if re.search(pattern, q_raw) or re.search(pattern, q_clean):
+                    matched_aspect = asp
+                    best_kw_len = kw_len
+        if matched_aspect:
+            return 'aspect_qa', matched_aspect
         return 'aspect_qa', 'Experience'
 
     def search_database_by_criteria(self, query: str, top_n: int = 3) -> List[Tuple[Dict[str, Any], str]]:
@@ -1385,7 +1452,28 @@ class ConversationalQABot:
                 bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
                 asp_id = ASPECTS.index(aspect) if aspect in ASPECTS else None
                 neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_context, aspect_id=asp_id)
-                if not neural_ans:
+
+                # Grounding verification for Scenario A:
+                # If neural_ans hallucinates an unrelated hotel name (e.g. 'hoa binh hotel', 'la sinfonia'),
+                # or is a memorized training template for another hotel, fall back to organic synthesis.
+                is_grounded = bool(neural_ans)
+                if neural_ans:
+                    lower_ans = neural_ans.lower()
+                    lower_hname = h_name.lower()
+                    h_tokens = [t for t in normalize_text(h_name).split() if len(t) >= 3 and t not in {'hotel', 'resort', 'standard', 'vietnam'}]
+                    mentions_current = any(t in lower_ans for t in h_tokens) if h_tokens else (lower_hname in lower_ans)
+
+                    # Check foreign hotel hallucination against specific hospitality entity signatures
+                    for m in re.finditer(r'\b(?:at|regarding(?:\s+\w+)?\s+at)\s+([a-z0-9\s&\'\-]+?\s+(?:hotel|resort|suites|inn|property))\b', lower_ans):
+                        foreign_subj = m.group(1).strip()
+                        if foreign_subj and not any(t in foreign_subj for t in h_tokens):
+                            is_grounded = False
+                            break
+
+                    if not mentions_current:
+                        is_grounded = False
+
+                if not is_grounded:
                     try:
                         rev_quotes = [r['text'] for r in cand_reviews if r.get('text')]
                         if is_greeting:
@@ -1422,6 +1510,7 @@ class ConversationalQABot:
 
                 response_payload = {
                     "answer": neural_ans,
+                    "reply": neural_ans,
                     "hotel_name": h_name,
                     "star": star_label,
                     "score": round(avg_score, 1),
@@ -1433,6 +1522,7 @@ class ConversationalQABot:
                     "maps_card": maps_card,
                     "photo_url": matched_hotel.get('photo_url') or get_hotel_image_url(h_name, matched_hotel.get('location', ''), addr),
                     "original_reviews": original_reviews_data,
+                    "citations": original_reviews_data,
                     "context_applied": was_coref
                 }
 
@@ -1481,6 +1571,7 @@ class ConversationalQABot:
 
                 response_payload = {
                     "answer": neural_ans,
+                    "reply": neural_ans,
                     "hotel_name": top_h.get('hotel_name'),
                     "star": top_h.get('star'),
                     "score": round(top_h.get('score', 4.0), 1),
@@ -1492,6 +1583,7 @@ class ConversationalQABot:
                     "maps_card": None,
                     "photo_url": top_h.get('photo_url') or get_hotel_image_url(top_h.get('hotel_name', ''), top_h.get('location', ''), top_h.get('hotel_address', '')),
                     "original_reviews": orig_revs,
+                    "citations": orig_revs,
                     "context_applied": False
                 }
                 state.history.append({"user": user_query, "bot": neural_ans})
@@ -1512,6 +1604,7 @@ class ConversationalQABot:
 
             response_payload = {
                 "answer": neural_ans,
+                "reply": neural_ans,
                 "hotel_name": None,
                 "star": None,
                 "score": None,
@@ -1522,6 +1615,7 @@ class ConversationalQABot:
                 "confidence": 0.85,
                 "maps_card": None,
                 "original_reviews": [],
+                "citations": [],
                 "context_applied": False
             }
             state.history.append({"user": user_query, "bot": neural_ans})
@@ -1603,7 +1697,21 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     allow_reuse_address = True
 
 class QAChatHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def _send_cors_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header('Access-Control-Max-Age', '86400')
+        self.end_headers()
+
+    def do_HEAD(self):
+        self.do_GET(head_only=True)
+
+    def do_GET(self, head_only: bool = False):
         global HOTEL_DATABASE
         parsed = urllib.parse.urlparse(self.path)
         req_path = parsed.path.lstrip('/')
@@ -1612,15 +1720,17 @@ class QAChatHandler(BaseHTTPRequestHandler):
 
         if parsed.path == '/api/health':
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self._send_cors_headers()
             self.end_headers()
             active_m = getattr(BOT.pipeline, 'active_model_name', 'model_v2.pt') if BOT and BOT.pipeline else 'Seq2Seq Engine'
-            self.wfile.write(json.dumps({
-                'status': 'ok',
-                'hotels_loaded': len(HOTEL_DATABASE),
-                'model_loaded': BOT.pipeline.loaded_successfully if BOT and BOT.pipeline else False,
-                'active_model': active_m
-            }).encode('utf-8'))
+            if not head_only:
+                self.wfile.write(json.dumps({
+                    'status': 'ok',
+                    'hotels_loaded': len(HOTEL_DATABASE),
+                    'model_loaded': BOT.pipeline.loaded_successfully if BOT and BOT.pipeline else False,
+                    'active_model': active_m
+                }).encode('utf-8'))
             return
 
         if parsed.path == '/api/models':
@@ -1659,12 +1769,14 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 active_m = models[0]['name']
 
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self._send_cors_headers()
             self.end_headers()
-            self.wfile.write(json.dumps({
-                'models': models,
-                'active_model': active_m or (models[0]['name'] if models else 'Default')
-            }).encode('utf-8'))
+            if not head_only:
+                self.wfile.write(json.dumps({
+                    'models': models,
+                    'active_model': active_m or (models[0]['name'] if models else 'Default')
+                }).encode('utf-8'))
             return
 
         if parsed.path.rstrip('/') == '/api/hotels':
@@ -1725,16 +1837,18 @@ class QAChatHandler(BaseHTTPRequestHandler):
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self._send_cors_headers()
             self.end_headers()
-            self.wfile.write(json.dumps({
-                'total': total_count,
-                'offset': offset,
-                'limit': limit,
-                'has_more': has_more,
-                'returned': len(paginated_hotels),
-                'hotels': paginated_hotels,
-                'provinces': PROVINCES_METADATA if offset == 0 else []
-            }).encode('utf-8'))
+            if not head_only:
+                self.wfile.write(json.dumps({
+                    'total': total_count,
+                    'offset': offset,
+                    'limit': limit,
+                    'has_more': has_more,
+                    'returned': len(paginated_hotels),
+                    'hotels': paginated_hotels,
+                    'provinces': PROVINCES_METADATA if offset == 0 else []
+                }).encode('utf-8'))
             return
 
         # Serve static file from WEBAPP_DIR
@@ -1742,8 +1856,10 @@ class QAChatHandler(BaseHTTPRequestHandler):
         if not (file_path == WEBAPP_DIR or file_path.startswith(WEBAPP_DIR + os.sep)) or not os.path.isfile(file_path):
             self.send_response(404)
             self.send_header('Content-Type', 'text/plain; charset=utf-8')
+            self._send_cors_headers()
             self.end_headers()
-            self.wfile.write(b'File Not Found')
+            if not head_only:
+                self.wfile.write(b'File Not Found')
             return
 
         _, ext = os.path.splitext(file_path)
@@ -1755,12 +1871,16 @@ class QAChatHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', content_type)
             self.send_header('Content-Length', str(len(content)))
+            self._send_cors_headers()
             self.end_headers()
-            self.wfile.write(content)
+            if not head_only:
+                self.wfile.write(content)
         except Exception as e:
             self.send_response(500)
+            self._send_cors_headers()
             self.end_headers()
-            self.wfile.write(str(e).encode('utf-8'))
+            if not head_only:
+                self.wfile.write(str(e).encode('utf-8'))
 
     def do_POST(self):
         global BOT
@@ -1770,11 +1890,13 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 content_len = int(self.headers.get('Content-Length', 0))
             except (ValueError, TypeError):
                 self.send_response(400)
+                self._send_cors_headers()
                 self.end_headers()
                 return
 
             if content_len > 65536:
                 self.send_response(413)
+                self._send_cors_headers()
                 self.end_headers()
                 return
 
@@ -1783,11 +1905,13 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 data = json.loads(body)
             except Exception:
                 self.send_response(400)
+                self._send_cors_headers()
                 self.end_headers()
                 return
 
             if not isinstance(data, dict):
                 self.send_response(400)
+                self._send_cors_headers()
                 self.end_headers()
                 return
 
@@ -1805,6 +1929,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self._send_cors_headers()
             self.end_headers()
             self.wfile.write(json.dumps(result).encode('utf-8'))
 
@@ -1813,11 +1938,13 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 content_len = int(self.headers.get('Content-Length', 0))
             except (ValueError, TypeError):
                 self.send_response(400)
+                self._send_cors_headers()
                 self.end_headers()
                 return
 
             if content_len <= 0:
                 self.send_response(400)
+                self._send_cors_headers()
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': 'Empty upload payload'}).encode('utf-8'))
                 return
@@ -1825,6 +1952,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
             # Max 2GB limit for checkpoint upload
             if content_len > 2 * 1024 * 1024 * 1024:
                 self.send_response(413)
+                self._send_cors_headers()
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': 'Model file exceeds 2GB maximum limit'}).encode('utf-8'))
                 return
@@ -1833,6 +1961,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 filename, file_data = parse_multipart_file(self.headers, self.rfile, content_len)
                 if not file_data or len(file_data) == 0:
                     self.send_response(400)
+                    self._send_cors_headers()
                     self.end_headers()
                     self.wfile.write(json.dumps({'error': 'Failed to parse model file payload'}).encode('utf-8'))
                     return
@@ -1862,11 +1991,12 @@ class QAChatHandler(BaseHTTPRequestHandler):
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self._send_cors_headers()
                 self.end_headers()
                 self.wfile.write(json.dumps(response_payload).encode('utf-8'))
             except Exception as e:
                 self.send_response(500)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self._send_cors_headers()
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': f'Upload processing failed: {str(e)}'}).encode('utf-8'))
         elif parsed.path == '/api/select-model':
@@ -1878,6 +2008,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 if not model_name:
                     self.send_response(400)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self._send_cors_headers()
                     self.end_headers()
                     self.wfile.write(json.dumps({'error': 'Missing model_name parameter'}).encode('utf-8'))
                     return
@@ -1897,6 +2028,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 if not target_path:
                     self.send_response(404)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self._send_cors_headers()
                     self.end_headers()
                     self.wfile.write(json.dumps({'error': f'Model {clean_name} not found in model/ directory'}).encode('utf-8'))
                     return
@@ -1912,6 +2044,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     BOT.pipeline.active_model_name = selected_name
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self._send_cors_headers()
                     self.end_headers()
                     self.wfile.write(json.dumps({
                         'status': 'success',
@@ -1921,15 +2054,18 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 else:
                     self.send_response(500)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self._send_cors_headers()
                     self.end_headers()
                     self.wfile.write(json.dumps({'error': f'Failed to reload model weights from {selected_name}'}).encode('utf-8'))
             except Exception as e:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self._send_cors_headers()
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
         else:
             self.send_response(404)
+            self._send_cors_headers()
             self.end_headers()
 
 def main():
@@ -1945,9 +2081,26 @@ def main():
     global BOT
     BOT = ConversationalQABot(HOTEL_DATABASE)
 
-    server_address = (args.host, args.port)
-    httpd = ThreadedHTTPServer(server_address, QAChatHandler)
-    print(f"Server successfully started at http://localhost:{args.port}")
+    port = args.port
+    max_retries = 10
+    httpd = None
+    for attempt in range(max_retries):
+        try:
+            server_address = (args.host, port)
+            httpd = ThreadedHTTPServer(server_address, QAChatHandler)
+            break
+        except OSError as e:
+            # Address already in use: macOS (48), Linux (98), Windows WSAEADDRINUSE (10048)
+            if e.errno in (48, 98, 10048):
+                print(f"Notice: Port {port} is occupied. Trying port {port + 1}...")
+                port += 1
+                if attempt == max_retries - 1:
+                    print(f"Error: Could not bind to any port in range {args.port} - {port - 1}.")
+                    raise
+            else:
+                raise
+
+    print(f"Server successfully started at http://localhost:{port}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
