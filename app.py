@@ -887,6 +887,7 @@ class GenerativeQAPipeline:
             os.path.join(BASE_DIR, 'model_v2_bart.pt'),
             os.path.join(BASE_DIR, 'model', 'model_v2.pt'),
             os.path.join(BASE_DIR, 'model_v2.pt'),
+            os.path.join(BASE_DIR, 'model', 'model.pt'),
             os.path.join(BASE_DIR, 'model.pt'),
             os.path.join(BASE_DIR, 'model', 'model_v1.pt'),
             os.path.join(BASE_DIR, checkpoint_path),
