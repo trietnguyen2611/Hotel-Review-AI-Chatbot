@@ -69,7 +69,13 @@
         chatWorkspaceView: document.getElementById('chatWorkspaceView'),
         mobileSidebarClose: document.getElementById('mobileSidebarClose'),
         cityFilterBar: document.getElementById('cityFilterBar'),
+        provinceSelect: document.getElementById('provinceSelect'),
         hotelSearchInput: document.getElementById('hotelSearchInput'),
+        hotelCounterTag: document.getElementById('hotelCounterTag'),
+        loadMoreHotelsWrap: document.getElementById('loadMoreHotelsWrap'),
+        loadMoreHotelsBtn: document.getElementById('loadMoreHotelsBtn'),
+        loadMoreHotelsText: document.getElementById('loadMoreHotelsText'),
+        allLoadedIndicator: document.getElementById('allLoadedIndicator'),
         activeHotelBanner: document.getElementById('activeHotelBanner'),
         activeHotelTitle: document.getElementById('activeHotelTitle'),
         activeHotelTag: document.getElementById('activeHotelTag'),
@@ -1116,106 +1122,216 @@
         return null;
     }
 
+    const HOTEL_PAGE_SIZE = 10;
     let allLoadedHotels = [];
     let currentFilterCity = 'all';
     let currentSearchQuery = '';
+    let currentOffset = 0;
+    let totalMatchingHotels = 0;
+    let hasMoreHotels = false;
+    let isLoadingHotels = false;
+    let provincesLoaded = false;
     let searchDebounceTimer = null;
     let fetchHotelsRequestId = 0;
 
-    async function fetchHotels(city = 'all', search = '') {
+    async function fetchHotels(city = 'all', search = '', append = false) {
+        // Only block duplicate concurrent requests when paginating (Load More)
+        if (append && isLoadingHotels) return;
+        isLoadingHotels = true;
         const requestId = ++fetchHotelsRequestId;
+
+        if (!append) {
+            currentOffset = 0;
+            allLoadedHotels = [];
+            if (elements.hotelSelectionGrid) {
+                elements.hotelSelectionGrid.innerHTML = '<div class="hotel-card-skeleton">Đang tải danh sách khách sạn từ hệ thống...</div>';
+            }
+            if (elements.loadMoreHotelsWrap) {
+                elements.loadMoreHotelsWrap.style.display = 'none';
+            }
+            if (elements.hotelCounterTag) {
+                elements.hotelCounterTag.textContent = 'Đang tải...';
+            }
+        } else {
+            if (elements.loadMoreHotelsBtn) {
+                elements.loadMoreHotelsBtn.classList.add('loading');
+            }
+            if (elements.loadMoreHotelsText) {
+                elements.loadMoreHotelsText.textContent = 'Đang tải thêm khách sạn...';
+            }
+        }
+
         try {
             const params = new URLSearchParams();
             if (city && city !== 'all') params.set('city', city);
             if (search) params.set('search', search);
-            params.set('limit', '40');
+            params.set('limit', String(HOTEL_PAGE_SIZE));
+            params.set('offset', String(currentOffset));
 
             const res = await fetch(`/api/hotels?${params.toString()}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            
+
             // Guard against race conditions from rapid clicking or debounced input
             if (requestId !== fetchHotelsRequestId) return;
 
-            allLoadedHotels = data.hotels || [];
-            renderHotelSelectionGrid(allLoadedHotels);
+            totalMatchingHotels = data.total || 0;
+            hasMoreHotels = !!data.has_more;
+            const newHotels = data.hotels || [];
+
+            // Populate all 48 provinces in dropdown filter once
+            if (!provincesLoaded && data.provinces && Array.isArray(data.provinces) && elements.provinceSelect) {
+                provincesLoaded = true;
+                const totalAll = data.provinces.reduce((sum, p) => sum + p.count, 0);
+                elements.provinceSelect.innerHTML = `
+                    <option value="all">Tất cả tỉnh thành (${totalAll.toLocaleString()})</option>
+                    ${data.provinces.map(p => `
+                        <option value="${escapeHtml(p.name)}">${escapeHtml(p.name)} (${p.count.toLocaleString()})</option>
+                    `).join('')}
+                `;
+                if (currentFilterCity && currentFilterCity !== 'all') {
+                    elements.provinceSelect.value = currentFilterCity;
+                }
+            }
+
+            if (!append) {
+                allLoadedHotels = newHotels;
+                renderHotelSelectionGrid(allLoadedHotels, false);
+            } else {
+                allLoadedHotels = allLoadedHotels.concat(newHotels);
+                renderHotelSelectionGrid(newHotels, true);
+            }
+
+            currentOffset += newHotels.length;
+
+            // Update Counter Text
+            if (elements.hotelCounterTag) {
+                const cityLabel = (city && city !== 'all') ? ` tại ${city}` : '';
+                const searchLabel = search ? ` khớp "${search}"` : '';
+                elements.hotelCounterTag.textContent = `Hiển thị ${allLoadedHotels.length} / ${totalMatchingHotels.toLocaleString()} khách sạn${cityLabel}${searchLabel}`;
+            }
+
+            // Update Load More Button & Indicator
+            if (elements.loadMoreHotelsWrap) {
+                if (totalMatchingHotels === 0) {
+                    elements.loadMoreHotelsWrap.style.display = 'none';
+                } else {
+                    elements.loadMoreHotelsWrap.style.display = 'flex';
+                    if (hasMoreHotels && elements.loadMoreHotelsBtn) {
+                        elements.loadMoreHotelsBtn.style.display = 'inline-flex';
+                        elements.loadMoreHotelsBtn.classList.remove('loading');
+                        const remaining = Math.max(0, totalMatchingHotels - allLoadedHotels.length);
+                        const nextBatch = Math.min(HOTEL_PAGE_SIZE, remaining);
+                        if (elements.loadMoreHotelsText) {
+                            elements.loadMoreHotelsText.textContent = `Xem thêm ${nextBatch} khách sạn (còn ${remaining.toLocaleString()})`;
+                        }
+                        if (elements.allLoadedIndicator) elements.allLoadedIndicator.style.display = 'none';
+                    } else {
+                        if (elements.loadMoreHotelsBtn) elements.loadMoreHotelsBtn.style.display = 'none';
+                        if (elements.allLoadedIndicator) {
+                            elements.allLoadedIndicator.style.display = 'flex';
+                            elements.allLoadedIndicator.innerHTML = `
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span>Đã hiển thị toàn bộ ${totalMatchingHotels.toLocaleString()} khách sạn</span>
+                            `;
+                        }
+                    }
+                }
+            }
         } catch (e) {
             if (requestId !== fetchHotelsRequestId) return;
             console.warn('Could not fetch hotels:', e);
-            if (elements.hotelSelectionGrid) {
+            if (!append && elements.hotelSelectionGrid) {
                 elements.hotelSelectionGrid.innerHTML = '<div class="hotel-card-skeleton">Unable to load hotel properties. Please ensure the backend server is running.</div>';
+            }
+            if (elements.loadMoreHotelsBtn) {
+                elements.loadMoreHotelsBtn.classList.remove('loading');
+                if (elements.loadMoreHotelsText) {
+                    elements.loadMoreHotelsText.textContent = 'Thử lại tải thêm';
+                }
+            }
+        } finally {
+            if (requestId === fetchHotelsRequestId) {
+                isLoadingHotels = false;
             }
         }
     }
 
-    function renderHotelSelectionGrid(hotels) {
-        if (!elements.hotelSelectionGrid) return;
+    function renderHotelCardHtml(h) {
         const conv = getActiveConversation();
         const selNormKey = conv && conv.selectedHotel ? conv.selectedHotel.norm_key : null;
         const selName = conv && conv.selectedHotel ? conv.selectedHotel.hotel_name : null;
+        const isSelected = (selNormKey && h.norm_key === selNormKey) || (selName && h.hotel_name === selName);
+        const mapsUrl = h.maps_search_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(h.hotel_name + ' ' + (h.location || 'Vietnam')));
+        const photoUrl = resolveHotelPhotoUrl(h);
+        const scoreVal = (typeof h.score === 'number' && !isNaN(h.score)) ? h.score.toFixed(1) : '4.5';
+        const revCount = (typeof h.review_count === 'number' && !isNaN(h.review_count)) ? h.review_count : 0;
+        const starVal = h.star || '4-star';
 
-        if (!hotels || hotels.length === 0) {
-            elements.hotelSelectionGrid.innerHTML = '<div class="hotel-card-skeleton">No hotels found matching criteria. Try adjusting your city filter or search query.</div>';
+        const mediaHtml = photoUrl ? `
+            <div class="hotel-card-media" style="display: none;">
+                <div class="hotel-card-media-skeleton"></div>
+                <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(h.hotel_name)}" loading="lazy"
+                     onload="this.parentElement.style.display='block'; this.classList.add('loaded');"
+                     onerror="this.remove(); this.parentElement.style.display='none';">
+                <div class="hotel-card-media-gradient"></div>
+                <div class="card-badge-top-left">
+                    <span class="card-star-badge">${escapeHtml(starVal)}</span>
+                    <span class="card-score-badge">★ ${scoreVal}</span>
+                </div>
+                <div class="card-badge-top-right">
+                    <span class="card-rev-badge">${revCount} revs</span>
+                </div>
+            </div>
+        ` : `
+            <div class="hotel-card-top-header">
+                <div class="card-badges-row">
+                    <span class="card-star-badge">${escapeHtml(starVal)}</span>
+                    <span class="card-score-badge">★ ${scoreVal}</span>
+                    <span class="card-rev-badge">${revCount} revs</span>
+                </div>
+            </div>
+        `;
+
+        return `
+            <div class="hotel-card ${isSelected ? 'selected' : ''}" data-norm-key="${escapeHtml(h.norm_key)}" role="button" tabindex="0">
+                ${mediaHtml}
+                <div class="hotel-card-body">
+                    <h4 class="hotel-card-name" title="${escapeHtml(h.hotel_name)}">${escapeHtml(h.hotel_name)}</h4>
+                    <div class="hotel-card-loc">
+                        ${SVG.mapPin}
+                        <span>${escapeHtml(h.location || 'Vietnam')}</span>
+                    </div>
+                    ${h.sample_snippet ? `<p class="hotel-card-snippet">&ldquo;${escapeHtml(h.sample_snippet)}&rdquo;</p>` : ''}
+                    <div class="hotel-card-footer">
+                        <span class="select-hint-action">
+                            <span>Select &amp; Inquire</span>
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </span>
+                        <a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer" class="card-maps-link" title="Open on Google Maps" onclick="event.stopPropagation();">
+                            ${SVG.externalLink}
+                            <span>Maps</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderHotelSelectionGrid(hotels, append = false) {
+        if (!elements.hotelSelectionGrid) return;
+
+        if (!append && (!hotels || hotels.length === 0)) {
+            elements.hotelSelectionGrid.innerHTML = '<div class="hotel-card-skeleton">Không tìm thấy khách sạn nào phù hợp. Vui lòng thử đổi tỉnh thành hoặc từ khoá tìm kiếm.</div>';
             return;
         }
 
-        elements.hotelSelectionGrid.innerHTML = hotels.map(h => {
-            const isSelected = (selNormKey && h.norm_key === selNormKey) || (selName && h.hotel_name === selName);
-            const mapsUrl = h.maps_search_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(h.hotel_name + ' ' + (h.location || 'Vietnam')));
-            const photoUrl = resolveHotelPhotoUrl(h);
-            const scoreVal = (typeof h.score === 'number' && !isNaN(h.score)) ? h.score.toFixed(1) : '4.5';
-            const revCount = (typeof h.review_count === 'number' && !isNaN(h.review_count)) ? h.review_count : 0;
-            const starVal = h.star || '4-star';
-
-            const mediaHtml = photoUrl ? `
-                <div class="hotel-card-media" style="display: none;">
-                    <div class="hotel-card-media-skeleton"></div>
-                    <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(h.hotel_name)}" loading="lazy"
-                         onload="this.parentElement.style.display='block'; this.classList.add('loaded');"
-                         onerror="this.remove(); this.parentElement.style.display='none';">
-                    <div class="hotel-card-media-gradient"></div>
-                    <div class="card-badge-top-left">
-                        <span class="card-star-badge">${escapeHtml(starVal)}</span>
-                        <span class="card-score-badge">★ ${scoreVal}</span>
-                    </div>
-                    <div class="card-badge-top-right">
-                        <span class="card-rev-badge">${revCount} revs</span>
-                    </div>
-                </div>
-            ` : `
-                <div class="hotel-card-top-header">
-                    <div class="card-badges-row">
-                        <span class="card-star-badge">${escapeHtml(starVal)}</span>
-                        <span class="card-score-badge">★ ${scoreVal}</span>
-                        <span class="card-rev-badge">${revCount} revs</span>
-                    </div>
-                </div>
-            `;
-
-            return `
-                <div class="hotel-card ${isSelected ? 'selected' : ''}" data-norm-key="${escapeHtml(h.norm_key)}" role="button" tabindex="0">
-                    ${mediaHtml}
-                    <div class="hotel-card-body">
-                        <h4 class="hotel-card-name" title="${escapeHtml(h.hotel_name)}">${escapeHtml(h.hotel_name)}</h4>
-                        <div class="hotel-card-loc">
-                            ${SVG.mapPin}
-                            <span>${escapeHtml(h.location || 'Vietnam')}</span>
-                        </div>
-                        ${h.sample_snippet ? `<p class="hotel-card-snippet">&ldquo;${escapeHtml(h.sample_snippet)}&rdquo;</p>` : ''}
-                        <div class="hotel-card-footer">
-                            <span class="select-hint-action">
-                                <span>Select &amp; Inquire</span>
-                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                            </span>
-                            <a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer" class="card-maps-link" title="Open on Google Maps" onclick="event.stopPropagation();">
-                                ${SVG.externalLink}
-                                <span>Maps</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        const cardsHtml = hotels.map(h => renderHotelCardHtml(h)).join('');
+        if (!append) {
+            elements.hotelSelectionGrid.innerHTML = cardsHtml;
+        } else {
+            elements.hotelSelectionGrid.insertAdjacentHTML('beforeend', cardsHtml);
+        }
     }
 
     function handleSelectHotelCard(hotel) {
@@ -1377,6 +1493,7 @@
             });
         }
 
+        // Quick Destination Pills Filtering
         if (elements.cityFilterBar) {
             elements.cityFilterBar.addEventListener('click', (e) => {
                 const pill = e.target.closest('.city-pill');
@@ -1384,17 +1501,49 @@
                 document.querySelectorAll('.city-pill').forEach(p => p.classList.remove('active'));
                 pill.classList.add('active');
                 currentFilterCity = pill.getAttribute('data-city') || 'all';
-                fetchHotels(currentFilterCity, currentSearchQuery);
+                if (elements.provinceSelect) {
+                    elements.provinceSelect.value = currentFilterCity;
+                    // If the city pill value is not in the dropdown options, select 'all'
+                    if (elements.provinceSelect.value !== currentFilterCity && currentFilterCity !== 'all') {
+                        elements.provinceSelect.value = 'all';
+                    }
+                }
+                fetchHotels(currentFilterCity, currentSearchQuery, false);
             });
         }
 
+        // All 48 Provinces Dropdown Filtering
+        if (elements.provinceSelect) {
+            elements.provinceSelect.addEventListener('change', (e) => {
+                currentFilterCity = e.target.value;
+                document.querySelectorAll('.city-pill').forEach(p => {
+                    if (p.getAttribute('data-city') === currentFilterCity) {
+                        p.classList.add('active');
+                    } else {
+                        p.classList.remove('active');
+                    }
+                });
+                fetchHotels(currentFilterCity, currentSearchQuery, false);
+            });
+        }
+
+        // Search Input (Debounced hotel name & address filter)
         if (elements.hotelSearchInput) {
             elements.hotelSearchInput.addEventListener('input', (e) => {
                 currentSearchQuery = e.target.value.trim();
                 clearTimeout(searchDebounceTimer);
                 searchDebounceTimer = setTimeout(() => {
-                    fetchHotels(currentFilterCity, currentSearchQuery);
+                    fetchHotels(currentFilterCity, currentSearchQuery, false);
                 }, 220);
+            });
+        }
+
+        // Load More Hotels (Pagination 10 hotels at a time)
+        if (elements.loadMoreHotelsBtn) {
+            elements.loadMoreHotelsBtn.addEventListener('click', () => {
+                if (hasMoreHotels && !isLoadingHotels) {
+                    fetchHotels(currentFilterCity, currentSearchQuery, true);
+                }
             });
         }
 
@@ -1412,7 +1561,7 @@
             });
         }
 
-        fetchHotels('all', '');
+        fetchHotels('all', '', false);
     }
 
     // -------------------------------------------------------------------------

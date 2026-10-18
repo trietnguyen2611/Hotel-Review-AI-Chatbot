@@ -13,7 +13,7 @@ import urllib.parse
 import hashlib
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from collections import defaultdict
+from collections import defaultdict, Counter
 from typing import List, Dict, Any, Tuple, Optional
 
 import torch
@@ -124,6 +124,36 @@ CITY_CANONICAL_MAP = {
     'hoi an': 'Hoi An',
     'sapa': 'Sa Pa',
     'ha long': 'Ha Long'
+}
+
+PROVINCES_METADATA: List[Dict[str, Any]] = []
+
+CITY_ALIASES = {
+    'hanoi': ['hanoi', 'ha noi'],
+    'ha noi': ['hanoi', 'ha noi'],
+    'tp. hcm': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
+    'tp hcm': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
+    'ho chi minh': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
+    'ho chi minh city': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
+    'saigon': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
+    'quang nam': ['quang nam', 'hoi an'],
+    'hoi an': ['quang nam', 'hoi an'],
+    'da nang': ['da nang', 'danang'],
+    'khanh hoa': ['khanh hoa', 'nha trang'],
+    'nha trang': ['khanh hoa', 'nha trang'],
+    'hue': ['hue', 'thua thien'],
+    'kien giang': ['kien giang', 'phu quoc'],
+    'phu quoc': ['kien giang', 'phu quoc'],
+    'lam dong': ['lam dong', 'da lat', 'dalat'],
+    'da lat': ['lam dong', 'da lat', 'dalat'],
+    'binh thuan': ['binh thuan', 'phan thiet', 'mui ne'],
+    'hai phong': ['hai phong', 'cat ba'],
+    'quang binh': ['quang binh', 'dong hoi'],
+    'vung tau': ['vung tau', 'ba ria'],
+    'ninh binh': ['ninh binh', 'tam coc', 'trang an'],
+    'quang ninh': ['quang ninh', 'ha long'],
+    'can tho': ['can tho'],
+    'ha giang': ['ha giang', 'dong van']
 }
 
 def clean_location(loc_raw: str) -> str:
@@ -419,9 +449,15 @@ def load_hotel_database(parquet_path: str = 'data/df/hotel_reviews.parquet') -> 
         if m_val > hotels_dict[norm_key]['max_m']:
             hotels_dict[norm_key]['max_m'] = m_val
 
+    global HOTEL_DATABASE, ALL_HOTEL_NAMES, PROVINCES_METADATA
     HOTEL_DATABASE = hotels_dict
     ALL_HOTEL_NAMES = [h['hotel_name'] for h in hotels_dict.values()]
-    print(f"Loaded {len(HOTEL_DATABASE)} unique hotel properties into knowledge base.")
+    all_provinces_counter = Counter(h.get('location', '').strip() for h in hotels_dict.values() if h.get('location', '').strip())
+    PROVINCES_METADATA = [
+        {'name': loc, 'count': cnt}
+        for loc, cnt in sorted(all_provinces_counter.items(), key=lambda x: (-x[1], x[0]))
+    ]
+    print(f"Loaded {len(HOTEL_DATABASE)} unique hotel properties into knowledge base ({len(PROVINCES_METADATA)} provinces).")
     return HOTEL_DATABASE
 
 # ---------------------------------------------------------------------------
@@ -1615,14 +1651,24 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 load_hotel_database()
 
             query_params = urllib.parse.parse_qs(parsed.query)
-            raw_city = query_params.get('city', ['all'])[0].strip()
+            raw_city = query_params.get('city', [''])[0].strip() or query_params.get('province', ['all'])[0].strip()
+            if not raw_city:
+                raw_city = 'all'
             city_filter = clean_vietnamese_text(raw_city).lower()
             raw_search = query_params.get('search', [''])[0].strip()
             search_filter = clean_vietnamese_text(raw_search).lower()
+
             try:
-                limit = min(max(int(query_params.get('limit', [40])[0]), 1), 100)
+                limit = min(max(int(query_params.get('limit', [10])[0]), 1), 100)
             except (ValueError, TypeError):
-                limit = 40
+                limit = 10
+
+            try:
+                offset = max(int(query_params.get('offset', [0])[0]), 0)
+            except (ValueError, TypeError):
+                offset = 0
+
+            city_aliases = CITY_ALIASES.get(city_filter, [city_filter]) if (city_filter and city_filter != 'all') else []
 
             results = []
             for norm_key, h in HOTEL_DATABASE.items():
@@ -1633,14 +1679,19 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 rev_count = len(revs)
                 score = float(h.get('score', 4.0))
 
-                # City filter
-                if city_filter and city_filter != 'all':
-                    if city_filter not in h_loc.lower() and city_filter not in h_addr.lower():
+                # Normalize strings once per hotel
+                loc_norm = clean_vietnamese_text(h_loc).lower()
+                addr_norm = clean_vietnamese_text(h_addr).lower()
+
+                # Province / City filter
+                if city_aliases:
+                    if not any(a in loc_norm or a in addr_norm for a in city_aliases):
                         continue
 
-                # Search query filter
+                # Search query filter (matches hotel name, location, address)
                 if search_filter:
-                    combo = f"{h_name} {h_loc} {h_addr}".lower()
+                    name_norm = clean_vietnamese_text(h_name).lower()
+                    combo = f"{name_norm} {loc_norm} {addr_norm}"
                     if search_filter not in combo:
                         continue
 
@@ -1676,15 +1727,22 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 })
 
             results.sort(key=lambda x: x['pop_score'], reverse=True)
-            trimmed = results[:limit]
+
+            total_count = len(results)
+            paginated_hotels = results[offset : offset + limit]
+            has_more = (offset + limit) < total_count
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.end_headers()
             self.wfile.write(json.dumps({
-                'total': len(results),
-                'returned': len(trimmed),
-                'hotels': trimmed
+                'total': total_count,
+                'offset': offset,
+                'limit': limit,
+                'has_more': has_more,
+                'returned': len(paginated_hotels),
+                'hotels': paginated_hotels,
+                'provinces': PROVINCES_METADATA
             }).encode('utf-8'))
             return
 

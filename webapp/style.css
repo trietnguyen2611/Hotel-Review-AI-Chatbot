@@ -1568,16 +1568,22 @@ html, body {
 
 .selection-toolbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 12px;
     margin-bottom: 24px;
-    flex-wrap: wrap;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    padding: 10px 14px;
+    padding: 12px 16px;
     box-shadow: var(--shadow-sm);
+}
+
+.toolbar-main-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 .city-filter-bar {
@@ -1586,6 +1592,8 @@ html, body {
     gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
+    flex: 1;
+    min-width: 280px;
 }
 
 .city-filter-bar::-webkit-scrollbar {
@@ -1593,7 +1601,7 @@ html, body {
 }
 
 .city-pill {
-    padding: 4px 12px;
+    padding: 5px 12px;
     border-radius: var(--radius-pill);
     border: 1px solid var(--border-subtle);
     background: transparent;
@@ -1620,20 +1628,75 @@ html, body {
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
 
+/* Province Dropdown Select */
+.province-select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.province-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    padding: 5px 30px 5px 12px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+    max-width: 220px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.province-select:hover {
+    border-color: var(--border-strong);
+}
+
+.province-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.province-select-wrapper .chevron-icon {
+    position: absolute;
+    right: 10px;
+    pointer-events: none;
+    color: var(--text-muted);
+}
+
+.toolbar-secondary-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+}
+
 .hotel-search-box {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
+    padding: 6px 14px;
     border-radius: var(--radius-pill);
     border: 1px solid var(--border-subtle);
     background: var(--bg-main);
     color: var(--text-muted);
-    transition: border-color 140ms ease;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+    flex: 1;
+    max-width: 420px;
 }
 
 .hotel-search-box:focus-within {
     border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 .hotel-search-box input {
@@ -1642,12 +1705,75 @@ html, body {
     color: var(--text-primary);
     font-size: 0.8rem;
     outline: none;
-    width: 180px;
+    width: 100%;
     font-family: var(--font-sans);
 }
 
 .hotel-search-box input::placeholder {
     color: var(--text-muted);
+}
+
+.hotel-counter-tag {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Load More Hotels Button & Pagination
+   -------------------------------------------------------------------------- */
+.load-more-hotels-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 24px 0 48px;
+    gap: 12px;
+}
+
+.load-more-hotels-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 26px;
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-pill);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.load-more-hotels-btn:hover {
+    background: var(--primary-dark, #1d4ed8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+}
+
+.load-more-hotels-btn:active {
+    transform: translateY(0);
+}
+
+.load-more-hotels-btn.loading {
+    opacity: 0.75;
+    pointer-events: none;
+}
+
+.all-loaded-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
 }
 
 /* --------------------------------------------------------------------------
