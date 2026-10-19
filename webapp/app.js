@@ -42,7 +42,7 @@
     let conversations = [];
     let activeConvId = null;
     let isRequestPending = false;
-    let switchingHotelForConvId = null;
+    let currentGreetingSeq = 0;
 
     // DOM Elements
     const elements = {
@@ -289,7 +289,6 @@
 
     function handleNewChat() {
         // Bring user to Hotel Selection Hub to choose hotel with photo first
-        switchingHotelForConvId = null;
         showHotelSelectionView();
 
         if (window.innerWidth <= 840) {
@@ -1309,11 +1308,36 @@
         `;
     }
 
+    function resetAllHotelFilters() {
+        currentFilterCity = 'all';
+        currentSearchQuery = '';
+        if (elements.hotelSearchInput) {
+            elements.hotelSearchInput.value = '';
+        }
+        if (elements.provinceSelect) {
+            elements.provinceSelect.value = 'all';
+        }
+        if (elements.cityFilterBar) {
+            elements.cityFilterBar.querySelectorAll('.city-pill').forEach(p => {
+                p.classList.toggle('active', p.getAttribute('data-city') === 'all');
+            });
+        }
+        fetchHotels('all', '', false);
+    }
+    window.__resetHotelFilters = resetAllHotelFilters;
+
     function renderHotelSelectionGrid(hotels, append = false) {
         if (!elements.hotelSelectionGrid) return;
 
         if (!append && (!hotels || hotels.length === 0)) {
-            elements.hotelSelectionGrid.innerHTML = '<div class="hotel-card-skeleton">Không tìm thấy khách sạn nào phù hợp. Vui lòng thử đổi tỉnh thành hoặc từ khoá tìm kiếm.</div>';
+            elements.hotelSelectionGrid.innerHTML = `
+                <div class="hotel-empty-state">
+                    <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <h3>Không tìm thấy khách sạn phù hợp</h3>
+                    <p>Không có khách sạn nào khớp với tiêu chí tìm kiếm hiện tại.</p>
+                    <button type="button" class="empty-reset-btn" onclick="window.__resetHotelFilters()">Xem tất cả khách sạn</button>
+                </div>
+            `;
             return;
         }
 
@@ -1328,39 +1352,45 @@
     function handleSelectHotelCard(hotel) {
         if (!hotel) return;
 
-        // If switching hotel for an existing conversation
-        if (switchingHotelForConvId) {
-            const conv = conversations.find(c => c.id === switchingHotelForConvId);
-            switchingHotelForConvId = null;
-            if (conv) {
-                conv.selectedHotel = hotel;
-                if (!conv.title || conv.title === 'New Conversation' || conversations.some(other => other.id !== conv.id && other.title === conv.title)) {
-                    conv.title = hotel.hotel_name;
-                }
-                conv.updatedAt = Date.now();
-                saveConversations();
-                showChatWorkspaceView(conv);
-                showSystemNotification(`Switched active hotel focus to **${hotel.hotel_name}** (${hotel.star}, rated ${Number(hotel.score).toFixed(1)}★).`);
-                return;
-            }
+        // Reuse active conversation if it has no user messages yet, otherwise create a new one
+        const activeConv = getActiveConversation();
+        const canReuse = activeConv && (!activeConv.messages || activeConv.messages.filter(m => m.role === 'user').length === 0);
+
+        let targetConv;
+        if (canReuse) {
+            targetConv = activeConv;
+            targetConv.selectedHotel = hotel;
+            targetConv.title = hotel.hotel_name;
+            targetConv.messages = [];
+            targetConv.sessionId = 'session_' + Math.random().toString(36).substring(2, 11);
+            targetConv.updatedAt = Date.now();
+        } else {
+            targetConv = createNewConversationData(hotel.hotel_name);
+            targetConv.selectedHotel = hotel;
+            conversations.unshift(targetConv);
         }
 
-        // Standard flow: Create a brand new conversation dedicated to this hotel
-        const newConv = createNewConversationData(hotel.hotel_name);
-        newConv.selectedHotel = hotel;
-        conversations.unshift(newConv);
         saveConversations();
-        showChatWorkspaceView(newConv);
+        showChatWorkspaceView(targetConv);
         updateActiveHotelBanner();
 
-        // Model generates the greeting completely - zero canned UI templates
+        if (elements.welcomeHero && elements.welcomeHero.parentNode) {
+            elements.welcomeHero.remove();
+        }
+
+        const convId = targetConv.id;
+        const hotelKey = hotel.norm_key;
+        const reqSeq = ++currentGreetingSeq;
+        isRequestPending = true;
+        elements.sendBtn.disabled = true;
+
         const typingId = appendTypingIndicator();
         fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                session_id: newConv.sessionId || newConv.id,
-                query: `Hello, please introduce ${hotel.hotel_name} and welcome the traveler.`,
+                session_id: targetConv.sessionId || targetConv.id,
+                query: `Hello, can you introduce ${hotel.hotel_name}?`,
                 selected_hotel: hotel.hotel_name,
                 action: 'greeting'
             })
@@ -1368,19 +1398,33 @@
         .then(res => res.json())
         .then(data => {
             removeTypingIndicator(typingId);
-            renderBotMessageNode(data);
-            newConv.messages.push({
-                role: 'bot',
-                data: data,
-                timestamp: Date.now()
-            });
-            saveConversations();
-            scrollToBottom();
+            // Strict sequence & matching hotel check prevents race conditions on rapid card clicking
+            if (activeConvId === convId && reqSeq === currentGreetingSeq && targetConv.selectedHotel && targetConv.selectedHotel.norm_key === hotelKey) {
+                if (elements.welcomeHero && elements.welcomeHero.parentNode) {
+                    elements.welcomeHero.remove();
+                }
+                renderBotMessageNode(data);
+                scrollToBottom();
+                targetConv.messages.push({
+                    role: 'bot',
+                    data: data,
+                    timestamp: Date.now()
+                });
+                saveConversations();
+            }
         })
         .catch(err => {
             console.error('Greeting fetch error:', err);
             removeTypingIndicator(typingId);
-            renderErrorMessageNode('Could not generate greeting from model.');
+            if (activeConvId === convId && reqSeq === currentGreetingSeq) {
+                renderErrorMessageNode('Could not generate greeting from model.');
+            }
+        })
+        .finally(() => {
+            if (reqSeq === currentGreetingSeq) {
+                isRequestPending = false;
+                elements.sendBtn.disabled = !elements.promptInput.value.trim();
+            }
         });
     }
 
@@ -1449,7 +1493,6 @@
                         showChatWorkspaceView(conv);
                     }
                 } else {
-                    switchingHotelForConvId = null;
                     showHotelSelectionView();
                 }
             });

@@ -566,13 +566,14 @@ class MultiReviewRetriever:
         self.lambda_decay = lambda_decay
         self.top_k = top_k
 
-    def retrieve(self, hotel: Dict[str, Any], aspect: str) -> List[Dict[str, Any]]:
+    def retrieve(self, hotel: Dict[str, Any], aspect: str, query_terms: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         reviews = hotel.get('reviews', [])
         if not reviews:
             return []
 
         max_m = hotel.get('max_m', 2020 * 12)
         keywords = ASPECT_KEYWORDS.get(aspect, [])
+        q_terms = [t.lower() for t in (query_terms or []) if len(t) >= 2]
 
         scored_reviews = []
         for r in reviews:
@@ -583,28 +584,56 @@ class MultiReviewRetriever:
             delta_m = max(0, max_m - r.get('m', max_m))
             time_weight = math.exp(-self.lambda_decay * delta_m)
 
-            # Keyword Relevance
-            match_count = sum(1 for kw in keywords if kw in text_lower)
-            relevance = 1.0 + (match_count * 0.8)
+            # Check query-specific terms
+            q_matches = sum(1 for kw in q_terms if kw in text_lower) if q_terms else 0
+            asp_matches = sum(1 for kw in keywords if kw in text_lower)
+
+            if q_terms:
+                if q_matches > 0:
+                    relevance = 8.0 + (q_matches * 4.0) + (asp_matches * 0.5)
+                else:
+                    relevance = 0.2 + (asp_matches * 0.1)
+            else:
+                relevance = 1.0 + (asp_matches * 0.8)
 
             combined_score = time_weight * relevance
+
+            # Sentence extraction for grounded evidence (preserve exact punctuation/quotes for span highlighting)
+            sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text.strip()) if len(s.strip()) > 8]
+            matched_sents = []
+            if q_terms:
+                # Strictly extract sentences matching query terms to prevent cross-aspect leakage
+                matched_sents = [s for s in sents if any(kw in s.lower() for kw in q_terms)]
+            else:
+                matched_sents = [s for s in sents if any(kw in s.lower() for kw in keywords)]
+                if not matched_sents and sents:
+                    matched_sents = [sents[0]]
 
             scored_reviews.append({
                 'text': text,
                 'score': r.get('score', 4.0),
                 'date': r.get('date', 'Recent'),
-                'recency_weight': time_weight,
-                'combined_score': combined_score
+                'recency_weight': round(time_weight, 3),
+                'combined_score': combined_score,
+                'q_matches': q_matches,
+                'matched_sentences': matched_sents
             })
 
         # Sort descending by combined recency-relevance score
         scored_reviews.sort(key=lambda x: x['combined_score'], reverse=True)
+
+        # If query terms were provided and matching reviews exist, strictly return only reviews with matches
+        if q_terms:
+            q_matching = [r for r in scored_reviews if r['q_matches'] > 0]
+            if q_matching:
+                return q_matching[:self.top_k]
+
         return scored_reviews[:self.top_k]
 
-    def retrieve_all_for_aspect(self, hotel: Dict[str, Any], aspect: str) -> List[Dict[str, Any]]:
+    def retrieve_all_for_aspect(self, hotel: Dict[str, Any], aspect: str, query_terms: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Retrieve ALL original reviews for the hotel that touch upon the queried aspect,
-        ranked by Feature 10 recency weight. For use in UI 'View original reviews' pagination.
+        ranked by Feature 10 recency weight and query term relevance. For use in UI 'View original reviews' pagination.
         """
         reviews = hotel.get('reviews', [])
         if not reviews:
@@ -612,34 +641,53 @@ class MultiReviewRetriever:
 
         max_m = hotel.get('max_m', 2020 * 12)
         keywords = ASPECT_KEYWORDS.get(aspect, [])
+        q_terms = [t.lower() for t in (query_terms or []) if len(t) >= 2]
 
         matched = []
         for r in reviews:
             text = r.get('text', '')
             text_lower = text.lower()
-            spans = r.get('spans', {}).get(aspect, []) if isinstance(r.get('spans'), dict) else []
-            has_kw = any(kw in text_lower for kw in keywords)
+            q_matches = sum(1 for kw in q_terms if kw in text_lower) if q_terms else 0
+            asp_matches = sum(1 for kw in keywords if kw in text_lower)
 
-            if spans or has_kw or aspect == 'Experience':
-                delta_m = max(0, max_m - r.get('m', max_m))
-                time_weight = math.exp(-self.lambda_decay * delta_m)
-                match_count = sum(1 for kw in keywords if kw in text_lower)
-                combined_score = time_weight * (1.0 + match_count * 0.8)
-                score_val = r.get('score', 4.0)
-                sent = 'Positive' if score_val >= 4.0 else ('Negative' if score_val <= 2.5 else 'Neutral')
+            # Relevance filter: must match query terms (if given) or aspect keywords / Experience
+            if q_terms:
+                if q_matches == 0:
+                    continue
+            elif aspect != 'Experience' and asp_matches == 0:
+                continue
 
-                matched.append({
-                    'review_id': r.get('review_id', 0),
-                    'text': text,
-                    'score': score_val,
-                    'date': r.get('date', 'Recent'),
-                    'sentiment': sent,
-                    'aspect_spans': spans,
-                    'recency_weight': round(time_weight, 3),
-                    'combined_score': combined_score
-                })
+            delta_m = max(0, max_m - r.get('m', max_m))
+            time_weight = math.exp(-self.lambda_decay * delta_m)
 
-        if not matched:
+            if q_terms:
+                combined_score = time_weight * (8.0 + q_matches * 4.0 + asp_matches * 0.5)
+            else:
+                combined_score = time_weight * (1.0 + asp_matches * 0.8)
+
+            score_val = r.get('score', 4.0)
+            sent = 'Positive' if score_val >= 4.0 else ('Negative' if score_val <= 2.5 else 'Neutral')
+
+            sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text.strip()) if len(s.strip()) > 8]
+            matched_sents = []
+            if q_terms:
+                matched_sents = [s for s in sents if any(kw in s.lower() for kw in q_terms)]
+            else:
+                matched_sents = [s for s in sents if any(kw in s.lower() for kw in keywords)]
+
+            matched.append({
+                'review_id': r.get('review_id', 0),
+                'text': text,
+                'score': score_val,
+                'date': r.get('date', 'Recent'),
+                'sentiment': sent,
+                'aspect_spans': matched_sents,
+                'recency_weight': round(time_weight, 3),
+                'combined_score': combined_score
+            })
+
+        if not matched and reviews:
+            # Clean fallback to general reviews if no specific matches found
             for r in reviews:
                 delta_m = max(0, max_m - r.get('m', max_m))
                 time_weight = math.exp(-self.lambda_decay * delta_m)
@@ -1226,7 +1274,7 @@ class ConversationalQABot:
         self.pipeline = GenerativeQAPipeline()
         self.sessions = SessionManager()
 
-    def detect_intent_and_aspect(self, query: str) -> Tuple[str, str]:
+    def detect_intent_and_aspect(self, query: str) -> Tuple[str, str, Optional[Dict[str, Any]]]:
         q_raw = query.lower()
         q_clean = clean_vietnamese_text(query).lower()
 
@@ -1244,12 +1292,29 @@ class ConversationalQABot:
         ])
 
         if is_loc:
-            return 'location', 'Facility'
+            return 'location', 'Facility', QUERY_KEYWORD_MAP.get('location')
         if is_star:
-            return 'star', 'Branding'
+            return 'star', 'Branding', QUERY_KEYWORD_MAP.get('star')
         if is_count:
-            return 'review_count', 'Experience'
+            return 'review_count', 'Experience', None
 
+        # Check specific sub-aspect keywords first (e.g., pool, breakfast, wifi, gym, staff, etc.)
+        matched_sub = None
+        best_term_len = 0
+        for sub_k, sub_info in QUERY_KEYWORD_MAP.items():
+            for t in sub_info['terms']:
+                t_len = len(t)
+                if t_len <= best_term_len:
+                    continue
+                pattern = r'\b' + re.escape(t) + r'\b'
+                if re.search(pattern, q_raw) or re.search(pattern, q_clean):
+                    matched_sub = sub_info
+                    best_term_len = t_len
+
+        if matched_sub:
+            return 'aspect_qa', matched_sub['aspect'], matched_sub
+
+        # Fallback to general aspect keywords
         matched_aspect = None
         best_kw_len = 0
         for asp, kws in ASPECT_KEYWORDS.items():
@@ -1262,8 +1327,8 @@ class ConversationalQABot:
                     matched_aspect = asp
                     best_kw_len = kw_len
         if matched_aspect:
-            return 'aspect_qa', matched_aspect
-        return 'aspect_qa', 'Experience'
+            return 'aspect_qa', matched_aspect, None
+        return 'aspect_qa', 'Experience', None
 
     def search_database_by_criteria(self, query: str, top_n: int = 3) -> List[Tuple[Dict[str, Any], str]]:
         """Retrieve top matching hotel properties and review excerpts based on location, amenities, and ratings."""
@@ -1280,6 +1345,11 @@ class ConversationalQABot:
             for kw in kws:
                 if kw in clean_q:
                     aspect_kws.append(kw)
+
+        for sub_info in QUERY_KEYWORD_MAP.values():
+            for t in sub_info['terms']:
+                if t in clean_q:
+                    aspect_kws.append(t)
 
         candidates = []
         for norm_key, hotel in self.database.items():
@@ -1315,7 +1385,8 @@ class ConversationalQABot:
         state = self.sessions.get_session(session_id)
         with state.lock:
             clean_q = clean_vietnamese_text(user_query).strip() or user_query.strip()
-            intent, aspect = self.detect_intent_and_aspect(user_query)
+            intent, aspect, sub_aspect_info = self.detect_intent_and_aspect(user_query)
+            query_terms = sub_aspect_info['terms'] if sub_aspect_info else []
 
             # Hotel Resolution
             matched_hotel = None
@@ -1325,9 +1396,9 @@ class ConversationalQABot:
                 if not selected_hotel or str(selected_hotel).strip() == "":
                     state.current_hotel = None
                 else:
-                    clean_sel = clean_vietnamese_text(str(selected_hotel)).lower()
+                    clean_sel = clean_vietnamese_text(str(selected_hotel)).lower().strip()
                     for h_k, h_val in self.database.items():
-                        if h_k == clean_sel or clean_vietnamese_text(h_val.get('hotel_name', '')).lower() == clean_sel:
+                        if h_k == clean_sel or clean_vietnamese_text(h_val.get('hotel_name', '')).lower().strip() == clean_sel:
                             matched_hotel = h_val
                             break
                     if not matched_hotel:
@@ -1356,8 +1427,11 @@ class ConversationalQABot:
                 star_label = matched_hotel.get('star', 'Standard')
                 tot_revs = len(matched_hotel.get('reviews', []))
 
-                # Retrieve Multi-Review Evidence with Feature 10 Decay
-                cand_reviews = self.retriever.retrieve(matched_hotel, aspect)
+                # Check if this inquiry is an explicit greeting or welcome request
+                is_greeting = (action == 'greeting') or any(clean_q.lower().strip().startswith(g) for g in ['hello', 'hi', 'xin chao', 'xin chào', 'welcome', 'introduce'])
+
+                # Retrieve Multi-Review Evidence with Feature 10 Decay and Query Keyword Alignment
+                cand_reviews = self.retriever.retrieve(matched_hotel, aspect, query_terms=query_terms)
                 sent_summary = self.retriever.aggregate_sentiment(cand_reviews)
                 consensus = sent_summary['consensus']
                 avg_score = sent_summary['avg_score']
@@ -1375,23 +1449,35 @@ class ConversationalQABot:
                         "embed_url": f"https://maps.google.com/maps?q={encoded_loc}&t=&z=15&ie=UTF8&iwloc=&output=embed"
                     }
 
-                # Check if this inquiry is an explicit greeting or welcome request
-                is_greeting = (action == 'greeting') or any(clean_q.lower().strip().startswith(g) for g in ['hello', 'hi', 'xin chao', 'xin chào', 'welcome', 'introduce'])
-
-                # Extract clean, coherent guest statements from reviews (no noisy metadata)
+                # Extract grounded evidence sentences from candidate reviews
                 clean_evidence_list = []
                 for r in cand_reviews:
-                    txt = r.get('text', '')
-                    if txt:
-                        sents = [s.strip().replace('"', '').replace("'", "") for s in re.split(r'(?<=[.!?])\s+', txt.strip()) if len(s.strip()) > 15]
-                        if sents:
-                            clean_evidence_list.append(sents[0][:120])
-                evidence_str = " | ".join(clean_evidence_list[:3]) if clean_evidence_list else (cand_reviews[0].get('text', '')[:120] if cand_reviews else "Dependable hospitality standard")
+                    for s in r.get('matched_sentences', []):
+                        s_clean = s.strip()
+                        if len(s_clean) >= 10 and s_clean not in clean_evidence_list:
+                            clean_evidence_list.append(s_clean[:140])
+                            if len(clean_evidence_list) >= 3:
+                                break
+                    if len(clean_evidence_list) >= 3:
+                        break
+
+                if not clean_evidence_list and cand_reviews:
+                    for r in cand_reviews:
+                        txt = r.get('text', '')
+                        if txt:
+                            sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', txt.strip()) if len(s.strip()) > 12]
+                            if sents and sents[0] not in clean_evidence_list:
+                                clean_evidence_list.append(sents[0][:140])
+                                if len(clean_evidence_list) >= 2:
+                                    break
+
+                evidence_str = " | ".join(clean_evidence_list) if clean_evidence_list else f"Dependable {star_label} hospitality standard"
 
                 # Conditioned Prompt matching model_v3 training architecture exactly
                 if is_greeting:
+                    clean_prompt_q = f"Hello, can you introduce {h_name}?"
                     ctx = f"Hotel: {h_name} ({star_label}, {loc}) | Welcome Greeting"
-                    prompt = f"User Inquiry: {clean_q} | Target Aspect: Experience | Verified Context: {ctx}"
+                    prompt = f"User Inquiry: {clean_prompt_q} | Target Aspect: Experience | Verified Context: {ctx}"
                 else:
                     ctx = f"Hotel: {h_name} ({star_label}) | Aspect: {aspect} | Avg Score: {avg_score:.1f}/5.0 | Evidence: {evidence_str}"
                     prompt = f"User Inquiry: {clean_q} | Target Aspect: {aspect} | Verified Context: {ctx}"
@@ -1404,7 +1490,7 @@ class ConversationalQABot:
                     neural_ans = f"Regarding {aspect.lower()} at {h_name}, verified guest reviews report an average rating of {avg_score:.1f}/5.0 stars."
 
                 # Retrieve ALL original reviews matching this exact aspect for full UI pagination ("View original reviews")
-                all_aspect_reviews = self.retriever.retrieve_all_for_aspect(matched_hotel, aspect)
+                all_aspect_reviews = self.retriever.retrieve_all_for_aspect(matched_hotel, aspect, query_terms=query_terms)
                 original_reviews_data = []
                 for r in all_aspect_reviews:
                     original_reviews_data.append({
@@ -1416,6 +1502,8 @@ class ConversationalQABot:
                         "aspect_spans": r.get('aspect_spans', [])
                     })
 
+                aspect_title = sub_aspect_info['display'].title() if sub_aspect_info else ASPECT_DISPLAY.get(aspect, aspect)
+
                 response_payload = {
                     "answer": neural_ans,
                     "reply": neural_ans,
@@ -1424,7 +1512,7 @@ class ConversationalQABot:
                     "score": round(avg_score, 1),
                     "total_reviews": tot_revs,
                     "aspect": aspect,
-                    "aspect_title": ASPECT_DISPLAY.get(aspect, aspect),
+                    "aspect_title": aspect_title,
                     "sentiment": consensus.capitalize(),
                     "confidence": 0.95,
                     "maps_card": maps_card,

@@ -2034,3 +2034,59 @@ html, body {
     grid-column: 1 / -1;
 }
 
+.hotel-empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 24px;
+    background: var(--bg-card);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    margin: 20px 0;
+    gap: 12px;
+}
+
+.hotel-empty-state svg {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.hotel-empty-state h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.hotel-empty-state p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    max-width: 440px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.empty-reset-btn {
+    margin-top: 6px;
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 140ms ease;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.empty-reset-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+
