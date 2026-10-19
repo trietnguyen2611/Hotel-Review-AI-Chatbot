@@ -1,0 +1,1 @@
+{"repos": [{"repoId": "facebook/bart-base", "repoType": "model", "commitHash": "aadd2ab0ae0c8268c7c9693540e9904811f36177", "filePaths": ["vocab.json", "merges.txt", "config.json", "tokenizer.json", "model.safetensors"]}]}

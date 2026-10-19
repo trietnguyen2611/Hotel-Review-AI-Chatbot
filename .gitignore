@@ -60,3 +60,4 @@ model/
 *.bin
 *.safetensors
 hotel_aspect_qa_model/
+hotel_aspect_qa_bart_engine/
