@@ -1178,7 +1178,7 @@
                 provincesLoaded = true;
                 const totalAll = data.provinces.reduce((sum, p) => sum + p.count, 0);
                 elements.provinceSelect.innerHTML = `
-                    <option value="all">Tất cả tỉnh thành (${totalAll.toLocaleString()})</option>
+                    <option value="all">Tất cả tỉnh thành</option>
                     ${data.provinces.map(p => `
                         <option value="${escapeHtml(p.name)}">${escapeHtml(p.name)} (${p.count.toLocaleString()})</option>
                     `).join('')}
@@ -1298,10 +1298,7 @@
                     </div>
                     ${h.sample_snippet ? `<p class="hotel-card-snippet">&ldquo;${escapeHtml(h.sample_snippet)}&rdquo;</p>` : ''}
                     <div class="hotel-card-footer">
-                        <span class="select-hint-action">
-                            <span>Select &amp; Inquire</span>
-                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                        </span>
+
                         <a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer" class="card-maps-link" title="Open on Google Maps" onclick="event.stopPropagation();">
                             ${SVG.externalLink}
                             <span>Maps</span>

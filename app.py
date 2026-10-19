@@ -235,70 +235,10 @@ def clean_display_name(raw: str) -> str:
     return capitalized or ascii_name or 'Hotel'
 
 # ---------------------------------------------------------------------------
-# Non-Formulaic 12-Archetype Review Synthesis Engine (Zero Rigid Templates)
+# Review Text Utilities (Pure Neural Generation - Zero Canned Templates)
 # ---------------------------------------------------------------------------
-ASPECT_LEXICONS = {
-    'Service': {
-        'positive_terms': ['attentive staff', 'warm hospitality', 'prompt check-in', 'courteous assistance', 'helpful front desk'],
-        'critical_terms': ['slow response times', 'occasional check-in delays', 'inconsistent service'],
-        'focus_nouns': ['customer service', 'front desk hospitality', 'staff responsiveness', 'overall service']
-    },
-    'Facility': {
-        'positive_terms': ['clean and modern rooms', 'comfortable bedding', 'spacious layout', 'well-maintained facilities'],
-        'critical_terms': ['dated room furnishings', 'sound insulation issues', 'minor maintenance needs'],
-        'focus_nouns': ['room comfort and cleanliness', 'room facilities', 'living space and amenities']
-    },
-    'Food': {
-        'positive_terms': ['delicious breakfast buffet', 'fresh culinary choices', 'rich morning spread', 'quality dining'],
-        'critical_terms': ['limited breakfast variety', 'pricey dining options', 'crowded buffet hours'],
-        'focus_nouns': ['dining and breakfast experience', 'culinary offerings', 'breakfast buffet']
-    },
-    'Amenity': {
-        'positive_terms': ['well-kept swimming pool', 'relaxing spa amenities', 'fully equipped fitness center', 'pleasant pool area'],
-        'critical_terms': ['small pool size', 'limited gym equipment', 'crowded amenity hours'],
-        'focus_nouns': ['leisure amenities and pool', 'recreational facilities', 'amenities']
-    },
-    'Location': {
-        'positive_terms': ['convenient central location', 'easy access to attractions', 'scenic surroundings', 'walkable neighborhood'],
-        'critical_terms': ['street traffic noise', 'distance from city center', 'busy surrounding streets'],
-        'focus_nouns': ['location and accessibility', 'neighborhood convenience', 'geographic setting']
-    },
-    'Experience': {
-        'positive_terms': ['relaxing getaway', 'memorable and pleasant stay', 'enjoyable atmosphere', 'high overall satisfaction'],
-        'critical_terms': ['mixed impressions', 'room for quality improvements', 'expectations not fully met'],
-        'focus_nouns': ['overall stay experience', 'general atmosphere', 'guest satisfaction']
-    },
-    'Loyalty': {
-        'positive_terms': ['highly recommended', 'frequently revisited by travelers', 'strong guest loyalty'],
-        'critical_terms': ['hesitant to return', 'mixed recommendations'],
-        'focus_nouns': ['guest recommendation', 'return value']
-    },
-    'Branding': {
-        'positive_terms': ['reliable hospitality standards', 'living up to its brand reputation', 'exceptional luxury prestige'],
-        'critical_terms': ['inconsistent with brand expectations', 'varying standards'],
-        'focus_nouns': ['brand experience', 'hospitality reputation']
-    }
-}
-
-ATTRIBUTION_VERBS_POS = [
-    "one traveler noted",
-    "recent reviews highlight that",
-    "a guest specifically praised",
-    "visitors frequently describe",
-    "multiple reviews appreciate that",
-    "guests often remark",
-    "several travelers commended"
-]
-
-ATTRIBUTION_VERBS_CRIT = [
-    "one guest observed that",
-    "recent feedback flagged that",
-    "a traveler noted concerns regarding",
-    "some reviews pointed out that",
-    "an occasional comment mentioned that"
-]
-
 def clean_quote(quote: str, max_chars: int = 140) -> str:
+    """Sanitize and trim a review snippet without cutting mid-word."""
     if not quote:
         return ""
     q = quote.strip().replace('"', '').replace("'", "").replace('\n', ' ')
@@ -306,106 +246,6 @@ def clean_quote(quote: str, max_chars: int = 140) -> str:
     if len(q) > max_chars:
         q = q[:max_chars].rsplit(' ', 1)[0] + '...'
     return q
-
-def synthesize_concierge_answer(
-    h_name: str,
-    aspect: str,
-    consensus: str = 'positive',
-    quotes: Optional[List[str]] = None,
-    star: str = 'Standard',
-    score: float = 4.0,
-    rng: Optional[random.Random] = None,
-    is_followup: bool = False
-) -> str:
-    """
-    Synthesize an organic, non-formulaic conversational response.
-    Never uses rigid robotic templates or statistical counts.
-    """
-    if rng is None:
-        rng = random.Random()
-
-    asp_key = aspect.capitalize() if aspect else 'Experience'
-    lexicon = ASPECT_LEXICONS.get(asp_key, ASPECT_LEXICONS['Experience'])
-    asp_noun = lexicon['focus_nouns'][rng.randint(0, len(lexicon['focus_nouns']) - 1)]
-
-    raw_quote = ""
-    if quotes:
-        for q in quotes:
-            cleaned = clean_quote(q)
-            if cleaned:
-                raw_quote = cleaned
-                break
-
-    valid_score = float(score) if score is not None else 4.0
-    is_positive = (consensus.lower() == 'positive') or (valid_score >= 3.8 and consensus.lower() != 'critical')
-    attr_verb = rng.choice(ATTRIBUTION_VERBS_POS if is_positive else ATTRIBUTION_VERBS_CRIT)
-    quote_clause = f' ({attr_verb}: "{raw_quote}")' if raw_quote else ""
-
-    if is_positive:
-        pos_term = rng.choice(lexicon['positive_terms'])
-        templates = [
-            f"Overall, the {asp_noun} at {h_name} is considered a major highlight by recent travelers{quote_clause}. You can expect {pos_term} and a dependable standard throughout your stay.",
-            f"Guests frequently praise the {asp_noun} when recounting their stay at {h_name}{quote_clause}. The general impression is that the property delivers {pos_term}.",
-            f"If {asp_noun} is top of mind for your trip, {h_name} proves to be a solid choice. Visitors consistently report positive experiences{quote_clause}, pointing to {pos_term}.",
-            f"According to recent guest feedback for {h_name}, the {asp_noun} makes a very favorable impression{quote_clause}. It stands out as one of the key reasons travelers enjoy staying here.",
-            f"On the {asp_noun} front, feedback for {h_name} sits firmly on the positive side{quote_clause}. Many guests appreciate the {pos_term} provided during their visit.",
-            f"You will find that {h_name} performs remarkably well regarding {asp_noun}{quote_clause}. Guests often note {pos_term}, making it comfortable and convenient.",
-            f"The standard of {asp_noun} at {h_name} has received glowing feedback from guests{quote_clause}. It is widely viewed as a well-managed aspect that adds value to the stay.",
-            f"Customer impressions of {asp_noun} at {h_name} are largely positive{quote_clause}. Recent visitors mention {pos_term}, reflecting attentive management.",
-            f"From a traveler's perspective, {h_name} offers great quality when it comes to {asp_noun}{quote_clause}. The {pos_term} is a recurring positive theme in verified reviews.",
-            f"Guests staying at {h_name} have shared very positive comments regarding {asp_noun}{quote_clause}. The consistent mention of {pos_term} makes it an appealing option."
-        ]
-        if is_followup:
-            followup_templates = [
-                f"Regarding the {asp_noun} there, feedback continues to be very positive{quote_clause}. Guests highlight {pos_term} as a definite plus.",
-                f"As for the {asp_noun}, you can expect great quality as well{quote_clause}. Visitors frequently commend the {pos_term} at this property.",
-                f"The {asp_noun} there is also well-received by guests{quote_clause}. It tends to be noted as comfortable and well-maintained.",
-                f"Looking at customer feedback for its {asp_noun}, travelers share enthusiastic remarks{quote_clause}, praising the {pos_term}."
-            ]
-            return rng.choice(followup_templates)
-        return rng.choice(templates)
-    else:
-        crit_term = rng.choice(lexicon['critical_terms'])
-        crit_templates = [
-            f"Guest opinions regarding {asp_noun} at {h_name} show some variability{quote_clause}. While some travelers had a satisfactory experience, others noted {crit_term}.",
-            f"Feedback on the {asp_noun} at {h_name} is somewhat mixed{quote_clause}. While many appreciate the overall stay, a few reviewers pointed to {crit_term} as an area for improvement.",
-            f"Customer reviews suggest occasional inconsistencies with {asp_noun} at {h_name}{quote_clause}. Travelers who prioritize this aspect may want to keep reported {crit_term} in mind.",
-            f"Regarding {asp_noun}, experiences at {h_name} vary among guests{quote_clause}. While basic expectations are met, several comments mentioned {crit_term}."
-        ]
-        if is_followup:
-            return f"Regarding the {asp_noun} there, feedback is somewhat mixed{quote_clause}. Some guests had an agreeable experience while others mentioned {crit_term}."
-        return rng.choice(crit_templates)
-
-def synthesize_hotel_overview(
-    h_name: str,
-    star: str,
-    score: float,
-    loc: str,
-    addr: str,
-    quotes: Optional[List[str]] = None,
-    rng: Optional[random.Random] = None
-) -> str:
-    """
-    Synthesize an organic, informative overview of a hotel property without formulaic phrases.
-    """
-    if rng is None:
-        rng = random.Random()
-
-    quote_str = ""
-    if quotes:
-        for q in quotes:
-            cleaned = clean_quote(q)
-            if cleaned:
-                quote_str = f' Guests frequently note: "{cleaned}".'
-                break
-
-    valid_score = float(score) if score is not None else 4.0
-    patterns = [
-        f"{h_name} is a {star} accommodation in {loc}, situated at {addr}. Guests generally rate their stay favorably at {valid_score:.1f} out of 5.0 stars, appreciating its accessible location and welcoming ambiance.{quote_str}",
-        f"Located at {addr} in {loc}, {h_name} offers {star} accommodations with an average guest rating of {valid_score:.1f}/5.0 stars. It is well-regarded for providing reliable hospitality and comfortable facilities.{quote_str}",
-        f"For travelers visiting {loc}, {h_name} ({star}) provides quality lodging at {addr}. Customer feedback averages {valid_score:.1f}/5.0 stars, reflecting consistent comfort and attentive service standards.{quote_str}"
-    ]
-    return rng.choice(patterns)
 
 # ---------------------------------------------------------------------------
 # Knowledge Base & Ingestion
@@ -996,7 +836,7 @@ class GenerativeQAPipeline:
         self.tokenizer = None
         self.model_type = 'seq2seq'  # 'seq2seq' or 'extractive_bert'
         self.loaded_successfully = False
-        self.active_model_name = 'model_v2.pt'
+        self.active_model_name = 'model_v3'
         self.inference_lock = threading.Lock()
 
         self._initialize(checkpoint_path)
@@ -1004,10 +844,16 @@ class GenerativeQAPipeline:
     def _initialize(self, checkpoint_path: str):
         print(f"Loading Generative Model on {self.device}...")
 
-        # Priority 1: Search for fine-tuned checkpoints in order (BART engine folder/pt first, then v3, v2, v1)
+        # Priority 1: Search for fine-tuned checkpoints in order (v3 BART engine first, then v2, v1)
         cand_candidates = [
+            os.path.join(BASE_DIR, 'model_v3'),
+            os.path.join(BASE_DIR, 'model', 'model_v3'),
             os.path.join(BASE_DIR, 'hotel_aspect_qa_bart_engine'),
             os.path.join(BASE_DIR, 'model', 'hotel_aspect_qa_bart_engine'),
+            os.path.join(BASE_DIR, 'model_v3', 'pytorch_model.bin'),
+            os.path.join(BASE_DIR, 'model_v3', 'model.safetensors'),
+            os.path.join(BASE_DIR, 'model', 'model_v3', 'pytorch_model.bin'),
+            os.path.join(BASE_DIR, 'model', 'model_v3', 'model.safetensors'),
             os.path.join(BASE_DIR, 'hotel_aspect_qa_bart_engine', 'pytorch_model.bin'),
             os.path.join(BASE_DIR, 'model', 'hotel_aspect_qa_bart_engine', 'pytorch_model.bin'),
             os.path.join(BASE_DIR, 'model', 'best_model.pt'),
@@ -1056,7 +902,11 @@ class GenerativeQAPipeline:
 
                 # 1. Directory format (HuggingFace saved folder)
                 if os.path.isdir(custom_model_path):
-                    self.tokenizer = AutoTokenizer.from_pretrained(custom_model_path)
+                    try:
+                        self.tokenizer = AutoTokenizer.from_pretrained(custom_model_path)
+                    except Exception as tok_err:
+                        print(f"Notice: Loading local tokenizer failed ({tok_err}), using facebook/bart-base")
+                        self.tokenizer = AutoTokenizer.from_pretrained('facebook/bart-base')
                     self.model = AutoModelForSeq2SeqLM.from_pretrained(custom_model_path).to(self.device)
                     self.model_type = 'seq2seq'
                     self.model.eval()
@@ -1207,9 +1057,10 @@ class GenerativeQAPipeline:
                             input_ids=enc['input_ids'],
                             attention_mask=enc['attention_mask'],
                             max_new_tokens=max_new_tokens,
-                            num_beams=2,
-                            no_repeat_ngram_size=2,
-                            repetition_penalty=1.15
+                            num_beams=4,
+                            no_repeat_ngram_size=3,
+                            repetition_penalty=1.1,
+                            early_stopping=True
                         )
                     ans = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
                     if ans:
@@ -1416,84 +1267,33 @@ class ConversationalQABot:
                         "embed_url": f"https://maps.google.com/maps?q={encoded_loc}&t=&z=15&ie=UTF8&iwloc=&output=embed"
                     }
 
-                # Format evidence context
-                rev_lines = [
-                    f"[Review {i+1} | Date: {r['date']} | Score: {r['score']}/5.0 | Recency Weight: {r['recency_weight']:.2f}]: {r['text'][:200]}"
-                    for i, r in enumerate(cand_reviews)
-                ]
-                rev_context = "\n".join(rev_lines) if rev_lines else "No specific customer reviews available."
-
                 # Check if this inquiry is an explicit greeting or welcome request
                 is_greeting = (action == 'greeting') or any(clean_q.lower().strip().startswith(g) for g in ['hello', 'hi', 'xin chao', 'xin chào', 'welcome', 'introduce'])
 
-                # Conditioned Prompt matching training architecture
-                chat_hist_str = "None"
-                if state.history:
-                    last_turn = state.history[-1]
-                    chat_hist_str = f"User: {last_turn.get('user', '')}\nAssistant: {last_turn.get('bot', '')}"
+                # Extract clean, coherent guest statements from reviews (no noisy metadata)
+                clean_evidence_list = []
+                for r in cand_reviews:
+                    txt = r.get('text', '')
+                    if txt:
+                        sents = [s.strip().replace('"', '').replace("'", "") for s in re.split(r'(?<=[.!?])\s+', txt.strip()) if len(s.strip()) > 15]
+                        if sents:
+                            clean_evidence_list.append(sents[0][:120])
+                evidence_str = " | ".join(clean_evidence_list[:3]) if clean_evidence_list else (cand_reviews[0].get('text', '')[:120] if cand_reviews else "Dependable hospitality standard")
 
+                # Conditioned Prompt matching model_v3 training architecture exactly
                 if is_greeting:
-                    prompt = (
-                        f"Instruction: Generate a welcoming, professional AI concierge greeting for {h_name}.\n"
-                        f"Hotel: {h_name} | Star Rating: {star_label} | Location: {loc} | Address: {addr} | Rating: {avg_score:.1f}/5.0 stars with {tot_revs} reviews.\n"
-                        f"Recent Guest Highlights:\n{rev_context}\n"
-                        f"Task: Warmly welcome the guest to {h_name}, briefly introduce the property with its verified rating, and invite them to inquire about customer service, facilities, amenities (pool/dining), loyalty, or branding."
-                    )
+                    ctx = f"Hotel: {h_name} ({star_label}, {loc}) | Welcome Greeting"
+                    prompt = f"User Inquiry: {clean_q} | Target Aspect: Experience | Verified Context: {ctx}"
                 else:
-                    prompt = (
-                        f"Inquiry: {clean_q}\n"
-                        f"Hotel: {h_name} | Stars: {star_label} | Rating: {avg_score:.1f}/5.0 | Location: {loc}\n"
-                        f"Target Aspect: {aspect}\n"
-                        f"Extracted Guest Reviews (Feature 10 Weighted):\n"
-                        f"{rev_context}\n"
-                        f"Task: Directly answer the user's inquiry based strictly on the extracted review evidence above. Synthesize what verified guests report into a fluent, cohesive answer without using repetitive formulaic templates."
-                    )
+                    ctx = f"Hotel: {h_name} ({star_label}) | Aspect: {aspect} | Avg Score: {avg_score:.1f}/5.0 | Evidence: {evidence_str}"
+                    prompt = f"User Inquiry: {clean_q} | Target Aspect: {aspect} | Verified Context: {ctx}"
 
-                bert_context = f"{h_name} is a {star_label} property in {loc}, {addr}. Overall rating is {avg_score:.1f}/5.0 stars with {tot_revs} reviews. {rev_context}"
                 asp_id = ASPECTS.index(aspect) if aspect in ASPECTS else None
-                neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_context, aspect_id=asp_id)
+                neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=ctx, aspect_id=asp_id)
 
-                # Grounding verification for Scenario A:
-                # If neural_ans hallucinates an unrelated hotel name (e.g. 'hoa binh hotel', 'la sinfonia'),
-                # or is a memorized training template for another hotel, fall back to organic synthesis.
-                is_grounded = bool(neural_ans)
-                if neural_ans:
-                    lower_ans = neural_ans.lower()
-                    lower_hname = h_name.lower()
-                    h_tokens = [t for t in normalize_text(h_name).split() if len(t) >= 3 and t not in {'hotel', 'resort', 'standard', 'vietnam'}]
-                    mentions_current = any(t in lower_ans for t in h_tokens) if h_tokens else (lower_hname in lower_ans)
-
-                    # Check foreign hotel hallucination against specific hospitality entity signatures
-                    for m in re.finditer(r'\b(?:at|regarding(?:\s+\w+)?\s+at)\s+([a-z0-9\s&\'\-]+?\s+(?:hotel|resort|suites|inn|property))\b', lower_ans):
-                        foreign_subj = m.group(1).strip()
-                        if foreign_subj and not any(t in foreign_subj for t in h_tokens):
-                            is_grounded = False
-                            break
-
-                    if not mentions_current:
-                        is_grounded = False
-
-                if not is_grounded:
-                    try:
-                        rev_quotes = [r['text'] for r in cand_reviews if r.get('text')]
-                        if is_greeting:
-                            neural_ans = (
-                                f"Welcome to {h_name}! Located in {loc}, this {star_label} property has earned an average rating of {avg_score:.1f}/5.0 stars based on verified guest feedback. "
-                                f"Guests frequently highlight our {aspect.lower()} and hospitable environment. "
-                                f"How may I assist you today with information regarding our rooms, staff service, swimming pool, dining amenities, or booking recommendations?"
-                            )
-                        else:
-                            neural_ans = synthesize_concierge_answer(
-                                h_name=h_name,
-                                aspect=aspect,
-                                consensus=consensus,
-                                quotes=rev_quotes,
-                                star=star_label,
-                                score=avg_score,
-                                is_followup=was_coref
-                            )
-                    except Exception:
-                        neural_ans = f"Regarding {aspect.lower()} at {h_name}, guest reviews reflect favorable impressions with an average score of {avg_score:.1f}/5.0 stars."
+                # Pure 100% natural neural generation - zero template overrides
+                if not neural_ans:
+                    neural_ans = f"Regarding {aspect.lower()} at {h_name}, verified guest reviews report an average rating of {avg_score:.1f}/5.0 stars."
 
                 # Retrieve ALL original reviews matching this exact aspect for full UI pagination ("View original reviews")
                 all_aspect_reviews = self.retriever.retrieve_all_for_aspect(matched_hotel, aspect)
@@ -1547,7 +1347,7 @@ class ConversationalQABot:
                 top_h = candidate_hotels[0][0]
                 for i, (h, rev_quote) in enumerate(candidate_hotels, 1):
                     hotel_lines.append(
-                        f"[{i}] {h['hotel_name']} ({h['star']}, Score: {h['score']}/5.0, {h['location']}, Address: {h['hotel_address']}). Guest review: \"{rev_quote}\""
+                        f"[{i}] {h['hotel_name']} ({h['star']}, Score: {h['score']}/5.0, {h['location']}): \"{clean_quote(rev_quote, 100)}\""
                     )
                     orig_revs.append({
                         "date": "Recent",
@@ -1555,17 +1355,10 @@ class ConversationalQABot:
                         "recency_weight": 1.0,
                         "text": f"{h['hotel_name']} ({h['location']}): {rev_quote}"
                     })
-                ctx = "\n".join(hotel_lines)
-                prompt = (
-                    f"Answer the user inquiry based on the retrieved hotel database records and customer reviews below.\n"
-                    f"User Inquiry: {clean_q}\n"
-                    f"Retrieved Properties from Knowledge Base:\n"
-                    f"{ctx}\n"
-                    f"Answer in natural conversational language:"
-                )
+                ctx = " | ".join(hotel_lines)
+                prompt = f"User Inquiry: {clean_q} | Target Aspect: Experience | Verified Context: Recommended hotel properties: {ctx}"
 
-                bert_ctx = f"Recommended hotels in Vietnam: {ctx}"
-                neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=bert_ctx)
+                neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=ctx)
                 if not neural_ans:
                     neural_ans = f"Based on verified guest reviews, recommended accommodations include {top_h.get('hotel_name')} ({top_h.get('star', 'Standard')}) in {top_h.get('location', 'Vietnam')}, rated {top_h.get('score', 4.0):.1f}/5.0 stars."
 
@@ -1592,13 +1385,8 @@ class ConversationalQABot:
             # ------------------------------------------------------------------
             # Scenario C: General Inquiry or Greeting -> Conversational Generation
             # ------------------------------------------------------------------
-            gen_prompt = (
-                f"You are a helpful AI assistant specializing in hotel reviews, travel and accommodations in Vietnam. "
-                f"Answer the user inquiry directly in helpful, natural conversational language:\n"
-                f"User Inquiry: {clean_q}\n"
-                f"Answer:"
-            )
-            neural_ans = self.pipeline.generate(gen_prompt, context_text="AI Assistant for hotel accommodations and verified guest reviews across Vietnam.")
+            prompt = f"User Inquiry: {clean_q} | Target Aspect: Experience | Verified Context: AI Concierge Assistant for Vietnam Hotels and Accommodations"
+            neural_ans = self.pipeline.generate(prompt)
             if not neural_ans:
                 neural_ans = "Hello, I am your AI assistant specializing in hotel reviews, service quality, and accommodations across Vietnam. How can I help you today?"
 
@@ -1723,7 +1511,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self._send_cors_headers()
             self.end_headers()
-            active_m = getattr(BOT.pipeline, 'active_model_name', 'model_v2.pt') if BOT and BOT.pipeline else 'Seq2Seq Engine'
+            active_m = getattr(BOT.pipeline, 'active_model_name', 'model_v3') if BOT and BOT.pipeline else 'Seq2Seq Engine'
             if not head_only:
                 self.wfile.write(json.dumps({
                     'status': 'ok',
@@ -1737,36 +1525,74 @@ class QAChatHandler(BaseHTTPRequestHandler):
             models = []
             active_m = getattr(BOT.pipeline, 'active_model_name', '') if BOT and BOT.pipeline else ''
 
-            # Scan model/ directory
+            def calc_size_mb(p: str) -> float:
+                if os.path.isdir(p):
+                    total_bytes = sum(os.path.getsize(os.path.join(r, f)) for r, d, fs in os.walk(p) for f in fs if not f.startswith('.'))
+                    return round(total_bytes / (1024 * 1024), 1)
+                elif os.path.isfile(p):
+                    return round(os.path.getsize(p) / (1024 * 1024), 1)
+                return 0.0
+
+            # 1. Check root model directories (model_v3, hotel_aspect_qa_bart_engine)
+            root_candidates = ['model_v3', 'hotel_aspect_qa_bart_engine']
+            for rname in root_candidates:
+                rpath = os.path.join(BASE_DIR, rname)
+                if os.path.isdir(rpath) and not any(m['name'] == rname for m in models):
+                    is_active = (rname == active_m)
+                    models.append({
+                        'name': rname,
+                        'path': rname,
+                        'size_mb': calc_size_mb(rpath),
+                        'active': is_active,
+                        'is_active': is_active
+                    })
+
+            # 2. Scan model/ directory for checkpoint files (.pt, .bin, .safetensors) and subdirectories
             model_dir = os.path.join(BASE_DIR, 'model')
             if os.path.exists(model_dir):
-                for fname in sorted(os.listdir(model_dir)):
+                for fname in sorted(os.listdir(model_dir), reverse=True):
+                    if fname.startswith('.'):
+                        continue
+                    fpath = os.path.join(model_dir, fname)
                     if fname.endswith(('.pt', '.bin', '.safetensors')):
-                        fpath = os.path.join(model_dir, fname)
-                        size_mb = round(os.path.getsize(fpath) / (1024 * 1024), 1)
-                        is_active = (fname == active_m) or (not active_m and fname == 'model_v2.pt')
+                        is_active = (fname == active_m)
                         models.append({
                             'name': fname,
                             'path': f"model/{fname}",
-                            'size_mb': size_mb,
+                            'size_mb': calc_size_mb(fpath),
+                            'active': is_active,
+                            'is_active': is_active
+                        })
+                    elif os.path.isdir(fpath) and not any(m['name'] == fname for m in models):
+                        is_active = (fname == active_m)
+                        models.append({
+                            'name': fname,
+                            'path': f"model/{fname}",
+                            'size_mb': calc_size_mb(fpath),
                             'active': is_active,
                             'is_active': is_active
                         })
 
-            # Check root model.pt if exists
+            # 3. Check root model.pt if exists
             root_model = os.path.join(BASE_DIR, 'model.pt')
-            if os.path.exists(root_model) and not any(m['name'] == 'model.pt' for m in models):
+            if os.path.isfile(root_model) and not any(m['name'] == 'model.pt' for m in models):
                 models.append({
                     'name': 'model.pt',
                     'path': 'model.pt',
-                    'size_mb': round(os.path.getsize(root_model) / (1024 * 1024), 1),
-                    'active': active_m == 'model.pt',
-                    'is_active': active_m == 'model.pt'
+                    'size_mb': calc_size_mb(root_model),
+                    'active': (active_m == 'model.pt'),
+                    'is_active': (active_m == 'model.pt')
                 })
 
             if not any(m['active'] for m in models) and models:
-                models[0]['active'] = True
-                active_m = models[0]['name']
+                match = next((m for m in models if m['name'] == active_m), None)
+                if match:
+                    match['active'] = True
+                    match['is_active'] = True
+                else:
+                    models[0]['active'] = True
+                    models[0]['is_active'] = True
+                    active_m = models[0]['name']
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
