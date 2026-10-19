@@ -896,7 +896,7 @@
 
         const remaining = cache.length - currentOffset;
         if (remaining > 0 && btn) {
-            btn.innerHTML = `${SVG.chevron}<span>Xem thêm đánh giá (${remaining} còn lại)</span>`;
+            btn.innerHTML = `${SVG.chevron}<span>View more (${remaining} remaining)</span>`;
         } else if (btn) {
             btn.remove();
         }
@@ -974,7 +974,7 @@
             const loadMoreBtnHtml = remaining > 0 ? `
                 <button type="button" class="load-more-reviews-btn" id="loadMoreBtn_${toggleId}" onclick="window.__loadMoreReviews('${toggleId}', 5)">
                     ${SVG.chevron}
-                    <span>Xem thêm đánh giá (${remaining} còn lại)</span>
+                    <span>View more reviews (${remaining} remaining)</span>
                 </button>
             ` : '';
 
@@ -1217,7 +1217,7 @@
                         const remaining = Math.max(0, totalMatchingHotels - allLoadedHotels.length);
                         const nextBatch = Math.min(HOTEL_PAGE_SIZE, remaining);
                         if (elements.loadMoreHotelsText) {
-                            elements.loadMoreHotelsText.textContent = `Xem thêm ${nextBatch} khách sạn (còn ${remaining.toLocaleString()})`;
+                            elements.loadMoreHotelsText.textContent = `View more ${nextBatch} hotels (remaining: ${remaining.toLocaleString()})`;
                         }
                         if (elements.allLoadedIndicator) elements.allLoadedIndicator.style.display = 'none';
                     } else {
