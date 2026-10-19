@@ -156,6 +156,10 @@ CITY_CANONICAL_MAP = {
     'da nang': 'Da Nang',
     'sai gon': 'Ho Chi Minh City',
     'ho chi minh': 'Ho Chi Minh City',
+    'tp. hcm': 'Ho Chi Minh City',
+    'tp hcm': 'Ho Chi Minh City',
+    'tp.hcm': 'Ho Chi Minh City',
+    'hcm': 'Ho Chi Minh City',
     'phu quoc': 'Phu Quoc',
     'nha trang': 'Nha Trang',
     'vung tau': 'Vung Tau',
@@ -172,11 +176,11 @@ PROVINCES_METADATA: List[Dict[str, Any]] = []
 CITY_ALIASES = {
     'hanoi': ['hanoi', 'ha noi'],
     'ha noi': ['hanoi', 'ha noi'],
-    'tp. hcm': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
-    'tp hcm': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
-    'ho chi minh': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
-    'ho chi minh city': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
-    'saigon': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon'],
+    'tp. hcm': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon', 'ho chi minh city'],
+    'tp hcm': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon', 'ho chi minh city'],
+    'ho chi minh': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon', 'ho chi minh city'],
+    'ho chi minh city': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon', 'ho chi minh city'],
+    'saigon': ['tp. hcm', 'tp hcm', 'tp.hcm', 'ho chi minh', 'hcm', 'saigon', 'ho chi minh city'],
     'quang nam': ['quang nam', 'hoi an'],
     'hoi an': ['quang nam', 'hoi an'],
     'da nang': ['da nang', 'danang'],
@@ -195,6 +199,109 @@ CITY_ALIASES = {
     'quang ninh': ['quang ninh', 'ha long'],
     'can tho': ['can tho'],
     'ha giang': ['ha giang', 'dong van']
+}
+
+QUERY_KEYWORD_MAP: Dict[str, Dict[str, Any]] = {
+    'pool': {
+        'aspect': 'Amenity',
+        'terms': ['pool', 'swimming', 'swim', 'ho boi', 'be boi', 'rooftop pool'],
+        'display': 'swimming pool'
+    },
+    'breakfast': {
+        'aspect': 'Amenity',
+        'terms': ['breakfast', 'buffet', 'bua sang', 'an sang', 'dining', 'food', 'restaurant', 'mon an', 'do an', 'nha hang'],
+        'display': 'breakfast & dining'
+    },
+    'spa': {
+        'aspect': 'Amenity',
+        'terms': ['spa', 'massage', 'sauna', 'xong hoi', 'tam hoi'],
+        'display': 'spa & wellness'
+    },
+    'gym': {
+        'aspect': 'Amenity',
+        'terms': ['gym', 'fitness', 'phong gym', 'tap the duc', 'workout'],
+        'display': 'fitness center / gym'
+    },
+    'wifi': {
+        'aspect': 'Amenity',
+        'terms': ['wifi', 'wi-fi', 'internet', 'mang', 'toc do mang'],
+        'display': 'wifi connection'
+    },
+    'bar': {
+        'aspect': 'Amenity',
+        'terms': ['bar', 'rooftop', 'cocktail', 'lounge', 'sky bar', 'quay bar', 'drinks', 'do uong'],
+        'display': 'bar & lounge'
+    },
+    'parking': {
+        'aspect': 'Amenity',
+        'terms': ['parking', 'do xe', 'bai do xe', 'gui xe', 'cho dau xe'],
+        'display': 'parking facilities'
+    },
+    'beach': {
+        'aspect': 'Experience',
+        'terms': ['beach', 'sea', 'ocean', 'coast', 'bien', 'bai bien', 'gan bien'],
+        'display': 'beach access'
+    },
+    'room': {
+        'aspect': 'Facility',
+        'terms': ['room', 'rooms', 'bed', 'beds', 'bedroom', 'phong', 'phong ngu', 'giuong', 'nem', 'chan ga'],
+        'display': 'rooms & beds'
+    },
+    'bathroom': {
+        'aspect': 'Facility',
+        'terms': ['bathroom', 'shower', 'bathtub', 'toilet', 'nha tam', 'bon tam', 'voi sen', 've sinh', 'nuoc nong'],
+        'display': 'bathroom & shower'
+    },
+    'cleanliness': {
+        'aspect': 'Facility',
+        'terms': ['clean', 'cleanliness', 'dirty', 'smell', 'odor', 'sach se', 'ban', 'mui'],
+        'display': 'cleanliness'
+    },
+    'ac': {
+        'aspect': 'Facility',
+        'terms': ['air condition', 'air conditioning', 'ac', 'dieu hoa', 'may lanh'],
+        'display': 'air conditioning'
+    },
+    'view': {
+        'aspect': 'Facility',
+        'terms': ['view', 'balcony', 'tam nhin', 'ban cong', 'huong nhin', 'canh dep'],
+        'display': 'view & balcony'
+    },
+    'noise': {
+        'aspect': 'Facility',
+        'terms': ['noise', 'noisy', 'quiet', 'insulation', 'soundproof', 'on ao', 'yen tinh', 'cach am'],
+        'display': 'noise level'
+    },
+    'staff': {
+        'aspect': 'Service',
+        'terms': ['staff', 'service', 'reception', 'receptionist', 'attitude', 'helpful', 'friendly', 'polite', 'nhan vien', 'le tan', 'tiep tan', 'thai do', 'nhiet tinh', 'than thien'],
+        'display': 'staff & customer service'
+    },
+    'checkin': {
+        'aspect': 'Service',
+        'terms': ['check-in', 'checkout', 'check out', 'nhan phong', 'tra phong', 'thu tuc'],
+        'display': 'check-in & check-out'
+    },
+    'price': {
+        'aspect': 'Branding',
+        'terms': ['price', 'cost', 'expensive', 'cheap', 'budget', 'value', 'gia', 'gia ca', 'gia phong', 'dat', 're', 'chi phi', 'dang tien'],
+        'display': 'pricing & value'
+    },
+    'star': {
+        'aspect': 'Branding',
+        'terms': ['star', 'stars', 'may sao', 'hang sao', '5 sao', '4 sao', 'tieu chuan', 'dang cap'],
+        'display': 'star rating'
+    },
+    'loyalty': {
+        'aspect': 'Loyalty',
+        'terms': ['again', 'return', 'come back', 'recommend', 'rebook', 'next trip', 'quay lai', 'tro lai', 'gioi thieu', 'ung ho', 'se quay lai'],
+        'display': 'guest recommendation'
+    },
+    'location': {
+        'aspect': 'Facility',
+        'terms': ['location', 'address', 'where', 'near', 'nearby', 'center', 'centre', 'vi tri', 'dia chi', 'o dau', 'gan', 'trung tam'],
+        'display': 'location & accessibility'
+    }
 }
 
 def clean_location(loc_raw: str) -> str:
@@ -223,7 +330,7 @@ def clean_display_name(raw: str) -> str:
     if not raw:
         return 'Hotel'
     ascii_name = clean_vietnamese_text(raw)
-    text = re.sub(r'^(khach\s*san|khu\s*nghi\s*duong|ks|hotel|resort|the)\s+', '', ascii_name, flags=re.IGNORECASE).strip()
+    text = re.sub(r'^(khach\s*san|khu\s*nghi\s*duong|nha\s*khach|ks|hotel|resort|the)\s+', '', ascii_name, flags=re.IGNORECASE).strip()
     text = re.sub(r'\s*\.*$', '', text)
     words = text.split()
     capitalized = ' '.join(w.capitalize() for w in words)
@@ -232,7 +339,8 @@ def clean_display_name(raw: str) -> str:
     capitalized = re.sub(r'\bPhu Quoc\b', 'Phu Quoc', capitalized, flags=re.IGNORECASE)
     capitalized = re.sub(r'\bSai Gon\b', 'Ho Chi Minh City', capitalized, flags=re.IGNORECASE)
     capitalized = re.sub(r'\bNha Trang\b', 'Nha Trang', capitalized, flags=re.IGNORECASE)
-    return capitalized or ascii_name or 'Hotel'
+    has_type = any(t in capitalized.lower() for t in ['hotel', 'resort', 'villa', 'suites', 'homestay', 'apartment', 'lodge', 'inn', 'hostel', 'palace', 'guesthouse'])
+    return capitalized if has_type else f"{capitalized} Hotel"
 
 # ---------------------------------------------------------------------------
 # Review Text Utilities (Pure Neural Generation - Zero Canned Templates)
@@ -1618,9 +1726,9 @@ class QAChatHandler(BaseHTTPRequestHandler):
             search_filter = clean_vietnamese_text(raw_search).lower()
 
             try:
-                limit = min(max(int(query_params.get('limit', [10])[0]), 1), 100)
+                limit = min(max(int(query_params.get('limit', [9])[0]), 1), 100)
             except (ValueError, TypeError):
-                limit = 10
+                limit = 9
 
             try:
                 offset = max(int(query_params.get('offset', [0])[0]), 0)

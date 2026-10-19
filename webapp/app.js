@@ -1116,7 +1116,7 @@
         return null;
     }
 
-    const HOTEL_PAGE_SIZE = 10;
+    const HOTEL_PAGE_SIZE = 9;
     let allLoadedHotels = [];
     let currentFilterCity = 'all';
     let currentSearchQuery = '';
@@ -1500,7 +1500,7 @@
             });
         }
 
-        // Load More Hotels (Pagination 10 hotels at a time)
+        // Load More Hotels (Pagination 9 hotels at a time)
         if (elements.loadMoreHotelsBtn) {
             elements.loadMoreHotelsBtn.addEventListener('click', () => {
                 if (hasMoreHotels && !isLoadingHotels) {
