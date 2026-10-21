@@ -53,6 +53,8 @@ ENV/
 
 
 .agents/
+node_modules/
+release/
 
 model/
 # Large Model Checkpoints

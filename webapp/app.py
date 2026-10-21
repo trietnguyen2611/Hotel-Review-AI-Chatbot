@@ -1615,6 +1615,7 @@ BOT: Optional[ConversationalQABot] = None
 # Static Directory & Multipart File Parser
 # ---------------------------------------------------------------------------
 BASE_DIR = PROJECT_ROOT
+MODEL_STORAGE_DIR = os.path.abspath(os.environ.get('HOTEL_QA_USER_DATA_DIR', BASE_DIR))
 if os.path.exists(os.path.join(BASE_DIR, 'webapp', 'index.html')):
     WEBAPP_DIR = os.path.join(BASE_DIR, 'webapp')
 elif os.path.exists(os.path.join(BASE_DIR, 'index.html')):
@@ -1779,6 +1780,16 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     'name': 'model.pt',
                     'path': 'model.pt',
                     'size_mb': calc_size_mb(root_model),
+                    'active': (active_m == 'model.pt'),
+                    'is_active': (active_m == 'model.pt')
+                })
+
+            user_model = os.path.join(MODEL_STORAGE_DIR, 'model.pt')
+            if os.path.isfile(user_model) and not any(m['name'] == 'model.pt' for m in models):
+                models.append({
+                    'name': 'model.pt',
+                    'path': 'model.pt',
+                    'size_mb': calc_size_mb(user_model),
                     'active': (active_m == 'model.pt'),
                     'is_active': (active_m == 'model.pt')
                 })
@@ -1992,7 +2003,8 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     return
 
                 target_filename = 'model.pt'
-                save_path = os.path.join(BASE_DIR, target_filename)
+                os.makedirs(MODEL_STORAGE_DIR, exist_ok=True)
+                save_path = os.path.join(MODEL_STORAGE_DIR, target_filename)
                 with open(save_path, 'wb') as f:
                     f.write(file_data)
 
@@ -2042,7 +2054,8 @@ class QAChatHandler(BaseHTTPRequestHandler):
                 clean_name = os.path.basename(model_name)
                 candidate_paths = [
                     os.path.join(BASE_DIR, 'model', clean_name),
-                    os.path.join(BASE_DIR, clean_name)
+                    os.path.join(BASE_DIR, clean_name),
+                    os.path.join(MODEL_STORAGE_DIR, clean_name)
                 ]
                 target_path = None
                 for p in candidate_paths:
@@ -2105,6 +2118,9 @@ def main():
     # Initialize Bot
     global BOT
     BOT = ConversationalQABot(HOTEL_DATABASE)
+    uploaded_model = os.path.join(MODEL_STORAGE_DIR, 'model.pt')
+    if os.path.isfile(uploaded_model) and not BOT.pipeline.reload_model(uploaded_model):
+        print(f"Warning: Could not load saved user model from {uploaded_model}.", flush=True)
 
     port = args.port
     max_retries = 10
@@ -2125,7 +2141,9 @@ def main():
             else:
                 raise
 
-    print(f"Server successfully started at http://localhost:{port}")
+    ready_url = f"http://127.0.0.1:{httpd.server_address[1]}"
+    print(f"HOTEL_QA_SERVER_READY={ready_url}", flush=True)
+    print(f"Server successfully started at {ready_url}", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
