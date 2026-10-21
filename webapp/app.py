@@ -1449,7 +1449,7 @@ class ConversationalQABot:
                         "address": addr,
                         "location": loc,
                         "search_url": f"https://www.google.com/maps/search/?api=1&query={encoded_loc}",
-                        "embed_url": f"https://maps.google.com/maps?q={encoded_loc}&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                        "embed_url": f"https://maps.google.com/maps?q={encoded_loc}&t=&z=15&ie=UTF8&iwloc=&output=embed&hl=en"
                     }
 
                 # Extract grounded evidence sentences from candidate reviews

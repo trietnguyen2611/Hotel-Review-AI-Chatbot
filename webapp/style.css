@@ -624,6 +624,25 @@ html, body {
     text-overflow: ellipsis;
 }
 
+.app-layout.home-view .header-title-block h2 {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(5px);
+    transition: opacity 220ms ease, filter 220ms ease, transform 220ms ease;
+}
+
+.app-layout.home-view.home-title-visible .header-title-block h2 {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-layout.home-view .header-title-block h2 {
+        transition: none;
+    }
+}
+
 /* Project Model Selector Dropdown (Folder model/) */
 .model-dropdown-wrapper {
     position: relative;
@@ -834,21 +853,6 @@ html, body {
     scroll-behavior: smooth;
     scroll-padding-bottom: 120px;
 
-    /* Subtle top scroll mask that preserves content legibility */
-    mask-image: linear-gradient(
-        to bottom,
-        transparent 0px,
-        black 45px,
-        black calc(100% - 30px),
-        transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0px,
-        black 45px,
-        black calc(100% - 30px),
-        transparent 100%
-    );
 }
 
 /* Custom Scrollbar */
@@ -1145,53 +1149,84 @@ html, body {
 /* --------------------------------------------------------------------------
    Google Maps Card (Zero emojis, 100% SVG)
    -------------------------------------------------------------------------- */
-.maps-card-wrapper {
-    margin-top: 10px;
-    border-radius: var(--radius-md);
+.maps-embed-card {
+    margin-top: 14px;
+    border-radius: 12px;
     border: 1px solid var(--border-subtle);
     background: var(--bg-card);
     overflow: hidden;
+    min-width: 0;
 }
 
-.maps-header {
-    padding: 10px 14px;
+.maps-embed-header {
+    padding: 12px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(0, 0, 0, 0.15);
+    gap: 12px;
+    background: var(--bg-app);
     border-bottom: 1px solid var(--border-subtle);
 }
 
-.maps-title {
+.maps-header-left {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-primary);
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
 }
 
-.maps-link-btn {
+.maps-header-left > .svg-icon {
+    margin-top: 2px;
+    color: var(--accent);
+}
+
+.maps-hotel-name {
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.maps-hotel-address {
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: 0.77rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.maps-open-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--primary);
+    justify-content: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 13px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--bg-badge);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 700;
     text-decoration: none;
-    transition: color 150ms ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background-color 150ms ease, border-color 150ms ease;
 }
 
-.maps-link-btn:hover {
-    color: var(--accent);
-    text-decoration: underline;
+.maps-open-btn:hover {
+    border-color: var(--border-subtle);
+    background: var(--bg-card-hover);
 }
 
 .maps-iframe {
     width: 100%;
-    height: 220px;
+    height: clamp(200px, 28vw, 280px);
     border: 0;
     display: block;
+    background: var(--bg-app);
 }
 
 /* --------------------------------------------------------------------------
@@ -1563,24 +1598,6 @@ html, body {
     display: none;
     width: 0;
     height: 0;
-}
-
-.sidebar-content,
-.hotel-selection-view {
-    mask-image: linear-gradient(
-        to bottom,
-        transparent 0,
-        black 14px,
-        black calc(100% - 18px),
-        transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0,
-        black 14px,
-        black calc(100% - 18px),
-        transparent 100%
-    );
 }
 
 @media (max-width: 640px) {
@@ -2330,16 +2347,18 @@ body {
 }
 
 .chat-header {
-    top: 12px;
-    left: 20px;
-    right: 20px;
-    height: 60px;
-    padding-inline: 12px;
-    border: 1px solid var(--border-subtle);
-    border-radius: 20px;
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
-    backdrop-filter: none;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 81px;
+    padding-inline: 16px;
+    border: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: none;
+    backdrop-filter: blur(4px) saturate(115%);
+    -webkit-backdrop-filter: blur(4px) saturate(115%);
 }
 
 .sidebar-toggle-btn,
@@ -2556,7 +2575,7 @@ body {
 }
 
 .messages-container {
-    padding-top: 84px;
+    padding-top: 108px;
 }
 
 .messages-content-wrap {
@@ -2643,10 +2662,10 @@ body {
     padding: 8px 9px 8px 18px;
     border-color: var(--border-subtle);
     border-radius: 18px;
-    background: var(--bg-card);
+    background: rgba(255, 255, 255, 0.56);
     box-shadow: var(--shadow-md);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    backdrop-filter: blur(8px) saturate(125%);
+    -webkit-backdrop-filter: blur(8px) saturate(125%);
 }
 
 .prompt-bar-glass:focus-within {
@@ -2686,8 +2705,19 @@ body {
     outline-offset: 2px;
 }
 
-[data-theme="dark"] .selection-toolbar,
+[data-theme="dark"] .selection-toolbar {
+    background: rgba(30, 30, 30, 0.6);
+}
+
 [data-theme="dark"] .chat-header {
+    background: rgba(30, 30, 30, 0.3);
+}
+
+[data-theme="dark"] .prompt-bar-glass {
+    background: rgba(34, 34, 34, 0.58);
+}
+
+[data-theme="dark"] .selection-toolbar {
     background: var(--bg-sidebar);
 }
 
@@ -2726,12 +2756,12 @@ body {
 
 @media (max-width: 640px) {
     .chat-header {
-        top: 8px;
-        left: 8px;
-        right: 8px;
-        height: 56px;
-        padding-inline: 8px;
-        border-radius: 18px;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 81px;
+        padding-inline: 12px;
+        border-radius: 0;
     }
 
     .hotel-selection-view {
@@ -2767,7 +2797,25 @@ body {
     }
 
     .messages-container {
-        padding: 74px 12px 112px;
+        padding: 108px 12px 112px;
+    }
+
+    .maps-embed-header {
+        align-items: stretch;
+        flex-wrap: wrap;
+        padding: 11px 12px;
+    }
+
+    .maps-header-left {
+        flex-basis: 100%;
+    }
+
+    .maps-open-btn {
+        width: 100%;
+    }
+
+    .maps-iframe {
+        height: 220px;
     }
 
     .msg-body {

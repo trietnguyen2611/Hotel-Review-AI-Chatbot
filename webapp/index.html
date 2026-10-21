@@ -158,21 +158,21 @@
                     <div class="toolbar-main-controls">
                         <!-- Quick Destination Pills -->
                         <div class="city-filter-bar" id="cityFilterBar" role="tablist">
-                            <button type="button" class="city-pill active" data-city="all">Tất cả</button>
-                            <button type="button" class="city-pill" data-city="Hanoi">Hà Nội</button>
-                            <button type="button" class="city-pill" data-city="Tp. Hcm">TP. HCM</button>
-                            <button type="button" class="city-pill" data-city="Quang Nam">Quảng Nam</button>
-                            <button type="button" class="city-pill" data-city="Da Nang">Đà Nẵng</button>
-                            <button type="button" class="city-pill" data-city="Khanh Hoa">Khánh Hoà</button>
-                            <button type="button" class="city-pill" data-city="Kien Giang">Kiên Giang</button>
-                            <button type="button" class="city-pill" data-city="Lam Dong">Lâm Đồng</button>
-                            <button type="button" class="city-pill" data-city="Hue">Huế</button>
+                            <button type="button" class="city-pill active" data-city="all">All</button>
+                            <button type="button" class="city-pill" data-city="Hanoi">Hanoi</button>
+                            <button type="button" class="city-pill" data-city="Tp. Hcm">Ho Chi Minh City</button>
+                            <button type="button" class="city-pill" data-city="Quang Nam">Quang Nam</button>
+                            <button type="button" class="city-pill" data-city="Da Nang">Da Nang</button>
+                            <button type="button" class="city-pill" data-city="Khanh Hoa">Khanh Hoa</button>
+                            <button type="button" class="city-pill" data-city="Kien Giang">Kien Giang</button>
+                            <button type="button" class="city-pill" data-city="Lam Dong">Lam Dong</button>
+                            <button type="button" class="city-pill" data-city="Hue">Hue</button>
                         </div>
 
                         <!-- All 48 Provinces Dropdown Filter -->
-                        <div class="province-select-wrapper" title="Lọc theo toàn bộ 48 tỉnh thành trong dataset">
-                            <select id="provinceSelect" class="province-select" aria-label="Lọc theo tỉnh thành">
-                                <option value="all">Tất cả tỉnh thành</option>
+                        <div class="province-select-wrapper" title="Filter all provinces in the dataset">
+                            <select id="provinceSelect" class="province-select" aria-label="Filter by province">
+                                <option value="all">All provinces</option>
                                 <!-- Populated dynamically from API -->
                             </select>
                             <svg class="svg-icon svg-icon-sm chevron-icon" viewBox="0 0 24 24">
@@ -188,11 +188,11 @@
                                 <circle cx="11" cy="11" r="8"/>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                             </svg>
-                            <input type="text" id="hotelSearchInput" placeholder="Tìm theo tên khách sạn hoặc địa chỉ..." autocomplete="off">
+                            <input type="text" id="hotelSearchInput" placeholder="Search by hotel name or address..." autocomplete="off">
                         </div>
 
                         <!-- Hotel Counter Tag -->
-                        <span class="hotel-counter-tag" id="hotelCounterTag">Đang tải...</span>
+                        <span class="hotel-counter-tag" id="hotelCounterTag">Loading...</span>
                     </div>
                 </div>
 
@@ -209,7 +209,7 @@
                     </button>
                     <div class="all-loaded-indicator" id="allLoadedIndicator" style="display: none;">
                         <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                        <span>Đã hiển thị tất cả khách sạn</span>
+                        <span>All hotels are displayed</span>
                     </div>
                 </div>
             </section>

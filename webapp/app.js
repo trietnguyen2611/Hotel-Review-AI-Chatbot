@@ -57,7 +57,9 @@
         pinnedList: document.getElementById('pinnedList'),
         recentSection: document.getElementById('recentSection'),
         recentList: document.getElementById('recentList'),
+        chatHeader: document.querySelector('.chat-header'),
         activeChatTitle: document.getElementById('activeChatTitle'),
+        selectionHeroTitle: document.querySelector('.selection-hero-title'),
 
         modelDropdownWrapper: document.getElementById('modelDropdownWrapper'),
         modelSelectorBtn: document.getElementById('modelSelectorBtn'),
@@ -231,7 +233,24 @@
         return conversations.find(c => c.id === activeConvId) || null;
     }
 
+    function updateHomeTitle() {
+        if (!elements.hotelSelectionView || !elements.selectionHeroTitle || !elements.activeChatTitle) {
+            return;
+        }
+
+        const isHomeView = elements.hotelSelectionView.style.display !== 'none';
+        const headerBottom = elements.chatHeader?.getBoundingClientRect().bottom ?? 0;
+        const titleBottom = elements.selectionHeroTitle.getBoundingClientRect().bottom;
+        const isTitleUnderHeader = isHomeView && elements.hotelSelectionView.scrollTop > 0 && titleBottom <= headerBottom;
+
+        elements.appLayout.classList.toggle('home-title-visible', isTitleUnderHeader);
+        elements.activeChatTitle.textContent = isTitleUnderHeader
+            ? elements.selectionHeroTitle.textContent
+            : '';
+    }
+
     function showHotelSelectionView() {
+        elements.appLayout.classList.add('home-view');
         if (elements.hotelSelectionView) {
             elements.hotelSelectionView.style.display = 'flex';
         }
@@ -239,7 +258,7 @@
             elements.chatWorkspaceView.style.display = 'none';
         }
         if (elements.activeChatTitle) {
-            elements.activeChatTitle.textContent = 'New conversation';
+            elements.activeChatTitle.textContent = '';
         }
         if (elements.topbarBrowseBtn) {
             elements.topbarBrowseBtn.classList.add('active');
@@ -252,6 +271,7 @@
         if (elements.hotelSelectionView) {
             elements.hotelSelectionView.scrollTop = 0;
         }
+        updateHomeTitle();
     }
 
     function showChatWorkspaceView(conv) {
@@ -259,6 +279,7 @@
             showHotelSelectionView();
             return;
         }
+        elements.appLayout.classList.remove('home-view', 'home-title-visible');
         activeConvId = conv.id;
         saveConversations();
 
@@ -896,7 +917,7 @@
 
         const remaining = cache.length - currentOffset;
         if (remaining > 0 && btn) {
-            btn.innerHTML = `${SVG.chevron}<span>View more (${remaining} remaining)</span>`;
+            btn.innerHTML = `<span>View more (${remaining} remaining)</span>`;
         } else if (btn) {
             btn.remove();
         }
@@ -973,7 +994,7 @@
             `;
         }
 
-        // 3. Collapsible Multi-Review Citations (Max 5 per view with "Xem thêm" pagination)
+        // 3. Collapsible Multi-Review Citations (Max 5 per view with pagination)
         let collapsibleHtml = '';
         if (data.original_reviews && data.original_reviews.length > 0) {
             const toggleId = 'rev_toggle_' + Math.random().toString(36).substring(2, 9);
@@ -986,7 +1007,7 @@
 
             const loadMoreBtnHtml = remaining > 0 ? `
                 <button type="button" class="load-more-reviews-btn" id="loadMoreBtn_${toggleId}" onclick="window.__loadMoreReviews('${toggleId}', 5)">
-                    ${SVG.chevron}
+
                     <span>View more reviews (${remaining} remaining)</span>
                 </button>
             ` : '';
@@ -1151,20 +1172,20 @@
             currentOffset = 0;
             allLoadedHotels = [];
             if (elements.hotelSelectionGrid) {
-                elements.hotelSelectionGrid.innerHTML = '<div class="hotel-card-skeleton">Đang tải danh sách khách sạn từ hệ thống...</div>';
+                elements.hotelSelectionGrid.innerHTML = '<div class="hotel-card-skeleton">Loading hotel properties...</div>';
             }
             if (elements.loadMoreHotelsWrap) {
                 elements.loadMoreHotelsWrap.style.display = 'none';
             }
             if (elements.hotelCounterTag) {
-                elements.hotelCounterTag.textContent = 'Đang tải...';
+                elements.hotelCounterTag.textContent = 'Loading...';
             }
         } else {
             if (elements.loadMoreHotelsBtn) {
                 elements.loadMoreHotelsBtn.classList.add('loading');
             }
             if (elements.loadMoreHotelsText) {
-                elements.loadMoreHotelsText.textContent = 'Đang tải thêm khách sạn...';
+                elements.loadMoreHotelsText.textContent = 'Loading more hotels...';
             }
         }
 
@@ -1191,7 +1212,7 @@
                 provincesLoaded = true;
                 const totalAll = data.provinces.reduce((sum, p) => sum + p.count, 0);
                 elements.provinceSelect.innerHTML = `
-                    <option value="all">Tất cả tỉnh thành</option>
+                    <option value="all">All provinces</option>
                     ${data.provinces.map(p => `
                         <option value="${escapeHtml(p.name)}">${escapeHtml(p.name)} (${p.count.toLocaleString()})</option>
                     `).join('')}
@@ -1213,9 +1234,9 @@
 
             // Update Counter Text
             if (elements.hotelCounterTag) {
-                const cityLabel = (city && city !== 'all') ? ` tại ${city}` : '';
-                const searchLabel = search ? ` khớp "${search}"` : '';
-                elements.hotelCounterTag.textContent = `Hiển thị ${allLoadedHotels.length} / ${totalMatchingHotels.toLocaleString()} khách sạn${cityLabel}${searchLabel}`;
+                const cityLabel = (city && city !== 'all') ? ` in ${city}` : '';
+                const searchLabel = search ? ` matching "${search}"` : '';
+                elements.hotelCounterTag.textContent = `Showing ${allLoadedHotels.length} of ${totalMatchingHotels.toLocaleString()} hotels${cityLabel}${searchLabel}`;
             }
 
             // Update Load More Button & Indicator
@@ -1239,7 +1260,7 @@
                             elements.allLoadedIndicator.style.display = 'flex';
                             elements.allLoadedIndicator.innerHTML = `
                                 <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                                <span>Đã hiển thị toàn bộ ${totalMatchingHotels.toLocaleString()} khách sạn</span>
+                                <span>All ${totalMatchingHotels.toLocaleString()} hotels are displayed</span>
                             `;
                         }
                     }
@@ -1254,7 +1275,7 @@
             if (elements.loadMoreHotelsBtn) {
                 elements.loadMoreHotelsBtn.classList.remove('loading');
                 if (elements.loadMoreHotelsText) {
-                    elements.loadMoreHotelsText.textContent = 'Thử lại tải thêm';
+                    elements.loadMoreHotelsText.textContent = 'Retry loading hotels';
                 }
             }
         } finally {
@@ -1349,9 +1370,9 @@
             elements.hotelSelectionGrid.innerHTML = `
                 <div class="hotel-empty-state">
                     <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <h3>Không tìm thấy khách sạn phù hợp</h3>
-                    <p>Không có khách sạn nào khớp với tiêu chí tìm kiếm hiện tại.</p>
-                    <button type="button" class="empty-reset-btn" onclick="window.__resetHotelFilters()">Xem tất cả khách sạn</button>
+                    <h3>No matching hotels found</h3>
+                    <p>No hotels match your current search and filters.</p>
+                    <button type="button" class="empty-reset-btn" onclick="window.__resetHotelFilters()">Show all hotels</button>
                 </div>
             `;
             return;
@@ -1576,6 +1597,10 @@
     // -------------------------------------------------------------------------
     initTheme();
     initSidebar();
+    if (elements.hotelSelectionView) {
+        elements.hotelSelectionView.addEventListener('scroll', updateHomeTitle, { passive: true });
+        window.addEventListener('resize', updateHomeTitle);
+    }
     loadConversations();
     renderConversationLists();
     renderActiveConversationMessages();
