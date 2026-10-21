@@ -24,90 +24,92 @@ html {
    Color Tokens & Variables
    -------------------------------------------------------------------------- */
 :root {
-    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+    --font-sans: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-heading: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    --font-mono: 'Sometype Mono', 'SFMono-Regular', Menlo, monospace;
 
-    /* Dark Mode Defaults */
-    --bg-app: #080b12;
-    --bg-sidebar: #0f1422;
-    --bg-main: #0b0f19;
-    --bg-card: rgba(22, 30, 49, 0.72);
-    --bg-card-hover: rgba(30, 41, 67, 0.88);
-    --bg-bot-bubble: rgba(20, 27, 45, 0.9);
-    --bg-user-bubble: #2563eb;
-    --bg-prompt-glass: rgba(13, 19, 33, 0.42);
-    --bg-badge: rgba(59, 130, 246, 0.12);
-    --bg-badge-hover: rgba(59, 130, 246, 0.2);
+    --bg-app: #f8f9fa;
+    --bg-sidebar: #ffffff;
+    --bg-main: #f8f9fa;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f1f1f9;
+    --bg-bot-bubble: #ffffff;
+    --bg-user-bubble: #202020;
+    --bg-prompt-glass: #ffffff;
+    --bg-badge: #efedfd;
+    --bg-badge-hover: #e9e9f6;
 
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.15);
-    --border-glass-prompt: rgba(255, 255, 255, 0.09);
-    --border-focus: #3b82f6;
+    --border-subtle: #cfcfcf;
+    --border-strong: #b4b4b4;
+    --border-glass-prompt: #cfcfcf;
+    --border-focus: #7612fa;
 
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --text-inverse: #0f172a;
+    --text-primary: #202020;
+    --text-secondary: #555555;
+    --text-muted: #646464;
+    --text-inverse: #ffffff;
 
-    --primary: #3b82f6;
-    --primary-hover: #2563eb;
-    --primary-light: rgba(59, 130, 246, 0.15);
-    --accent: #06b6d4;
-    --success: #10b981;
-    --success-bg: rgba(16, 185, 129, 0.12);
-    --warning: #f59e0b;
-    --warning-bg: rgba(245, 158, 11, 0.12);
-    --danger: #ef4444;
+    --primary: #202020;
+    --primary-hover: #1e1e1e;
+    --primary-light: #efedfd;
+    --accent: #7612fa;
+    --success: #30a46c;
+    --success-ink: #187347;
+    --success-bg: #e8f5ee;
+    --warning: #ffc53d;
+    --warning-ink: #805500;
+    --warning-bg: #fff5d6;
+    --danger: #e5484d;
+    --danger-ink: #b4232b;
 
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
-    --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 16px 40px -6px rgba(0, 0, 0, 0.45);
-    --shadow-prompt: 0 12px 32px -4px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--border-glass-prompt);
-    --shadow-prompt-focus: 0 16px 40px -4px rgba(37, 99, 235, 0.3), 0 0 0 1.5px var(--primary);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 10px rgba(13, 21, 48, 0.08);
+    --shadow-lg: 0 12px 28px rgba(13, 21, 48, 0.12);
+    --shadow-prompt: 0 4px 10px rgba(13, 21, 48, 0.08);
+    --shadow-prompt-focus: 0 0 0 3px rgba(118, 18, 250, 0.16);
 
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 14px;
     --radius-pill: 9999px;
 }
 
-[data-theme="light"] {
-    --bg-app: #f1f5f9;
-    --bg-sidebar: #ffffff;
-    --bg-main: #f8fafc;
-    --bg-card: rgba(255, 255, 255, 0.85);
-    --bg-card-hover: #ffffff;
-    --bg-bot-bubble: #ffffff;
-    --bg-user-bubble: #2563eb;
-    --bg-prompt-glass: rgba(255, 255, 255, 0.52);
-    --bg-badge: rgba(37, 99, 235, 0.08);
-    --bg-badge-hover: rgba(37, 99, 235, 0.16);
-
-    --border-subtle: rgba(0, 0, 0, 0.08);
-    --border-strong: rgba(0, 0, 0, 0.16);
-    --border-glass-prompt: rgba(0, 0, 0, 0.08);
-    --border-focus: #2563eb;
-
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --text-inverse: #ffffff;
-
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --primary-light: rgba(37, 99, 235, 0.1);
-    --accent: #0891b2;
-    --success: #059669;
-    --success-bg: rgba(5, 150, 105, 0.1);
-    --warning: #d97706;
-    --warning-bg: rgba(217, 119, 6, 0.1);
-    --danger: #dc2626;
-
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 6px 18px -3px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.12);
-    --shadow-prompt: 0 12px 30px -4px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--border-glass-prompt);
-    --shadow-prompt-focus: 0 16px 36px -4px rgba(37, 99, 235, 0.22), 0 0 0 1.5px var(--primary);
+[data-theme="dark"] {
+    --bg-app: #111111;
+    --bg-sidebar: #1e1e1e;
+    --bg-main: #171717;
+    --bg-card: #222222;
+    --bg-card-hover: #2b2b2b;
+    --bg-bot-bubble: #222222;
+    --bg-user-bubble: #7612fa;
+    --bg-prompt-glass: #222222;
+    --bg-badge: #302447;
+    --bg-badge-hover: #3a2b56;
+    --border-subtle: #3a3a3a;
+    --border-strong: #555555;
+    --border-glass-prompt: #444444;
+    --border-focus: #b38cff;
+    --text-primary: #f8f9fa;
+    --text-secondary: #c4c4c4;
+    --text-muted: #a0a0a0;
+    --text-inverse: #202020;
+    --primary: #7612fa;
+    --primary-hover: #6647f0;
+    --primary-light: #302447;
+    --accent: #12d0fa;
+    --success: #30a46c;
+    --success-ink: #71d5a0;
+    --success-bg: #183426;
+    --warning: #ffc53d;
+    --warning-ink: #ffc53d;
+    --warning-bg: #3d321a;
+    --danger: #e5484d;
+    --danger-ink: #ff8d91;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.28);
+    --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.38);
+    --shadow-prompt: 0 4px 12px rgba(0, 0, 0, 0.28);
+    --shadow-prompt-focus: 0 0 0 3px rgba(179, 140, 255, 0.22);
 }
 
 /* --------------------------------------------------------------------------
@@ -2195,4 +2197,3 @@ html, body {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
-

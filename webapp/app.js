@@ -100,8 +100,7 @@
         if (storedTheme) {
             setTheme(storedTheme);
         } else {
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            setTheme(prefersDark ? 'dark' : 'light');
+            setTheme('light');
         }
     }
 
@@ -122,7 +121,7 @@
     }
 
     elements.themeToggleBtn.addEventListener('click', () => {
-        const current = document.documentElement.getAttribute('data-theme') || 'dark';
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
         setTheme(current === 'dark' ? 'light' : 'dark');
     });
 
