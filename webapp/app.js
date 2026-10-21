@@ -239,7 +239,7 @@
             elements.chatWorkspaceView.style.display = 'none';
         }
         if (elements.activeChatTitle) {
-            elements.activeChatTitle.textContent = 'Select a Hotel';
+            elements.activeChatTitle.textContent = 'New conversation';
         }
         if (elements.topbarBrowseBtn) {
             elements.topbarBrowseBtn.classList.add('active');
@@ -289,7 +289,7 @@
     }
 
     function handleNewChat() {
-        // Bring user to Hotel Selection Hub to choose hotel with photo first
+        resetAllHotelFilters();
         showHotelSelectionView();
 
         if (window.innerWidth <= 840) {
@@ -1323,6 +1323,8 @@
     }
 
     function resetAllHotelFilters() {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = null;
         currentFilterCity = 'all';
         currentSearchQuery = '';
         if (elements.hotelSearchInput) {

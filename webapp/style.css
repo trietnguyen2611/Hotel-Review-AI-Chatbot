@@ -1548,6 +1548,41 @@ html, body {
     }
 }
 
+.sidebar-content,
+.messages-container,
+.hotel-selection-view,
+.city-filter-bar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.sidebar-content::-webkit-scrollbar,
+.messages-container::-webkit-scrollbar,
+.hotel-selection-view::-webkit-scrollbar,
+.city-filter-bar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.sidebar-content,
+.hotel-selection-view {
+    mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        black 14px,
+        black calc(100% - 18px),
+        transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        black 14px,
+        black calc(100% - 18px),
+        transparent 100%
+    );
+}
+
 @media (max-width: 640px) {
     .topbar-browse-btn span {
         display: none;
@@ -2220,11 +2255,14 @@ body {
 
 .sidebar {
     width: 272px;
-    border-right-color: var(--border-subtle);
+    height: calc(100% - 24px);
+    margin: 12px 0 12px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 22px;
 }
 
 .app-layout.sidebar-collapsed .sidebar {
-    margin-left: -272px;
+    margin-left: -284px;
 }
 
 .sidebar-header {
@@ -2604,7 +2642,7 @@ body {
     min-height: 60px;
     padding: 8px 9px 8px 18px;
     border-color: var(--border-subtle);
-    border-radius: 16px;
+    border-radius: 18px;
     background: var(--bg-card);
     box-shadow: var(--shadow-md);
     backdrop-filter: none;
@@ -2613,11 +2651,15 @@ body {
 
 .prompt-bar-glass:focus-within {
     border-color: var(--accent);
-    box-shadow: var(--shadow-prompt-focus);
+    box-shadow: 0 0 0 3px rgba(118, 18, 250, 0.14), var(--shadow-md);
 }
 
 .prompt-input-area {
     font-family: var(--font-sans);
+}
+
+.prompt-input-area:focus-visible {
+    outline: none;
 }
 
 .send-btn {
@@ -2669,6 +2711,16 @@ body {
 @media (max-width: 840px) {
     .sidebar.open {
         box-shadow: var(--shadow-lg);
+    }
+
+    .sidebar {
+        top: 12px;
+        bottom: 12px;
+        left: 12px;
+        width: min(272px, calc(100vw - 24px));
+        height: auto;
+        margin: 0 !important;
+        border-radius: 20px;
     }
 }
 
