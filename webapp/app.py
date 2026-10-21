@@ -16,12 +16,14 @@ from socketserver import ThreadingMixIn
 from collections import defaultdict, Counter
 from typing import List, Dict, Any, Tuple, Optional
 
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 # Auto-relaunch inside project virtual environment if dependencies are missing in current python
 try:
     import torch
     import transformers
 except ImportError:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = PROJECT_ROOT
     if sys.platform == 'win32':
         venv_py = os.path.join(base_dir, '.venv', 'Scripts', 'python.exe')
     else:
@@ -375,15 +377,16 @@ def get_hotel_image_url(h_name: str, location: str = '', addr: str = '') -> Opti
     return None
 
 
-def load_hotel_database(parquet_path: str = 'data/df/hotel_reviews.parquet') -> Dict[str, Dict[str, Any]]:
+def load_hotel_database(parquet_path: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
     global HOTEL_DATABASE, ALL_HOTEL_NAMES
     import pandas as pd
 
-    # Resolve relative path if run from subdirectory
-    if not os.path.exists(parquet_path):
-        alt_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), parquet_path)
-        if os.path.exists(alt_path):
-            parquet_path = alt_path
+    if parquet_path is None:
+        parquet_path = os.path.join(PROJECT_ROOT, 'data', 'df', 'hotel_reviews.parquet')
+    elif not os.path.isabs(parquet_path) and not os.path.exists(parquet_path):
+        project_path = os.path.join(PROJECT_ROOT, parquet_path)
+        if os.path.exists(project_path):
+            parquet_path = project_path
 
     if not os.path.exists(parquet_path):
         print(f"Warning: {parquet_path} not found.")
@@ -1611,7 +1614,7 @@ BOT: Optional[ConversationalQABot] = None
 # ---------------------------------------------------------------------------
 # Static Directory & Multipart File Parser
 # ---------------------------------------------------------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = PROJECT_ROOT
 if os.path.exists(os.path.join(BASE_DIR, 'webapp', 'index.html')):
     WEBAPP_DIR = os.path.join(BASE_DIR, 'webapp')
 elif os.path.exists(os.path.join(BASE_DIR, 'index.html')):
