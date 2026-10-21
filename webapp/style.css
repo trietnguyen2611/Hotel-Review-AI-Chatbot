@@ -976,6 +976,113 @@ html, body {
     border-bottom-left-radius: 4px;
 }
 
+/* Hotel metadata panel */
+.msg-hotel-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(59, 130, 246, 0.24);
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary-light), var(--bg-badge));
+}
+
+.hotel-meta-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    min-width: 0;
+}
+
+.hotel-meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    color: var(--text-primary);
+    line-height: 1.35;
+}
+
+.hotel-meta-badge .svg-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--primary);
+}
+
+.hotel-meta-badge strong {
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.hotel-meta-ratings,
+.hotel-meta-insights {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.hotel-meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 25px;
+    padding: 4px 8px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    background: var(--bg-bot-bubble);
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.hotel-meta-tag .svg-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.hotel-meta-tag.star-tag {
+    color: var(--text-secondary);
+}
+
+.hotel-meta-tag.star-tag .svg-icon,
+.hotel-meta-tag.score-tag .svg-icon {
+    color: var(--warning);
+}
+
+.hotel-meta-tag.score-tag {
+    color: var(--warning);
+    font-variant-numeric: tabular-nums;
+}
+
+.hotel-meta-tag.aspect-tag {
+    color: var(--primary);
+}
+
+.hotel-meta-tag.sentiment-positive {
+    color: var(--success);
+    background: var(--success-bg);
+}
+
+.hotel-meta-tag.sentiment-negative {
+    color: var(--danger);
+}
+
+.hotel-meta-tag.sentiment-neutral {
+    color: var(--text-secondary);
+}
+
+.hotel-meta-divider {
+    width: 1px;
+    height: 17px;
+    margin: 0 2px;
+    background: var(--border-strong);
+}
+
 /* Hotel Meta Badges */
 .hotel-meta-row {
     display: flex;
@@ -2088,5 +2195,4 @@ html, body {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
-
 

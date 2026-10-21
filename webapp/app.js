@@ -912,28 +912,41 @@
         if (data.hotel_name) {
             const starText = data.star || 'Standard';
             const scoreText = (typeof data.score === 'number' && !isNaN(data.score)) ? data.score.toFixed(1) : '4.5';
-            metaHtml = `
-                <div class="msg-hotel-meta">
-                    <span class="hotel-meta-badge">
-                        ${SVG.hotel}
-                        <strong>${escapeHtml(data.hotel_name)}</strong>
-                    </span>
-                    <span class="hotel-meta-tag star-tag">
-                        ${SVG.starOutline} ${escapeHtml(starText)}
-                    </span>
-                    <span class="hotel-meta-tag score-tag">
-                        ${SVG.star} ${scoreText}
-                    </span>
+            const aspectSentimentHtml = data.aspect || data.sentiment ? `
+                <div class="hotel-meta-insights">
                     ${data.aspect ? `
                         <span class="hotel-meta-tag aspect-tag">
-                            ${SVG.sparkles} ${escapeHtml(data.aspect)}
+                            ${SVG.sparkles}
+                            <span>${escapeHtml(data.aspect)}</span>
                         </span>
                     ` : ''}
+                    ${data.aspect && data.sentiment ? '<span class="hotel-meta-divider" aria-hidden="true"></span>' : ''}
                     ${data.sentiment ? `
                         <span class="hotel-meta-tag sentiment-tag sentiment-${data.sentiment.toLowerCase()}">
-                            ${escapeHtml(data.sentiment)}
+                            <span>${escapeHtml(data.sentiment)}</span>
                         </span>
                     ` : ''}
+                </div>
+            ` : '';
+            metaHtml = `
+                <div class="msg-hotel-meta">
+                    <div class="hotel-meta-heading">
+                        <span class="hotel-meta-badge">
+                            ${SVG.hotel}
+                            <strong>${escapeHtml(data.hotel_name)}</strong>
+                        </span>
+                        <div class="hotel-meta-ratings">
+                            <span class="hotel-meta-tag star-tag">
+                                ${SVG.starOutline}
+                                <span>${escapeHtml(starText)}</span>
+                            </span>
+                            <span class="hotel-meta-tag score-tag">
+                                ${SVG.star}
+                                <span>${scoreText}</span>
+                            </span>
+                        </div>
+                    </div>
+                    ${aspectSentimentHtml}
                 </div>
             `;
         }
