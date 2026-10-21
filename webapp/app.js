@@ -45,6 +45,8 @@
     let activeConvId = null;
     let isRequestPending = false;
     let currentGreetingSeq = 0;
+    let homeTitleFrame = null;
+    let homeTitleVisible = false;
 
     // DOM Elements
     const elements = {
@@ -238,19 +240,31 @@
             return;
         }
 
-        const isHomeView = elements.hotelSelectionView.style.display !== 'none';
-        const headerBottom = elements.chatHeader?.getBoundingClientRect().bottom ?? 0;
-        const titleBottom = elements.selectionHeroTitle.getBoundingClientRect().bottom;
-        const isTitleUnderHeader = isHomeView && elements.hotelSelectionView.scrollTop > 0 && titleBottom <= headerBottom;
+        if (homeTitleFrame !== null) return;
 
-        elements.appLayout.classList.toggle('home-title-visible', isTitleUnderHeader);
-        elements.activeChatTitle.textContent = isTitleUnderHeader
-            ? elements.selectionHeroTitle.textContent
-            : '';
+        homeTitleFrame = window.requestAnimationFrame(() => {
+            homeTitleFrame = null;
+            const isHomeView = elements.hotelSelectionView.style.display !== 'none';
+            const headerBottom = elements.chatHeader?.getBoundingClientRect().bottom ?? 0;
+            const titleBottom = elements.selectionHeroTitle.getBoundingClientRect().bottom;
+            const shouldShowTitle = isHomeView
+                && elements.hotelSelectionView.scrollTop > 0
+                && titleBottom <= headerBottom;
+
+            if (shouldShowTitle === homeTitleVisible) return;
+
+            homeTitleVisible = shouldShowTitle;
+            elements.appLayout.classList.toggle('home-title-visible', shouldShowTitle);
+            elements.activeChatTitle.textContent = shouldShowTitle
+                ? elements.selectionHeroTitle.textContent
+                : '';
+        });
     }
 
     function showHotelSelectionView() {
+        homeTitleVisible = false;
         elements.appLayout.classList.add('home-view');
+        elements.appLayout.classList.remove('home-title-visible');
         if (elements.hotelSelectionView) {
             elements.hotelSelectionView.style.display = 'flex';
         }
@@ -279,6 +293,7 @@
             showHotelSelectionView();
             return;
         }
+        homeTitleVisible = false;
         elements.appLayout.classList.remove('home-view', 'home-title-visible');
         activeConvId = conv.id;
         saveConversations();

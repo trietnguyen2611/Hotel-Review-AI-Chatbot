@@ -626,15 +626,14 @@ html, body {
 
 .app-layout.home-view .header-title-block h2 {
     opacity: 0;
-    filter: blur(6px);
-    transform: translateY(5px);
-    transition: opacity 220ms ease, filter 220ms ease, transform 220ms ease;
+    transform: translate3d(0, 4px, 0);
+    transition: opacity 140ms ease-out, transform 180ms cubic-bezier(0.2, 0.75, 0.25, 1);
+    will-change: opacity, transform;
 }
 
 .app-layout.home-view.home-title-visible .header-title-block h2 {
     opacity: 1;
-    filter: blur(0);
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
 }
 
 @media (prefers-reduced-motion: reduce) {
