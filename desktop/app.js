@@ -1550,16 +1550,75 @@
             elements.cityFilterBar.addEventListener('click', (e) => {
                 const pill = e.target.closest('.city-pill');
                 if (!pill) return;
-                document.querySelectorAll('.city-pill').forEach(p => p.classList.remove('active'));
+
+                document.querySelectorAll('.city-pill').forEach(p => {
+                    p.classList.remove('active');
+                });
                 pill.classList.add('active');
+
                 currentFilterCity = pill.getAttribute('data-city') || 'all';
+
                 if (elements.provinceSelect) {
-                    elements.provinceSelect.value = currentFilterCity;
-                    // If the city pill value is not in the dropdown options, select 'all'
-                    if (elements.provinceSelect.value !== currentFilterCity && currentFilterCity !== 'all') {
+                    const normalizeLocation = (value) =>
+                        String(value || '')
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .replace(/đ/gi, 'd')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]/g, '');
+
+                    const cityKey = normalizeLocation(currentFilterCity);
+                    const pillLabel = normalizeLocation(pill.textContent);
+
+                    // Map city buttons to the actual province names in the dropdown
+                    const cityAliases = {
+                        hanoi: ['hanoi', 'hanoi city', 'thanhphohanoi'],
+                        hochiminhcity: [
+                            'tphcm',
+                            'tpho chi minh',
+                            'hochiminh',
+                            'hochiminhcity',
+                            'hcm',
+                            'saigon',
+                            'thanhphohochiminh',
+                            'tp hochiminh',
+                            'tp hcm'
+                        ],
+                        danang: ['danang', 'thanhphodanang']
+                    };
+
+                    if (cityKey === 'all' || pillLabel === 'all') {
                         elements.provinceSelect.value = 'all';
+                    } else {
+                        const aliases = new Set([
+                            cityKey,
+                            pillLabel,
+                            ...(cityAliases[cityKey] || []),
+                            ...(cityAliases[pillLabel] || [])
+                        ].map(normalizeLocation));
+
+                        const options = Array.from(
+                            elements.provinceSelect.options
+                        );
+
+                        const matchingOption = options.find(option => {
+                            const value = normalizeLocation(option.value);
+                            const text = normalizeLocation(
+                                option.textContent.replace(/\s*\(\d[\d,]*\)\s*$/, '')
+                            );
+
+                            return aliases.has(value) || aliases.has(text);
+                        });
+
+                        if (matchingOption) {
+                            elements.provinceSelect.value = matchingOption.value;
+                        } else {
+                            // Avoid leaving an unrelated province selected
+                            elements.provinceSelect.value = 'all';
+                        }
                     }
                 }
+
                 fetchHotels(currentFilterCity, currentSearchQuery, false);
             });
         }
