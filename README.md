@@ -104,17 +104,11 @@ npm install
 ```
 
 ### 4. Khởi chạy Ứng dụng Native Desktop (Electron)
-Bạn có thể khởi chạy ứng dụng bằng 1 trong 2 cách:
-
-- **Cách 1 (Từ thư mục desktop)**:
-  ```bash
-  cd desktop
-  npm start
-  ```
-- **Cách 2 (Trực tiếp từ thư mục gốc)**:
-  ```bash
-  npm --prefix desktop run desktop
-  ```
+Bạn có thể khởi chạy trực tiếp ngay từ thư mục gốc của dự án:
+```bash
+npm run desktop
+```
+*(Hoặc di chuyển vào thư mục desktop: `cd desktop && npm start`)*
 
 Electron sẽ tự động quản lý tiến trình Python backend dưới nền, khởi chạy Neural Inference Engine, tự gán cổng kết nối an toàn và tự động đóng backend khi thoát ứng dụng.
 

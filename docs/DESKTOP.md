@@ -16,10 +16,11 @@ and web UI) is self-contained inside the `desktop/` directory.
    ```
 4. Start the desktop app:
    ```bash
-   # From the desktop directory:
-   npm start
-   # Or from the project root:
-   npm --prefix desktop run desktop
+   # From the project root:
+   npm run desktop
+
+   # Or from the desktop directory:
+   cd desktop && npm start
    ```
 
 The launcher uses `.venv` when present. Otherwise it uses Python 3.12
