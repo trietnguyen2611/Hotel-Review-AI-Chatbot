@@ -7,7 +7,7 @@
 
 ## 📌 Tổng quan dự án
 
-Dự án phát triển một hệ thống toàn diện từ nghiên cứu dữ liệu, huấn luyện mô hình học sâu (Seq2Seq / BART) đến triển khai ứng dụng đa nền tảng (Web & Desktop Native):
+Dự án phát triển một hệ thống toàn diện từ nghiên cứu dữ liệu, huấn luyện mô hình học sâu (Seq2Seq / BART) đến triển khai ứng dụng Native Desktop App:
 
 1. **Aspect-Based Sentiment Analysis & Rationalization**: Trích xuất và phân tích 6 khía cạnh chuẩn:
    - **Service**: Dịch vụ, thái độ nhân viên, lễ tân, buồng phòng.
@@ -18,13 +18,13 @@ Dự án phát triển một hệ thống toàn diện từ nghiên cứu dữ l
    - **Branding**: Danh tiếng, đẳng cấp và giá trị thương hiệu.
 2. **Generative Neural Engine**: Mô hình sinh câu trả lời đàm thoại (BART Seq2Seq) kết hợp đặc trưng khía cạnh, trích xuất căn cứ (rationale span) minh bạch.
 3. **Knowledge Base Engine**: Cơ sở tri thức Parquet Snappy tốc độ cao (`hotel_reviews.parquet`) và SQLite Relational Database (`chatbot.db`) hỗ trợ truy vấn thông tin khách sạn tức thì.
-4. **Cross-Platform Delivery**:
-   - **Web Application**: Giao diện người dùng hiện đại, trực quan, hỗ trợ chế độ Dark/Light, bộ lọc khía cạnh, đồ thị phân tích và chat thông minh.
-   - **Desktop Native App**: Ứng dụng Desktop native đóng gói qua Electron (hỗ trợ cả macOS và Windows).
+4. **Native Desktop Application**: Ứng dụng Desktop native khép kín (Electron shell tích hợp giao diện người dùng hiện đại, dark/light mode và backend Python nội bộ).
 
 ---
 
 ## 📂 Cấu trúc thư mục dự án
+
+Toàn bộ ứng dụng Desktop và giao diện người dùng được đóng gói khép kín trong thư mục `desktop/`, giữ cho thư mục gốc của dự án luôn sạch sẽ, gọn gàng và chuẩn cấu trúc Khoa học Dữ liệu / Học máy:
 
 ```text
 Hotel-Review-AI-Chatbot/
@@ -41,8 +41,15 @@ Hotel-Review-AI-Chatbot/
 │   └── feature/
 │       └── TripAdvisor_Feature.json      # Dữ liệu kèm vector đặc trưng 6 khía cạnh (75MB)
 │
-├── desktop/                              # Mã nguồn ứng dụng Desktop (Electron)
-│   └── main.cjs                          # Tiến trình chính điều phối Electron & backend Python
+├── desktop/                              # Ứng dụng Native Desktop (khép kín toàn bộ Electron & UI)
+│   ├── main.cjs                          # Tiến trình chính điều phối Electron & backend Python
+│   ├── app.py                            # Python Backend Server & Neural Inference Engine
+│   ├── app.js                            # Logic tương tác phía Client (Chat, Filter, Charts)
+│   ├── index.html                        # Giao diện người dùng Desktop App
+│   ├── style.css                         # Bộ phong cách thiết kế UI/UX hiện đại
+│   ├── package.json                      # Cấu hình Electron dependencies & build scripts
+│   ├── package-lock.json                 # Lockfile quản lý phiên bản Node packages
+│   └── node_modules/                     # Thư viện Electron (đã được gitignore)
 │
 ├── docs/                                 # Tài liệu kỹ thuật, nghiên cứu & hướng dẫn
 │   ├── DESIGN.md                         # Tài liệu thiết kế kiến trúc hệ thống chi tiết
@@ -61,16 +68,9 @@ Hotel-Review-AI-Chatbot/
 │       ├── tokenizer.json                # Bộ mã hóa từ vựng (BPE Tokenizer)
 │       └── model_metadata.json           # Lịch sử huấn luyện & tham số kỹ thuật
 │
-├── webapp/                               # Giao diện Web & Backend API
-│   ├── app.py                            # Python Backend Server & Neural Inference Engine
-│   ├── app.js                            # Logic tương tác phía Client (Chat, Filter, Charts)
-│   ├── index.html                        # Giao diện người dùng Web Application
-│   └── style.css                         # Bộ phong cách thiết kế UI/UX hiện đại
-│
 ├── Project.ipynb                         # Notebook phân tích khám phá (EDA) & xuất dữ liệu
 ├── Training_Kaggle.ipynb                 # Notebook huấn luyện mô hình Seq2Seq trên Kaggle GPU
 ├── requirements.txt                      # Danh sách các thư viện Python cần thiết
-├── package.json                          # Cấu hình và script Electron Desktop App
 └── README.md                             # Hướng dẫn tổng quan dự án
 ```
 
@@ -80,7 +80,7 @@ Hotel-Review-AI-Chatbot/
 
 ### 1. Yêu cầu hệ thống
 - **Python**: Phiên bản 3.10 đến 3.12.
-- **Node.js**: Phiên bản 20 trở lên (chỉ cần khi chạy hoặc build Desktop App).
+- **Node.js**: Phiên bản 20 trở lên.
 
 ### 2. Cài đặt môi trường Python
 ```bash
@@ -97,34 +97,44 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Khởi chạy Web Application
-Khởi chạy máy chủ Backend và giao diện Web:
+### 3. Cài đặt dependencies cho Desktop App
 ```bash
-python webapp/app.py
-```
-Hệ thống sẽ tự động quét trọng số mô hình tốt nhất trong `model/model_v3` (hoặc fallback về base model nếu chưa tải trọng số) và mở server tại:
-👉 `http://127.0.0.1:8000` (hoặc cổng trống tiếp theo).
-
-### 4. Khởi chạy Ứng dụng Desktop (Electron)
-```bash
-# Cài đặt dependencies cho desktop app
+cd desktop
 npm install
-
-# Khởi chạy ứng dụng Desktop
-npm run desktop
 ```
-Electron sẽ tự động quản lý tiến trình Python backend dưới nền, gán port ngẫu nhiên và tắt an toàn khi đóng cửa sổ.
 
-### 5. Đóng gói bộ cài đặt Desktop (Build Installers)
+### 4. Khởi chạy Ứng dụng Native Desktop (Electron)
+Bạn có thể khởi chạy ứng dụng bằng 1 trong 2 cách:
+
+- **Cách 1 (Từ thư mục desktop)**:
+  ```bash
+  cd desktop
+  npm start
+  ```
+- **Cách 2 (Trực tiếp từ thư mục gốc)**:
+  ```bash
+  npm --prefix desktop run desktop
+  ```
+
+Electron sẽ tự động quản lý tiến trình Python backend dưới nền, khởi chạy Neural Inference Engine, tự gán cổng kết nối an toàn và tự động đóng backend khi thoát ứng dụng.
+
+### 5. (Tùy chọn) Chạy backend độc lập qua trình duyệt Web
+Nếu muốn chạy trực tiếp máy chủ backend để kiểm thử qua trình duyệt:
+```bash
+python desktop/app.py
+```
+Mở trình duyệt tại: 👉 `http://127.0.0.1:8000`.
+
+### 6. Đóng gói bộ cài đặt Native Desktop (Build Installers)
 - **macOS (DMG & ZIP)**:
   ```bash
-  npm run desktop:dist:mac
+  cd desktop && npm run dist:mac
   ```
 - **Windows (NSIS Installer)**:
   ```bash
-  npm run desktop:dist:win
+  cd desktop && npm run dist:win
   ```
-Tệp cài đặt sau khi đóng gói sẽ được tạo trong thư mục `release/`.
+Tệp cài đặt sau khi đóng gói sẽ được tạo trong thư mục `release/` ở thư mục gốc.
 
 ---
 

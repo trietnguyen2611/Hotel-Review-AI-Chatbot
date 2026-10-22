@@ -1616,12 +1616,17 @@ BOT: Optional[ConversationalQABot] = None
 # ---------------------------------------------------------------------------
 BASE_DIR = PROJECT_ROOT
 MODEL_STORAGE_DIR = os.path.abspath(os.environ.get('HOTEL_QA_USER_DATA_DIR', BASE_DIR))
-if os.path.exists(os.path.join(BASE_DIR, 'webapp', 'index.html')):
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.exists(os.path.join(APP_DIR, 'index.html')):
+    WEBAPP_DIR = APP_DIR
+elif os.path.exists(os.path.join(BASE_DIR, 'desktop', 'index.html')):
+    WEBAPP_DIR = os.path.join(BASE_DIR, 'desktop')
+elif os.path.exists(os.path.join(BASE_DIR, 'webapp', 'index.html')):
     WEBAPP_DIR = os.path.join(BASE_DIR, 'webapp')
 elif os.path.exists(os.path.join(BASE_DIR, 'index.html')):
     WEBAPP_DIR = BASE_DIR
 else:
-    WEBAPP_DIR = os.path.join(os.getcwd(), 'webapp')
+    WEBAPP_DIR = APP_DIR
 
 MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',

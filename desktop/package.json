@@ -2,13 +2,14 @@
   "name": "hotel-aspect-ai-desktop",
   "version": "1.0.0",
   "private": true,
-  "description": "Hotel Aspect AI desktop application for Windows and macOS",
-  "main": "desktop/main.cjs",
+  "description": "Hotel Aspect AI native desktop application for macOS and Windows",
+  "main": "main.cjs",
   "scripts": {
+    "start": "electron .",
     "desktop": "electron .",
-    "desktop:dist:mac": "electron-builder --mac dmg zip",
-    "desktop:dist:win": "electron-builder --win nsis",
-    "desktop:dist": "electron-builder"
+    "dist:mac": "electron-builder --mac dmg zip",
+    "dist:win": "electron-builder --win nsis",
+    "dist": "electron-builder"
   },
   "devDependencies": {
     "electron": "^45.0.0",
@@ -18,24 +19,19 @@
     "appId": "com.hotelaspect.qa",
     "productName": "Hotel Aspect AI",
     "directories": {
-      "output": "release"
+      "output": "../release"
     },
     "files": [
-      "desktop/**/*",
+      "main.cjs",
+      "app.py",
+      "app.js",
+      "index.html",
+      "style.css",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": "webapp",
-        "to": "project/webapp",
-        "filter": [
-          "**/*",
-          "!**/__pycache__/**",
-          "!**/*.pyc"
-        ]
-      },
-      {
-        "from": "data/df/hotel_reviews.parquet",
+        "from": "../data/df/hotel_reviews.parquet",
         "to": "project/data/df/hotel_reviews.parquet"
       }
     ],

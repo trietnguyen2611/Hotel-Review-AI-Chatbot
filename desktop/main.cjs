@@ -88,7 +88,9 @@ async function startBackend() {
     const root = projectRoot();
     const port = await getAvailablePort();
     const python = pythonCommand(root);
-    const scriptPath = path.join(root, 'webapp', 'app.py');
+    const scriptPath = fs.existsSync(path.join(__dirname, 'app.py'))
+        ? path.join(__dirname, 'app.py')
+        : path.join(root, 'desktop', 'app.py');
 
     if (!fs.existsSync(scriptPath)) {
         throw new Error(`Backend entry point not found: ${scriptPath}`);
