@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hotel Aspect AI QA Studio</title>
+    <title>Hotel QA CHATBOT</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="app-layout">
         <!-- Sidebar -->
@@ -18,7 +22,8 @@
                     <div class="brand-icon-box">
                         <!-- Hotel Building SVG -->
                         <svg class="svg-icon" viewBox="0 0 24 24">
-                            <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/>
+                            <path
+                                d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3" />
                         </svg>
                     </div>
                     <div class="brand-text">
@@ -27,8 +32,8 @@
                 </div>
                 <button class="mobile-sidebar-close" id="mobileSidebarClose" type="button" aria-label="Close sidebar">
                     <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                 </button>
             </div>
@@ -37,8 +42,8 @@
                 <!-- New Conversation Button -->
                 <button class="new-conversation-btn" id="newChatBtn">
                     <svg class="svg-icon" viewBox="0 0 24 24">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                     <span>New Conversation</span>
                 </button>
@@ -47,10 +52,10 @@
                 <div class="conv-section" id="pinnedSection" style="display: none;">
                     <div class="sidebar-section-title">
                         <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                            <line x1="12" y1="17" x2="12" y2="22"/>
-                            <path d="M5 17h14l-2-6V4H7v7l-2 6z"/>
-                            <line x1="9" y1="4" x2="9" y2="2"/>
-                            <line x1="15" y1="4" x2="15" y2="2"/>
+                            <line x1="12" y1="17" x2="12" y2="22" />
+                            <path d="M5 17h14l-2-6V4H7v7l-2 6z" />
+                            <line x1="9" y1="4" x2="9" y2="2" />
+                            <line x1="15" y1="4" x2="15" y2="2" />
                         </svg>
                         <span>Pinned</span>
                     </div>
@@ -61,8 +66,8 @@
                 <div class="conv-section" id="recentSection">
                     <div class="sidebar-section-title">
                         <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
                         </svg>
                         <span>Recent</span>
                     </div>
@@ -79,19 +84,20 @@
                     <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light and Dark Mode">
                         <!-- Sun Icon (shown when Light Mode is active) -->
                         <svg class="svg-icon icon-sun" id="sunIcon" viewBox="0 0 24 24" style="display: none;">
-                            <circle cx="12" cy="12" r="5"/>
-                            <line x1="12" y1="1" x2="12" y2="3"/>
-                            <line x1="12" y1="21" x2="12" y2="23"/>
-                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                            <line x1="1" y1="12" x2="3" y2="12"/>
-                            <line x1="21" y1="12" x2="23" y2="12"/>
-                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                            <circle cx="12" cy="12" r="5" />
+                            <line x1="12" y1="1" x2="12" y2="3" />
+                            <line x1="12" y1="21" x2="12" y2="23" />
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                            <line x1="1" y1="12" x2="3" y2="12" />
+                            <line x1="21" y1="12" x2="23" y2="12" />
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
                         </svg>
                         <!-- Moon Icon (shown when Dark Mode is active) -->
-                        <svg class="svg-icon icon-moon" id="moonIcon" viewBox="0 0 24 24" style="display: inline-block;">
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        <svg class="svg-icon icon-moon" id="moonIcon" viewBox="0 0 24 24"
+                            style="display: inline-block;">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                         </svg>
                     </button>
                 </div>
@@ -106,12 +112,13 @@
             <!-- Transparent Top Bar -->
             <header class="chat-header">
                 <div class="header-left">
-                    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar" title="Toggle Sidebar">
+                    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar"
+                        title="Toggle Sidebar">
                         <!-- Menu / Sidebar SVG -->
                         <svg class="svg-icon" viewBox="0 0 24 24">
-                            <line x1="4" y1="6" x2="20" y2="6"/>
-                            <line x1="4" y1="12" x2="20" y2="12"/>
-                            <line x1="4" y1="18" x2="20" y2="18"/>
+                            <line x1="4" y1="6" x2="20" y2="6" />
+                            <line x1="4" y1="12" x2="20" y2="12" />
+                            <line x1="4" y1="18" x2="20" y2="18" />
                         </svg>
                     </button>
                     <div class="header-title-block">
@@ -120,17 +127,22 @@
                 </div>
                 <div class="header-right">
                     <!-- Browse Hotels Button -->
-                    <button class="topbar-browse-btn" id="topbarBrowseBtn" type="button" title="Browse and select hotel">
-                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3"/></svg>
+                    <button class="topbar-browse-btn" id="topbarBrowseBtn" type="button"
+                        title="Browse and select hotel">
+                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                            <path
+                                d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1M10 21v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3" />
+                        </svg>
                         <span>Hotels</span>
                     </button>
                     <!-- Project Models Selector Dropdown (Folder model/) -->
                     <div class="model-dropdown-wrapper" id="modelDropdownWrapper">
-                        <button class="model-selector-btn" id="modelSelectorBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Select active model from model/ folder">
+                        <button class="model-selector-btn" id="modelSelectorBtn" type="button" aria-haspopup="true"
+                            aria-expanded="false" title="Select active model from model/ folder">
                             <span class="pulse-dot"></span>
                             <span class="model-selector-name" id="currentModelLabel">model_v3</span>
                             <svg class="svg-icon svg-icon-sm chevron-down" viewBox="0 0 24 24">
-                                <polyline points="6 9 12 15 18 9"/>
+                                <polyline points="6 9 12 15 18 9" />
                             </svg>
                         </button>
                         <div class="model-dropdown-menu" id="modelDropdownMenu" style="display: none;">
@@ -150,7 +162,8 @@
                 <div class="selection-hero">
 
                     <h2 class="selection-hero-title">Select a hotel to explore</h2>
-                    <p class="selection-hero-subtitle">Compare guest feedback and ask questions about stays across Vietnam.</p>
+                    <p class="selection-hero-subtitle">Compare guest feedback and ask questions about stays across
+                        Vietnam.</p>
                 </div>
 
                 <!-- Filter & Search Toolbar -->
@@ -176,7 +189,7 @@
                                 <!-- Populated dynamically from API -->
                             </select>
                             <svg class="svg-icon svg-icon-sm chevron-icon" viewBox="0 0 24 24">
-                                <polyline points="6 9 12 15 18 9"/>
+                                <polyline points="6 9 12 15 18 9" />
                             </svg>
                         </div>
                     </div>
@@ -185,10 +198,11 @@
                         <!-- Hotel Search Box -->
                         <div class="hotel-search-box">
                             <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                                <circle cx="11" cy="11" r="8"/>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
                             </svg>
-                            <input type="text" id="hotelSearchInput" placeholder="Search by hotel name or address..." autocomplete="off">
+                            <input type="text" id="hotelSearchInput" placeholder="Search by hotel name or address..."
+                                autocomplete="off">
                         </div>
 
                         <!-- Hotel Counter Tag -->
@@ -197,18 +211,23 @@
                 </div>
 
                 <!-- Responsive Grid of Hotel Cards (Max 9 per batch) -->
-                <div class="hotel-selection-grid" id="hotelSelectionGrid" role="region" aria-label="Hotel selection cards">
+                <div class="hotel-selection-grid" id="hotelSelectionGrid" role="region"
+                    aria-label="Hotel selection cards">
                     <div class="hotel-card-skeleton">Loading hotels...</div>
                 </div>
 
                 <!-- Load More Hotels (Pagination 9 hotels at a time) -->
                 <div class="load-more-hotels-wrap" id="loadMoreHotelsWrap">
                     <button type="button" class="load-more-hotels-btn" id="loadMoreHotelsBtn">
-                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
                         <span id="loadMoreHotelsText">View more hotels</span>
                     </button>
                     <div class="all-loaded-indicator" id="allLoadedIndicator" style="display: none;">
-                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
                         <span>All hotels are displayed</span>
                     </div>
                 </div>
@@ -222,7 +241,8 @@
                         <!-- Welcome Hero fallback if conversation is empty -->
                         <div class="welcome-hero" id="welcomeHero">
                             <h3>Hotel Concierge Assistant</h3>
-                            <p>Ask anything about hotel accommodations, amenities, services, and guest reviews in Vietnam.</p>
+                            <p>Ask anything about hotel accommodations, amenities, services, and guest reviews in
+                                Vietnam.</p>
                         </div>
                     </div>
                 </div>
@@ -230,19 +250,14 @@
                 <!-- Floating Frosted Glass Prompt Bar -->
                 <div class="prompt-bar-container" id="promptBarContainer">
                     <form class="prompt-bar-glass" id="chatForm">
-                        <textarea 
-                            class="prompt-input-area" 
-                            id="promptInput" 
-                            placeholder="Ask about a hotel"
-                            rows="1"
-                            autocomplete="off"
-                        ></textarea>
+                        <textarea class="prompt-input-area" id="promptInput" placeholder="Ask about a hotel" rows="1"
+                            autocomplete="off"></textarea>
                         <div class="prompt-actions">
                             <button type="submit" class="send-btn" id="sendBtn" aria-label="Send query" disabled>
                                 <!-- Send Paper Airplane SVG -->
                                 <svg class="svg-icon" viewBox="0 0 24 24">
-                                    <line x1="22" y1="2" x2="11" y2="13"/>
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                    <line x1="22" y1="2" x2="11" y2="13" />
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
                                 </svg>
                             </button>
                         </div>
@@ -254,4 +269,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

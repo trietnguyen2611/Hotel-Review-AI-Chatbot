@@ -1,12 +1,4 @@
-/**
- * Hotel Aspect AI QA Studio - Frontend Application Logic
- * - 100% Vector SVGs (Zero emojis)
- * - Multi-conversation state management (Pin/Unpin, Delete, LocalStorage persistence)
- * - Responsive Collapsible Sidebar (Desktop & Mobile with backdrop scrim)
- * - Transparent Topbar with active model status and model.pt upload
- * - Interactive Google Maps & Collapsible Multi-Review Citations
- * - Auto-scrolling within locked viewport with top scroll dissolve mask
- */
+
 
 (function () {
     'use strict';
@@ -914,7 +906,7 @@
         `;
     }
 
-    window.__loadMoreReviews = function(toggleId, pageSize = 5) {
+    window.__loadMoreReviews = function (toggleId, pageSize = 5) {
         const cache = window.__reviewsCache ? window.__reviewsCache[toggleId] : null;
         if (!cache) return;
         const listBody = document.getElementById('listBody_' + toggleId);
@@ -1447,37 +1439,37 @@
                 action: 'greeting'
             })
         })
-        .then(res => res.json())
-        .then(data => {
-            removeTypingIndicator(typingId);
-            // Strict sequence & matching hotel check prevents race conditions on rapid card clicking
-            if (activeConvId === convId && reqSeq === currentGreetingSeq && targetConv.selectedHotel && targetConv.selectedHotel.norm_key === hotelKey) {
-                if (elements.welcomeHero && elements.welcomeHero.parentNode) {
-                    elements.welcomeHero.remove();
+            .then(res => res.json())
+            .then(data => {
+                removeTypingIndicator(typingId);
+                // Strict sequence & matching hotel check prevents race conditions on rapid card clicking
+                if (activeConvId === convId && reqSeq === currentGreetingSeq && targetConv.selectedHotel && targetConv.selectedHotel.norm_key === hotelKey) {
+                    if (elements.welcomeHero && elements.welcomeHero.parentNode) {
+                        elements.welcomeHero.remove();
+                    }
+                    renderBotMessageNode(data);
+                    scrollToBottom();
+                    targetConv.messages.push({
+                        role: 'bot',
+                        data: data,
+                        timestamp: Date.now()
+                    });
+                    saveConversations();
                 }
-                renderBotMessageNode(data);
-                scrollToBottom();
-                targetConv.messages.push({
-                    role: 'bot',
-                    data: data,
-                    timestamp: Date.now()
-                });
-                saveConversations();
-            }
-        })
-        .catch(err => {
-            console.error('Greeting fetch error:', err);
-            removeTypingIndicator(typingId);
-            if (activeConvId === convId && reqSeq === currentGreetingSeq) {
-                renderErrorMessageNode('Could not generate greeting from model.');
-            }
-        })
-        .finally(() => {
-            if (reqSeq === currentGreetingSeq) {
-                isRequestPending = false;
-                elements.sendBtn.disabled = !elements.promptInput.value.trim();
-            }
-        });
+            })
+            .catch(err => {
+                console.error('Greeting fetch error:', err);
+                removeTypingIndicator(typingId);
+                if (activeConvId === convId && reqSeq === currentGreetingSeq) {
+                    renderErrorMessageNode('Could not generate greeting from model.');
+                }
+            })
+            .finally(() => {
+                if (reqSeq === currentGreetingSeq) {
+                    isRequestPending = false;
+                    elements.sendBtn.disabled = !elements.promptInput.value.trim();
+                }
+            });
     }
 
     function deselectHotel() {

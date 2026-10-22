@@ -1,12 +1,3 @@
-/* ==========================================================================
-   Hotel Aspect AI QA Studio - Modern Design System & Stylesheet
-   - Zero emojis, 100% Vector SVG
-   - Viewport strictly locked (no page jumping or body scroll)
-   - Edge scroll fade mask
-   - Floating frosted glass prompt bar with blur
-   - Clean Light & Dark theme color tokens
-   ========================================================================== */
-
 /* Font smoothing & root settings */
 html {
     -webkit-font-smoothing: antialiased;
@@ -14,7 +5,9 @@ html {
     box-sizing: border-box;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: inherit;
     margin: 0;
     padding: 0;
@@ -127,7 +120,8 @@ html {
 /* --------------------------------------------------------------------------
    Viewport Lock (Zero body scrolling, zero layout shifting)
    -------------------------------------------------------------------------- */
-html, body {
+html,
+body {
     width: 100vw;
     height: 100vh;
     height: 100dvh;
@@ -440,9 +434,11 @@ html, body {
     0% {
         box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
     }
+
     70% {
         box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
     }
+
     100% {
         box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
     }
@@ -742,6 +738,7 @@ html, body {
         opacity: 0;
         transform: translateY(-6px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1175,7 +1172,7 @@ html, body {
     flex: 1;
 }
 
-.maps-header-left > .svg-icon {
+.maps-header-left>.svg-icon {
     margin-top: 2px;
     color: var(--accent);
 }
@@ -1491,13 +1488,31 @@ html, body {
     animation: typingBounce 1.4s infinite ease-in-out both;
 }
 
-.typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.typing-dot:nth-child(2) { animation-delay: -0.16s; }
-.typing-dot:nth-child(3) { animation-delay: 0s; }
+.typing-dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0s;
+}
 
 @keyframes typingBounce {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
-    40% { transform: scale(1); opacity: 1; }
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.4;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 /* --------------------------------------------------------------------------
@@ -1695,6 +1710,7 @@ html, body {
         opacity: 0;
         transform: translateY(6px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -2007,8 +2023,13 @@ html, body {
 }
 
 @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 .hotel-card-media img {
@@ -2827,6 +2848,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
