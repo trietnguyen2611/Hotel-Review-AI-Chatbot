@@ -252,30 +252,52 @@
         });
     }
 
-    function showHotelSelectionView() {
+   // Lưu vị trí cuộn của danh sách khách sạn
+    let savedHotelScrollTop = 0;
+
+    function showHotelSelectionView(options = {}) {
+        const { resetScroll = false } = options;
+
+        // Lưu ý: Chỉ reset khi bắt đầu cuộc hội thoại mới
+        if (resetScroll) {
+            savedHotelScrollTop = 0;
+        }
+
         homeTitleVisible = false;
         elements.appLayout.classList.add('home-view');
         elements.appLayout.classList.remove('home-title-visible');
+
         if (elements.hotelSelectionView) {
             elements.hotelSelectionView.style.display = 'flex';
         }
+
         if (elements.chatWorkspaceView) {
             elements.chatWorkspaceView.style.display = 'none';
         }
+
         if (elements.activeChatTitle) {
             elements.activeChatTitle.textContent = '';
         }
+
         if (elements.topbarBrowseBtn) {
             elements.topbarBrowseBtn.classList.add('active');
         }
 
-        // Unhighlight sidebar active conversation while browsing
-        document.querySelectorAll('.conv-item').forEach(item => item.classList.remove('active'));
+        // Bỏ trạng thái active của hội thoại trong sidebar
+        document.querySelectorAll('.conv-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
         highlightSelectedCard();
 
+        // Khôi phục vị trí cuộn cũ thay vì luôn nhảy lên đầu
         if (elements.hotelSelectionView) {
-            elements.hotelSelectionView.scrollTop = 0;
+            requestAnimationFrame(() => {
+                elements.hotelSelectionView.scrollTop = savedHotelScrollTop;
+                updateHomeTitle();
+            });
         }
+
         updateHomeTitle();
     }
 
@@ -284,40 +306,58 @@
             showHotelSelectionView();
             return;
         }
+
+        // Lưu vị trí danh sách trước khi chuyển sang màn hình chat
+        if (elements.hotelSelectionView) {
+            savedHotelScrollTop = elements.hotelSelectionView.scrollTop;
+        }
+
         homeTitleVisible = false;
         elements.appLayout.classList.remove('home-view', 'home-title-visible');
+
         activeConvId = conv.id;
         saveConversations();
 
         if (elements.hotelSelectionView) {
             elements.hotelSelectionView.style.display = 'none';
         }
+
         if (elements.chatWorkspaceView) {
             elements.chatWorkspaceView.style.display = 'flex';
         }
+
         if (elements.topbarBrowseBtn) {
             elements.topbarBrowseBtn.classList.remove('active');
         }
+
         if (elements.activeChatTitle) {
-            elements.activeChatTitle.textContent = conv.title || (conv.selectedHotel ? conv.selectedHotel.hotel_name : 'Conversation');
+            elements.activeChatTitle.textContent =
+                conv.title ||
+                (conv.selectedHotel
+                    ? conv.selectedHotel.hotel_name
+                    : 'Conversation');
         }
 
         if (conv.selectedHotel) {
-            elements.promptInput.placeholder = `Ask anything about ${conv.selectedHotel.hotel_name}...`;
+            elements.promptInput.placeholder =
+                `Ask anything about ${conv.selectedHotel.hotel_name}...`;
         } else {
-            elements.promptInput.placeholder = 'Ask about a hotel or select a card...';
+            elements.promptInput.placeholder =
+                'Ask about a hotel or select a card...';
         }
 
         updateActiveHotelBanner();
         renderConversationLists();
         renderActiveConversationMessages();
         highlightSelectedCard();
+
         elements.promptInput.focus();
     }
 
     function handleNewChat() {
+        // Cuộc hội thoại mới: reset bộ lọc và vị trí cuộn
         resetAllHotelFilters();
-        showHotelSelectionView();
+        showHotelSelectionView({ resetScroll: true });
 
         if (window.innerWidth <= 840) {
             closeMobileSidebar();
