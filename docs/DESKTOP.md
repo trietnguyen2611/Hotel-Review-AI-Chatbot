@@ -6,21 +6,22 @@ and web UI) is self-contained inside the `desktop/` directory.
 
 ## Development
 
-1. Install Node.js 20 or newer and Python 3.10–3.12.
+1. Install Node.js 20 or newer and Python 3.10–3.12. npm is included with
+   Node.js. If `npm` is not recognized on Windows, install Node.js LTS from
+   https://nodejs.org/ and open a new terminal.
 2. Install the Python dependencies from `requirements.txt` in the project
    environment (`pip install -r requirements.txt`).
 3. Install the desktop dependencies:
    ```bash
-   cd desktop
-   npm install
+   npm --prefix desktop install
    ```
 4. Start the desktop app:
    ```bash
    # From the project root:
-   npm run desktop
+   npm --prefix desktop run desktop
 
    # Or from the desktop directory:
-   cd desktop && npm start
+   npm start
    ```
 
 The launcher uses `.venv` when present. Otherwise it uses Python 3.12

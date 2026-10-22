@@ -80,7 +80,14 @@ Hotel-Review-AI-Chatbot/
 
 ### 1. Yêu cầu hệ thống
 - **Python**: Phiên bản 3.10 đến 3.12.
-- **Node.js**: Phiên bản 20 trở lên.
+- **Node.js**: Phiên bản 20 trở lên (npm được cài kèm với Node.js).
+
+Nếu PowerShell báo không tìm thấy lệnh `npm`, hãy cài Node.js LTS từ
+https://nodejs.org/, sau đó mở một cửa sổ terminal mới và kiểm tra:
+```powershell
+node --version
+npm --version
+```
 
 ### 2. Cài đặt môi trường Python
 ```bash
@@ -98,17 +105,17 @@ pip install -r requirements.txt
 ```
 
 ### 3. Cài đặt dependencies cho Desktop App
+Chạy từ thư mục gốc của dự án:
 ```bash
-cd desktop
-npm install
+npm --prefix desktop install
 ```
 
 ### 4. Khởi chạy Ứng dụng Native Desktop (Electron)
 Bạn có thể khởi chạy trực tiếp ngay từ thư mục gốc của dự án:
 ```bash
-npm run desktop
+npm --prefix desktop run desktop
 ```
-*(Hoặc di chuyển vào thư mục desktop: `cd desktop && npm start`)*
+Hoặc chạy từ thư mục `desktop` bằng lệnh `npm start`.
 
 Electron sẽ tự động quản lý tiến trình Python backend dưới nền, khởi chạy Neural Inference Engine, tự gán cổng kết nối an toàn và tự động đóng backend khi thoát ứng dụng.
 
