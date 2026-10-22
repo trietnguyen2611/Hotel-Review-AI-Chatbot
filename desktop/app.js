@@ -36,7 +36,6 @@
     let conversations = [];
     let activeConvId = null;
     let isRequestPending = false;
-    let currentGreetingSeq = 0;
     let homeTitleFrame = null;
     let homeTitleVisible = false;
 
@@ -1422,54 +1421,18 @@
             elements.welcomeHero.remove();
         }
 
-        const convId = targetConv.id;
-        const hotelKey = hotel.norm_key;
-        const reqSeq = ++currentGreetingSeq;
-        isRequestPending = true;
-        elements.sendBtn.disabled = true;
-
-        const typingId = appendTypingIndicator();
-        fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                session_id: targetConv.sessionId || targetConv.id,
-                query: `Hello, can you introduce ${hotel.hotel_name}?`,
-                selected_hotel: hotel.hotel_name,
-                action: 'greeting'
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                removeTypingIndicator(typingId);
-                // Strict sequence & matching hotel check prevents race conditions on rapid card clicking
-                if (activeConvId === convId && reqSeq === currentGreetingSeq && targetConv.selectedHotel && targetConv.selectedHotel.norm_key === hotelKey) {
-                    if (elements.welcomeHero && elements.welcomeHero.parentNode) {
-                        elements.welcomeHero.remove();
-                    }
-                    renderBotMessageNode(data);
-                    scrollToBottom();
-                    targetConv.messages.push({
-                        role: 'bot',
-                        data: data,
-                        timestamp: Date.now()
-                    });
-                    saveConversations();
-                }
-            })
-            .catch(err => {
-                console.error('Greeting fetch error:', err);
-                removeTypingIndicator(typingId);
-                if (activeConvId === convId && reqSeq === currentGreetingSeq) {
-                    renderErrorMessageNode('Could not generate greeting from model.');
-                }
-            })
-            .finally(() => {
-                if (reqSeq === currentGreetingSeq) {
-                    isRequestPending = false;
-                    elements.sendBtn.disabled = !elements.promptInput.value.trim();
-                }
-            });
+        const greeting = {
+            answer: `Ask me about ${hotel.hotel_name}'s rooms, service, amenities, or guest reviews.`,
+            original_reviews: []
+        };
+        renderBotMessageNode(greeting);
+        targetConv.messages.push({
+            role: 'bot',
+            data: greeting,
+            timestamp: Date.now()
+        });
+        saveConversations();
+        scrollToBottom();
     }
 
     function deselectHotel() {

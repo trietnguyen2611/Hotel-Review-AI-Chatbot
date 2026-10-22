@@ -28,7 +28,9 @@ The launcher uses `.venv` when present. Otherwise it uses Python 3.12
 (`python3.12` on macOS or `py -3.12` on Windows). Set `HOTEL_QA_PYTHON` to use a
 different interpreter.
 The desktop app starts the Python server on a random loopback port and closes
-it when the desktop process exits.
+it when the desktop process exits. Model checkpoints and the fallback pretrained
+model are loaded only when a chat request needs generated text; opening the UI
+or selecting a hotel does not load a model.
 
 ## Build installers
 

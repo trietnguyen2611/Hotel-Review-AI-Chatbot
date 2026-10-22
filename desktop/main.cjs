@@ -129,7 +129,7 @@ function createMainWindow() {
         height: 920,
         minWidth: 900,
         minHeight: 640,
-        title: 'Hotel Aspect AI',
+        title: 'Starting Hotel Aspect AI',
         backgroundColor: '#f8f9fa',
         show: false,
         webPreferences: {
@@ -147,17 +147,58 @@ function createMainWindow() {
     });
 
     mainWindow.webContents.on('will-navigate', (event, url) => {
-        if (new URL(url).origin !== new URL(desktopUrl).origin) event.preventDefault();
+        if (desktopUrl && new URL(url).origin !== new URL(desktopUrl).origin) event.preventDefault();
     });
 
     mainWindow.once('ready-to-show', () => mainWindow.show());
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
-    mainWindow.loadURL(desktopUrl);
+    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`
+        <!doctype html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Starting Hotel Aspect AI</title>
+                <style>
+                    body {
+                        align-items: center;
+                        background: #f8f9fa;
+                        color: #202020;
+                        display: flex;
+                        font-family: "Segoe UI", sans-serif;
+                        height: 100vh;
+                        justify-content: center;
+                        margin: 0;
+                    }
+                    main { text-align: center; }
+                    p { color: #646464; }
+                    .spinner {
+                        animation: spin 1s linear infinite;
+                        border: 3px solid #ded7f8;
+                        border-top-color: #7612fa;
+                        border-radius: 50%;
+                        height: 28px;
+                        margin: 24px auto;
+                        width: 28px;
+                    }
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <main>
+                    <h1>Hotel Aspect AI</h1>
+                    <div class="spinner" aria-hidden="true"></div>
+                    <p>Starting the local AI service. This may take a few minutes.</p>
+                </main>
+            </body>
+        </html>
+    `)}`);
 }
 
 app.whenReady().then(async () => {
+    createMainWindow();
     try {
         desktopUrl = await startBackend();
         backendProcess.on('exit', (code, signal) => {
@@ -169,7 +210,9 @@ app.whenReady().then(async () => {
                 detail: `Exit code: ${code ?? 'unknown'}\nSignal: ${signal ?? 'none'}`
             }).finally(() => app.quit());
         });
-        createMainWindow();
+        if (!mainWindow) createMainWindow();
+        mainWindow.setTitle('Hotel Aspect AI');
+        mainWindow.loadURL(desktopUrl);
     } catch (error) {
         if (stopping) return;
         await dialog.showMessageBox({
@@ -183,7 +226,13 @@ app.whenReady().then(async () => {
 });
 
 app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0 && desktopUrl) createMainWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createMainWindow();
+        if (desktopUrl) {
+            mainWindow.setTitle('Hotel Aspect AI');
+            mainWindow.loadURL(desktopUrl);
+        }
+    }
 });
 
 app.on('before-quit', () => {

@@ -997,14 +997,16 @@ class GenerativeQAPipeline:
         self.loaded_successfully = False
         self.active_model_name = 'model_v3'
         self.inference_lock = threading.Lock()
-
-        self._initialize(checkpoint_path)
+        self.initialization_lock = threading.Lock()
+        self.initialization_attempted = False
+        self.checkpoint_path = checkpoint_path
 
     def _initialize(self, checkpoint_path: str):
         print(f"Loading Generative Model on {self.device}...")
 
         # Priority 1: Search for fine-tuned checkpoints in order (v3 BART engine first, then v2, v1)
         cand_candidates = [
+            os.path.join(MODEL_STORAGE_DIR, 'model.pt'),
             os.path.join(BASE_DIR, 'model_v3'),
             os.path.join(BASE_DIR, 'model', 'model_v3'),
             os.path.join(BASE_DIR, 'hotel_aspect_qa_bart_engine'),
@@ -1149,6 +1151,12 @@ class GenerativeQAPipeline:
                 return False
 
     def generate(self, prompt_text: str, max_new_tokens: int = 180, context_text: Optional[str] = None, dense_features=None, aspect_id=None) -> str:
+        if not self.loaded_successfully and not self.initialization_attempted:
+            with self.initialization_lock:
+                if not self.loaded_successfully and not self.initialization_attempted:
+                    self._initialize(self.checkpoint_path)
+                    self.initialization_attempted = True
+
         if not self.loaded_successfully or self.model is None or self.tokenizer is None:
             return ""
 
@@ -2119,13 +2127,6 @@ def main():
 
     # Load Knowledge Base
     load_hotel_database()
-
-    # Initialize Bot
-    global BOT
-    BOT = ConversationalQABot(HOTEL_DATABASE)
-    uploaded_model = os.path.join(MODEL_STORAGE_DIR, 'model.pt')
-    if os.path.isfile(uploaded_model) and not BOT.pipeline.reload_model(uploaded_model):
-        print(f"Warning: Could not load saved user model from {uploaded_model}.", flush=True)
 
     port = args.port
     max_retries = 10
