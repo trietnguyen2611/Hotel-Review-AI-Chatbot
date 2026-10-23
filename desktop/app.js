@@ -254,52 +254,87 @@
 
    // Lưu vị trí cuộn của danh sách khách sạn
     let savedHotelScrollTop = 0;
+    
+    /**
+     * Animation khi chuyển giữa màn hình chọn khách sạn và màn hình chat.
+     */
+    function animateViewEntry(view) {
+        if (!view) return;
+
+        // Xóa class cũ để có thể chạy animation nhiều lần.
+        view.classList.remove('view-entering');
+
+        // Buộc trình duyệt cập nhật trạng thái trước khi chạy lại animation.
+        void view.offsetWidth;
+
+        view.classList.add('view-entering');
+
+        // Xóa class sau khi animation kết thúc.
+        window.setTimeout(() => {
+            view.classList.remove('view-entering');
+        }, 520);
+    }
 
     function showHotelSelectionView(options = {}) {
-        const { resetScroll = false } = options;
+    const { resetScroll = false } = options;
 
-        // Lưu ý: Chỉ reset khi bắt đầu cuộc hội thoại mới
-        if (resetScroll) {
-            savedHotelScrollTop = 0;
-        }
-
-        homeTitleVisible = false;
-        elements.appLayout.classList.add('home-view');
-        elements.appLayout.classList.remove('home-title-visible');
-
-        if (elements.hotelSelectionView) {
-            elements.hotelSelectionView.style.display = 'flex';
-        }
-
-        if (elements.chatWorkspaceView) {
-            elements.chatWorkspaceView.style.display = 'none';
-        }
-
-        if (elements.activeChatTitle) {
-            elements.activeChatTitle.textContent = '';
-        }
-
-        if (elements.topbarBrowseBtn) {
-            elements.topbarBrowseBtn.classList.add('active');
-        }
-
-        // Bỏ trạng thái active của hội thoại trong sidebar
-        document.querySelectorAll('.conv-item').forEach(item => {
-            item.classList.remove('active');
-        });
-
-        highlightSelectedCard();
-
-        // Khôi phục vị trí cuộn cũ thay vì luôn nhảy lên đầu
-        if (elements.hotelSelectionView) {
-            requestAnimationFrame(() => {
-                elements.hotelSelectionView.scrollTop = savedHotelScrollTop;
-                updateHomeTitle();
-            });
-        }
-
-        updateHomeTitle();
+    // Lưu ý: Chỉ reset khi bắt đầu cuộc hội thoại mới
+    if (resetScroll) {
+        savedHotelScrollTop = 0;
     }
+
+    homeTitleVisible = false;
+    elements.appLayout.classList.add('home-view');
+    elements.appLayout.classList.remove('home-title-visible');
+
+    // Hiện màn hình chọn khách sạn và chạy animation
+    if (elements.hotelSelectionView) {
+        const view = elements.hotelSelectionView;
+
+        view.style.display = 'flex';
+        view.classList.remove('view-entering');
+
+        // Buộc trình duyệt cập nhật trước khi chạy animation
+        void view.offsetWidth;
+
+        view.classList.add('view-entering');
+
+        window.setTimeout(() => {
+            view.classList.remove('view-entering');
+        }, 520);
+    }
+
+    // Ẩn màn hình chat
+    if (elements.chatWorkspaceView) {
+        elements.chatWorkspaceView.style.display = 'none';
+        elements.chatWorkspaceView.classList.remove('view-entering');
+    }
+
+    if (elements.activeChatTitle) {
+        elements.activeChatTitle.textContent = '';
+    }
+
+    if (elements.topbarBrowseBtn) {
+        elements.topbarBrowseBtn.classList.add('active');
+    }
+
+    // Bỏ trạng thái active của hội thoại trong sidebar
+    document.querySelectorAll('.conv-item').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    highlightSelectedCard();
+
+    // Khôi phục vị trí cuộn cũ thay vì luôn nhảy lên đầu
+    if (elements.hotelSelectionView) {
+        requestAnimationFrame(() => {
+            elements.hotelSelectionView.scrollTop = savedHotelScrollTop;
+            updateHomeTitle();
+        });
+    }
+
+    updateHomeTitle();
+}
 
     function showChatWorkspaceView(conv) {
         if (!conv) {
@@ -1236,11 +1271,23 @@
         }
 
         try {
+            
             const params = new URLSearchParams();
+
             if (city && city !== 'all') params.set('city', city);
             if (search) params.set('search', search);
+
+            const sortSelect = document.getElementById('hotelSort');
+            const minRatingSelect = document.getElementById('minHotelRating');
+            const minReviewsSelect = document.getElementById('minHotelReviews');
+
+            params.set('sort', sortSelect?.value || 'recommended');
+            params.set('min_rating', minRatingSelect?.value || '0');
+            params.set('min_reviews', minReviewsSelect?.value || '0');
+
             params.set('limit', String(HOTEL_PAGE_SIZE));
             params.set('offset', String(currentOffset));
+
 
             const res = await fetch(`/api/hotels?${params.toString()}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1331,63 +1378,273 @@
         }
     }
 
-    function renderHotelCardHtml(h) {
-        const conv = getActiveConversation();
-        const selNormKey = conv && conv.selectedHotel ? conv.selectedHotel.norm_key : null;
-        const selName = conv && conv.selectedHotel ? conv.selectedHotel.hotel_name : null;
-        const isSelected = (selNormKey && h.norm_key === selNormKey) || (selName && h.hotel_name === selName);
-        const mapsUrl = h.maps_search_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(h.hotel_name + ' ' + (h.location || 'Vietnam')));
-        const photoUrl = resolveHotelPhotoUrl(h);
-        const scoreVal = (typeof h.score === 'number' && !isNaN(h.score)) ? h.score.toFixed(1) : '4.5';
-        const revCount = (typeof h.review_count === 'number' && !isNaN(h.review_count)) ? h.review_count : 0;
-        const starVal = h.star || '4-star';
+    
+function renderHotelCardHtml(h) {
+    const conv = getActiveConversation();
+    const selNormKey = conv && conv.selectedHotel
+        ? conv.selectedHotel.norm_key
+        : null;
+    const selName = conv && conv.selectedHotel
+        ? conv.selectedHotel.hotel_name
+        : null;
 
-        const mediaHtml = photoUrl ? `
-            <div class="hotel-card-media" style="display: none;">
-                <div class="hotel-card-media-skeleton"></div>
-                <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(h.hotel_name)}" loading="lazy"
-                     onload="this.parentElement.style.display='block'; this.classList.add('loaded');"
-                     onerror="this.remove(); this.parentElement.style.display='none';">
-                <div class="hotel-card-media-gradient"></div>
-                <div class="card-badge-top-left">
-                    <span class="card-star-badge">${escapeHtml(starVal)}</span>
-                    <span class="card-score-badge">★ ${scoreVal}</span>
-                </div>
-                <div class="card-badge-top-right">
-                    <span class="card-rev-badge">${revCount} revs</span>
-                </div>
-            </div>
-        ` : `
-            <div class="hotel-card-top-header">
-                <div class="card-badges-row">
-                    <span class="card-star-badge">${escapeHtml(starVal)}</span>
-                    <span class="card-score-badge">★ ${scoreVal}</span>
-                    <span class="card-rev-badge">${revCount} revs</span>
-                </div>
-            </div>
-        `;
+    const isSelected =
+        (selNormKey && h.norm_key === selNormKey) ||
+        (selName && h.hotel_name === selName);
 
-        return `
-            <div class="hotel-card ${isSelected ? 'selected' : ''}" data-norm-key="${escapeHtml(h.norm_key)}" role="button" tabindex="0">
-                ${mediaHtml}
-                <div class="hotel-card-body">
-                    <h4 class="hotel-card-name" title="${escapeHtml(h.hotel_name)}">${escapeHtml(h.hotel_name)}</h4>
-                    <div class="hotel-card-loc">
-                        ${SVG.mapPin}
-                        <span>${escapeHtml(h.location || 'Vietnam')}</span>
-                    </div>
-                    ${h.sample_snippet ? `<p class="hotel-card-snippet">&ldquo;${escapeHtml(h.sample_snippet)}&rdquo;</p>` : ''}
-                    <div class="hotel-card-footer">
+    // Ưu tiên địa chỉ chi tiết nếu dữ liệu có sẵn.
+    const aspectTags = [
+    { name: 'Service', className: 'service' },
+    { name: 'Facility', className: 'facility' },
+    { name: 'Experience', className: 'experience' },
+    { name: 'Amenity', className: 'amenity' },
+    { name: 'Loyalty', className: 'loyalty' },
+    { name: 'Branding', className: 'branding' }
+];
 
-                        <a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer" class="card-maps-link" title="Open on Google Maps" onclick="event.stopPropagation();">
-                            ${SVG.externalLink}
-                            <span>Maps</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        `;
+    // Lấy 3 tag để hiển thị
+    const hotelTagsHtml = aspectTags
+        .slice(0, 3)
+        .map(tag => `
+            <span class="hotel-tag ${tag.className}">
+                ${tag.name}
+            </span>
+        `)
+        .join('');
+const hotelAddress = (
+    h.address ||
+    h.hotel_address ||
+    h.full_address ||
+    (
+        h.district
+            ? `${h.district}, ${h.location || ''}`
+            : h.location || ''
+    )
+)
+    .replace(/,\s*(VN|Vietnam|Việt Nam)\s*$/i, '')
+    .replace(/\s+(VN|Vietnam|Việt Nam)\s*$/i, '')
+    .trim();
+
+
+    const mapsQuery = `${h.hotel_name || ''} ${hotelAddress}`;
+    const mapsUrl = h.maps_search_url ||
+        ('https://www.google.com/maps/search/?api=1&query=' +
+            encodeURIComponent(mapsQuery));
+
+    const photoUrl = resolveHotelPhotoUrl(h);
+    const scoreVal =
+        (typeof h.score === 'number' && !isNaN(h.score))
+            ? h.score.toFixed(1)
+            : '4.5';
+
+    const revCount =
+        (typeof h.review_count === 'number' && !isNaN(h.review_count))
+            ? h.review_count
+            : 0;
+
+    const starVal = h.star || '4-star';
+
+    // Sáu khía cạnh và màu sắc thống nhất toàn bộ ứng dụng.
+    const aspectConfig = {
+        Service: {
+            label: 'Service',
+            color: '#22c55e'
+        },
+        Facility: {
+            label: 'Facility',
+            color: '#3b82f6'
+        },
+        Experience: {
+            label: 'Experience',
+            color: '#a855f7'
+        },
+        Amenity: {
+            label: 'Amenity',
+            color: '#f97316'
+        },
+        Loyalty: {
+            label: 'Loyalty',
+            color: '#ec4899'
+        },
+        Branding: {
+            label: 'Branding',
+            color: '#eab308'
+        }
+    };
+
+    /*
+     * Lấy điểm khía cạnh từ dữ liệu backend nếu có.
+     *
+     * Hỗ trợ dạng:
+     * h.aspect_scores = {
+     *   Service: 0.92,
+     *   Facility: 0.80,
+     *   Experience: 0.75
+     * }
+     *
+     * Hoặc:
+     * h.aspect_scores = {
+     *   Service: { positive_rate: 0.92 },
+     *   Facility: { positive_rate: 0.80 }
+     * }
+     *
+     * Nếu backend chưa trả dữ liệu, không tự tạo thứ hạng.
+     */
+    function getAspectScore(value) {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return value;
+        }
+
+        if (value && typeof value === 'object') {
+            const candidates = [
+                value.positive_rate,
+                value.positive_ratio,
+                value.positive_percentage,
+                value.positive_score,
+                value.score
+            ];
+
+            for (const candidate of candidates) {
+                if (
+                    typeof candidate === 'number' &&
+                    Number.isFinite(candidate)
+                ) {
+                    return candidate;
+                }
+            }
+        }
+
+        return null;
     }
+
+    const aspectScores = h.aspect_scores || h.aspects || {};
+
+    const topAspects = Object.entries(aspectConfig)
+        .map(([key, config]) => {
+            const rawScore = getAspectScore(aspectScores[key]);
+
+            return {
+                key,
+                ...config,
+                score: rawScore
+            };
+        })
+        .filter(item => item.score !== null)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+
+    const aspectTagsHtml = topAspects.length > 0
+        ? `
+            <div class="hotel-aspect-tags" aria-label="Top hotel aspects">
+                ${topAspects.map(aspect => `
+                    <span
+                        class="hotel-aspect-tag"
+                        style="
+                            --aspect-color: ${aspect.color};
+                            --aspect-color-bg: ${aspect.color}18;
+                        "
+                        title="${escapeHtml(aspect.label)}"
+                    >
+                        <span class="hotel-aspect-dot"></span>
+                        ${escapeHtml(aspect.label)}
+                    </span>
+                `).join('')}
+            </div>
+        `
+        : '';
+
+    const mediaHtml = photoUrl ? `
+        <div class="hotel-card-media" style="display: none;">
+            <div class="hotel-card-media-skeleton"></div>
+
+            <img
+                src="${escapeHtml(photoUrl)}"
+                alt="${escapeHtml(h.hotel_name)}"
+                loading="lazy"
+                onload="this.parentElement.style.display='block'; this.classList.add('loaded');"
+                onerror="this.remove(); this.parentElement.style.display='none';"
+            >
+
+            <div class="hotel-card-media-gradient"></div>
+
+            <div class="card-badge-top-left">
+                <span class="card-star-badge">
+                    ${escapeHtml(starVal)}
+                </span>
+                <span class="card-score-badge">
+                    ★ ${scoreVal}
+                </span>
+            </div>
+
+            <div class="card-badge-top-right">
+                <span class="card-rev-badge">
+                    ${revCount} revs
+                </span>
+            </div>
+        </div>
+    ` : `
+        <div class="hotel-card-top-header">
+            <div class="card-badges-row">
+                <span class="card-star-badge">
+                    ${escapeHtml(starVal)}
+                </span>
+                <span class="card-score-badge">
+                    ★ ${scoreVal}
+                </span>
+                <span class="card-rev-badge">
+                    ${revCount} revs
+                </span>
+            </div>
+        </div>
+    `;
+
+    return `
+        <div
+            class="hotel-card ${isSelected ? 'selected' : ''}"
+            data-norm-key="${escapeHtml(h.norm_key || '')}"
+            role="button"
+            tabindex="0"
+        >
+            ${mediaHtml}
+
+            <div class="hotel-card-body">
+                <h4
+                    class="hotel-card-name"
+                    title="${escapeHtml(h.hotel_name || '')}"
+                >
+                    ${escapeHtml(h.hotel_name || 'Unknown hotel')}
+                </h4>
+
+                <div class="hotel-card-loc">
+                    ${SVG.mapPin}
+                    <span>${escapeHtml(hotelAddress)}</span>
+                </div>
+
+                ${h.sample_snippet ? `
+                    <p class="hotel-card-snippet">
+                        &ldquo;${escapeHtml(h.sample_snippet)}&rdquo;
+                    </p>
+                ` : ''}
+
+                ${aspectTagsHtml}
+
+                <div class="hotel-card-footer">
+                    <a
+                        href="${escapeHtml(mapsUrl)}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="card-maps-link"
+                        title="Open on Google Maps"
+                        onclick="event.stopPropagation();"
+                    >
+                        ${SVG.externalLink}
+                        <span>Maps</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
     function resetAllHotelFilters() {
         clearTimeout(searchDebounceTimer);
@@ -1639,6 +1896,34 @@
         }
 
         // Search Input (Debounced hotel name & address filter)
+        const sortSelect = document.getElementById('hotelSort');
+        const toggleFilters = document.getElementById('toggleFilters');
+        const hotelFilters = document.getElementById('hotelFilters');
+        const minRatingSelect = document.getElementById('minHotelRating');
+        const minReviewsSelect = document.getElementById('minHotelReviews');
+        const resetFiltersBtn = document.getElementById('resetHotelFilters');
+
+        if (toggleFilters && hotelFilters) {
+            toggleFilters.addEventListener('click', () => {
+                hotelFilters.classList.toggle('show');
+            });
+        }
+
+        function reloadHotelResults() {
+            fetchHotels(currentFilterCity, currentSearchQuery, false);
+        }
+
+        sortSelect?.addEventListener('change', reloadHotelResults);
+        minRatingSelect?.addEventListener('change', reloadHotelResults);
+        minReviewsSelect?.addEventListener('change', reloadHotelResults);
+
+        resetFiltersBtn?.addEventListener('click', () => {
+            if (sortSelect) sortSelect.value = 'recommended';
+            if (minRatingSelect) minRatingSelect.value = '0';
+            if (minReviewsSelect) minReviewsSelect.value = '0';
+
+            reloadHotelResults();
+        });
         if (elements.hotelSearchInput) {
             elements.hotelSearchInput.addEventListener('input', (e) => {
                 currentSearchQuery = e.target.value.trim();
