@@ -3181,3 +3181,5 @@ body {
     .hotel-selection-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
     .hotel-card-media { height: 180px; flex-basis: 180px; }
 }
+
+

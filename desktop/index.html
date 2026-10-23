@@ -196,78 +196,132 @@
 
                     <div class="toolbar-secondary-controls">
                         <!-- Hotel Search Box -->
+                        
                         <div class="hotel-search-box">
                             <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
                                 <circle cx="11" cy="11" r="8" />
                                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
                             </svg>
-                            <input type="text" id="hotelSearchInput" placeholder="Search by hotel name or address..."
-                                autocomplete="off">
+                            <input
+                                type="text"
+                                id="hotelSearchInput"
+                                placeholder="Search by hotel name or address..."
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <!-- Hotel Sorting -->
+                        <div class="hotel-sort-wrapper">
+                            <select id="hotelSort" aria-label="Sort hotels">
+                                <option value="recommended">Recommended</option>
+                                <option value="top_rated">Top Rated</option>
+                                <option value="most_reviewed">Most Reviewed</option>
+                            </select>
+                        </div>
+
+                        <!-- Hotel Filters Button -->
+                        <button type="button" id="toggleFilters" class="hotel-filter-btn">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                <line x1="4" y1="7" x2="20" y2="7" />
+                                <circle cx="9" cy="7" r="2" />
+                                <line x1="4" y1="17" x2="20" y2="17" />
+                                <circle cx="15" cy="17" r="2" />
+                            </svg>
+                            Filters
+                        </button>
+
+                        <!-- Hotel Filters Panel -->
+                        <div class="hotel-filters" id="hotelFilters">
+                            <label for="minHotelRating">
+                                Minimum rating
+                                <select id="minHotelRating">
+                                    <option value="0">Any rating</option>
+                                    <option value="3">3+ stars</option>
+                                    <option value="4">4+ stars</option>
+                                    <option value="4.5">4.5+ stars</option>
+                                </select>
+                            </label>
+
+                            <label for="minHotelReviews">
+                                Minimum reviews
+                                <select id="minHotelReviews">
+                                    <option value="0">Any number</option>
+                                    <option value="50">50+ reviews</option>
+                                    <option value="100">100+ reviews</option>
+                                    <option value="500">500+ reviews</option>
+                                </select>
+                            </label>
+
+                            <button type="button" id="resetHotelFilters">
+                                Reset filters
+                            </button>
                         </div>
 
                         <!-- Hotel Counter Tag -->
                         <span class="hotel-counter-tag" id="hotelCounterTag">Loading...</span>
-                    </div>
-                </div>
-
-                <!-- Responsive Grid of Hotel Cards (Max 9 per batch) -->
-                <div class="hotel-selection-grid" id="hotelSelectionGrid" role="region"
-                    aria-label="Hotel selection cards">
-                    <div class="hotel-card-skeleton">Loading hotels...</div>
-                </div>
-
-                <!-- Load More Hotels (Pagination 9 hotels at a time) -->
-                <div class="load-more-hotels-wrap" id="loadMoreHotelsWrap">
-                    <button type="button" class="load-more-hotels-btn" id="loadMoreHotelsBtn">
-                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
-                        <span id="loadMoreHotelsText">View more hotels</span>
-                    </button>
-                    <div class="all-loaded-indicator" id="allLoadedIndicator" style="display: none;">
-                        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>All hotels are displayed</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Active Chat Workspace View -->
-            <section class="chat-workspace-view" id="chatWorkspaceView" style="display: none;">
-                <!-- Messages Scroll Area -->
-                <div class="messages-container" id="messagesContainer">
-                    <div class="messages-content-wrap" id="messagesList">
-                        <!-- Welcome Hero fallback if conversation is empty -->
-                        <div class="welcome-hero" id="welcomeHero">
-                            <h3>Hotel Concierge Assistant</h3>
-                            <p>Ask anything about hotel accommodations, amenities, services, and guest reviews in
-                                Vietnam.</p>
                         </div>
-                    </div>
-                </div>
+                        </div>
 
-                <!-- Floating Frosted Glass Prompt Bar -->
-                <div class="prompt-bar-container" id="promptBarContainer">
-                    <form class="prompt-bar-glass" id="chatForm">
-                        <textarea class="prompt-input-area" id="promptInput" placeholder="Ask about a hotel" rows="1"
-                            autocomplete="off"></textarea>
-                        <div class="prompt-actions">
-                            <button type="submit" class="send-btn" id="sendBtn" aria-label="Send query" disabled>
-                                <!-- Send Paper Airplane SVG -->
-                                <svg class="svg-icon" viewBox="0 0 24 24">
-                                    <line x1="22" y1="2" x2="11" y2="13" />
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        <!-- Responsive Grid of Hotel Cards (Max 9 per batch) -->
+                        <div class="hotel-selection-grid" id="hotelSelectionGrid" role="region"
+                            aria-label="Hotel selection cards">
+                            <div class="hotel-card-skeleton">Loading hotels...</div>
+                        </div>
+
+                        <!-- Load More Hotels (Pagination 9 hotels at a time) -->
+                        <div class="load-more-hotels-wrap" id="loadMoreHotelsWrap">
+                            <button type="button" class="load-more-hotels-btn" id="loadMoreHotelsBtn">
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                    <path d="M12 5v14M5 12h14" />
                                 </svg>
+                                <span id="loadMoreHotelsText">View more hotels</span>
                             </button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-        </main>
-    </div>
 
-    <script src="app.js"></script>
-</body>
+                            <div class="all-loaded-indicator" id="allLoadedIndicator" style="display: none;">
+                                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>All hotels are displayed</span>
+                            </div>
+                        </div>
+                        </section>
+
+                        <!-- Active Chat Workspace View -->
+                        <section class="chat-workspace-view" id="chatWorkspaceView" style="display: none;">
+                            <!-- Messages Scroll Area -->
+                            <div class="messages-container" id="messagesContainer">
+                                <div class="messages-content-wrap" id="messagesList">
+                                    <!-- Welcome Hero fallback if conversation is empty -->
+                                    <div class="welcome-hero" id="welcomeHero">
+                                        <h3>Hotel Concierge Assistant</h3>
+                                        <p>Ask anything about hotel accommodations, amenities, services, and guest reviews in Vietnam.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Floating Frosted Glass Prompt Bar -->
+                            <div class="prompt-bar-container" id="promptBarContainer">
+                                <form class="prompt-bar-glass" id="chatForm">
+                                    <textarea class="prompt-input-area" id="promptInput"
+                                        placeholder="Ask about a hotel" rows="1" autocomplete="off"></textarea>
+                                    <div class="prompt-actions">
+                                        <button type="submit" class="send-btn" id="sendBtn"
+                                            aria-label="Send query" disabled>
+                                            <svg class="svg-icon" viewBox="0 0 24 24">
+                                                <line x1="22" y1="2" x2="11" y2="13" />
+                                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </section>
+                        </main>
+                        </div>
+
+                        <script src="app.js"></script>
+                        </body>
+                        
+
 
 </html>

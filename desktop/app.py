@@ -357,24 +357,156 @@ def clean_quote(quote: str, max_chars: int = 140) -> str:
         q = q[:max_chars].rsplit(' ', 1)[0] + '...'
     return q
 
+
 # ---------------------------------------------------------------------------
 # Knowledge Base & Ingestion
 # ---------------------------------------------------------------------------
 HOTEL_DATABASE: Dict[str, Dict[str, Any]] = {}
 ALL_HOTEL_NAMES: List[str] = []
 
-def get_hotel_image_url(h_name: str, location: str = '', addr: str = '') -> Optional[str]:
+
+# ---------------------------------------------------------------------------
+# HOTEL IMAGE INTEGRATION
+# Load hotel images from data/dataset/hotel_image.json
+# ---------------------------------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+HOTEL_IMAGE_FILE = os.path.join(
+    BASE_DIR,
+    "data",
+    "dataset",
+    "hotel_image.json"
+)
+
+
+def normalize_hotel_image_name(name: str) -> str:
+    """Normalize hotel names for matching."""
+    import re
+    import unicodedata
+
+    name = unicodedata.normalize("NFKD", str(name or ""))
+    name = "".join(
+        char for char in name
+        if not unicodedata.combining(char)
+    )
+    name = re.sub(r"[^a-zA-Z0-9]+", " ", name.lower())
+
+    return " ".join(name.split())
+
+
+def load_hotel_image_map() -> Dict[str, str]:
+    """Load hotel image URLs from the JSON file."""
+    import json
+
+    if not os.path.isfile(HOTEL_IMAGE_FILE):
+        print(
+            f"[Hotel Images] File not found: "
+            f"{HOTEL_IMAGE_FILE}"
+        )
+        return {}
+
+    try:
+        with open(HOTEL_IMAGE_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
+
+        image_map: Dict[str, str] = {}
+
+        # Format 1:
+        # [
+        #   {"hotel_name": "Pullman Hanoi", "image_url": "https://..."}
+        # ]
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+
+                hotel_name = item.get("hotel_name", "")
+                image_url = item.get("image_url", "")
+
+                if (
+                    hotel_name
+                    and isinstance(image_url, str)
+                    and image_url.strip()
+                ):
+                    key = normalize_hotel_image_name(hotel_name)
+                    image_map[key] = image_url.strip()
+
+        # Format 2:
+        # {
+        #   "Pullman Hanoi": "https://...",
+        #   "Melia Hanoi": "https://..."
+        # }
+        elif isinstance(data, dict):
+            for hotel_name, image_url in data.items():
+                if (
+                    isinstance(image_url, str)
+                    and image_url.strip()
+                ):
+                    key = normalize_hotel_image_name(hotel_name)
+                    image_map[key] = image_url.strip()
+
+        print(
+            f"[Hotel Images] Loaded {len(image_map)} hotel images."
+        )
+        return image_map
+
+    except (OSError, ValueError) as error:
+        print(f"[Hotel Images] Failed to load JSON: {error}")
+        return {}
+
+
+# Load image mappings once when the application starts
+HOTEL_IMAGE_MAP = load_hotel_image_map()
+
+
+def get_hotel_image_url(
+    h_name: str,
+    location: str = "",
+    addr: str = ""
+) -> Optional[str]:
     """
-    Get authentic hotel image from Google Maps Street View or Place Photos API.
-    If no Google Maps API key is configured or no image is found, returns None.
-    Per user strict requirement: Zero stock photos from the internet, zero AI-generated images.
-    If a hotel does not have an authentic Google Maps image, do not show any image.
+    Return the image URL matched by hotel name in hotel_image.json.
+    Return None if no matching image exists.
     """
-    maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
-    if maps_api_key:
-        query_loc = urllib.parse.quote(f"{h_name}, {addr or location}")
-        return f"https://maps.googleapis.com/maps/api/streetview?size=480x280&location={query_loc}&fov=90&key={maps_api_key}"
+    key = normalize_hotel_image_name(h_name)
+
+    image_url = HOTEL_IMAGE_MAP.get(key)
+
+    if image_url:
+        return image_url
+
     return None
+
+
+
+def calculate_hotel_aspect_scores(reviews: List[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
+    """Calculate aspect-level average ratings from reviews that mention each aspect.
+
+    Each aspect is scored only from the hotel's own reviews containing its
+    keywords. The UI can then rank the aspects with the strongest review scores.
+    """
+    result: Dict[str, Dict[str, float]] = {}
+    for aspect, keywords in ASPECT_KEYWORDS.items():
+        normalized_keywords = [normalize_text(k) for k in keywords if normalize_text(k)]
+        matching_scores: List[float] = []
+        for review in reviews:
+            review_text = normalize_text(review.get('text', ''))
+            if not review_text or not any(keyword in review_text for keyword in normalized_keywords):
+                continue
+            try:
+                score = float(review.get('score', 0))
+            except (TypeError, ValueError):
+                continue
+            if 1.0 <= score <= 5.0:
+                matching_scores.append(score)
+        if matching_scores:
+            average_score = sum(matching_scores) / len(matching_scores)
+            result[aspect] = {
+                'average_score': round(average_score, 3),
+                'review_count': len(matching_scores),
+                'positive_rate': sum(1 for score in matching_scores if score >= 4.0) / len(matching_scores)
+            }
+    return result
 
 
 def load_hotel_database(parquet_path: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
@@ -453,6 +585,7 @@ def load_hotel_database(parquet_path: Optional[str] = None) -> Dict[str, Dict[st
             first_text = revs[0].get('text', '').strip()
             snippet = (first_text[:110] + '...') if len(first_text) > 110 else first_text
         h['sample_snippet'] = snippet
+        h['aspect_scores'] = calculate_hotel_aspect_scores(revs)
         h_name = h.get('hotel_name', '')
         h_loc = h.get('location', '')
         h_addr = h.get('hotel_address', '')
@@ -1839,7 +1972,17 @@ class QAChatHandler(BaseHTTPRequestHandler):
             city_filter = clean_vietnamese_text(raw_city).lower()
             raw_search = query_params.get('search', [''])[0].strip()
             search_filter = clean_vietnamese_text(raw_search).lower()
+            sort_mode = query_params.get('sort', ['recommended'])[0].strip().lower()
 
+            try:
+                min_rating = float(query_params.get('min_rating', ['0'])[0])
+            except (ValueError, TypeError):
+                min_rating = 0.0
+
+            try:
+                min_reviews = max(int(query_params.get('min_reviews', ['0'])[0]), 0)
+            except (ValueError, TypeError):
+                min_reviews = 0
             try:
                 limit = min(max(int(query_params.get('limit', [9])[0]), 1), 100)
             except (ValueError, TypeError):
@@ -1875,19 +2018,54 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     'sample_snippet': h.get('sample_snippet', ''),
                     'pop_score': h.get('pop_score', 0.0),
                     'photo_url': h.get('photo_url'),
+                    'aspect_scores': h.get('aspect_scores', {}),
                     'maps_search_url': h.get('maps_search_url', '')
                 })
 
-            results.sort(key=lambda x: x['pop_score'], reverse=True)
+            # Apply rating and review-count filters
+            results = [
+                h for h in results
+                if float(h.get('score') or 0) >= min_rating
+                and int(h.get('review_count') or 0) >= min_reviews
+            ]
+
+            # Sort hotels according to the selected mode
+            if sort_mode == 'top_rated':
+                results.sort(
+                    key=lambda h: (
+                        float(h.get('score') or 0),
+                        int(h.get('review_count') or 0),
+                        float(h.get('pop_score') or 0)
+                    ),
+                    reverse=True
+                )
+
+            elif sort_mode == 'most_reviewed':
+                results.sort(
+                    key=lambda h: (
+                        int(h.get('review_count') or 0),
+                        float(h.get('score') or 0),
+                        float(h.get('pop_score') or 0)
+                    ),
+                    reverse=True
+                )
+
+            else:
+                # Recommended: sort by the existing popularity score
+                results.sort(
+                    key=lambda h: float(h.get('pop_score') or 0),
+                    reverse=True
+                )
 
             total_count = len(results)
-            paginated_hotels = results[offset : offset + limit]
+            paginated_hotels = results[offset: offset + limit]
             has_more = (offset + limit) < total_count
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self._send_cors_headers()
             self.end_headers()
+
             if not head_only:
                 self.wfile.write(json.dumps({
                     'total': total_count,
@@ -1898,6 +2076,7 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     'hotels': paginated_hotels,
                     'provinces': PROVINCES_METADATA if offset == 0 else []
                 }).encode('utf-8'))
+
             return
 
         # Serve static file from WEBAPP_DIR
@@ -2158,3 +2337,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

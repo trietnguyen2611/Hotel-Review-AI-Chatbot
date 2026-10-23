@@ -1221,15 +1221,29 @@
     // Hotel Selection Hub & Active Hotel Management
     // -------------------------------------------------------------------------
     function resolveHotelPhotoUrl(hotel) {
-        if (hotel.photo_url && typeof hotel.photo_url === 'string' && hotel.photo_url.trim()) {
-            const p = hotel.photo_url.trim();
-            // Accept authentic Google Maps / Street View URLs only
-            if (p.includes('maps.googleapis.com') || p.includes('googleusercontent.com') || p.includes('maps.gstatic.com')) {
-                return p;
-            }
-        }
+    if (!hotel || typeof hotel.photo_url !== 'string') {
         return null;
     }
+
+    const photoUrl = hotel.photo_url.trim();
+
+    if (!photoUrl) {
+        return null;
+    }
+
+    try {
+        const parsedUrl = new URL(photoUrl, window.location.href);
+
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+            return null;
+        }
+
+        return parsedUrl.href;
+    } catch (error) {
+        console.error('[Hotel Image] Invalid URL:', photoUrl);
+        return null;
+    }
+}
 
     const HOTEL_PAGE_SIZE = 9;
     let allLoadedHotels = [];
@@ -1393,24 +1407,6 @@ function renderHotelCardHtml(h) {
         (selName && h.hotel_name === selName);
 
     // Ưu tiên địa chỉ chi tiết nếu dữ liệu có sẵn.
-    const aspectTags = [
-    { name: 'Service', className: 'service' },
-    { name: 'Facility', className: 'facility' },
-    { name: 'Experience', className: 'experience' },
-    { name: 'Amenity', className: 'amenity' },
-    { name: 'Loyalty', className: 'loyalty' },
-    { name: 'Branding', className: 'branding' }
-];
-
-    // Lấy 3 tag để hiển thị
-    const hotelTagsHtml = aspectTags
-        .slice(0, 3)
-        .map(tag => `
-            <span class="hotel-tag ${tag.className}">
-                ${tag.name}
-            </span>
-        `)
-        .join('');
 const hotelAddress = (
     h.address ||
     h.hotel_address ||
@@ -1473,64 +1469,42 @@ const hotelAddress = (
     };
 
     /*
-     * Lấy điểm khía cạnh từ dữ liệu backend nếu có.
-     *
-     * Hỗ trợ dạng:
-     * h.aspect_scores = {
-     *   Service: 0.92,
-     *   Facility: 0.80,
-     *   Experience: 0.75
-     * }
-     *
-     * Hoặc:
-     * h.aspect_scores = {
-     *   Service: { positive_rate: 0.92 },
-     *   Facility: { positive_rate: 0.80 }
-     * }
-     *
-     * Nếu backend chưa trả dữ liệu, không tự tạo thứ hạng.
+     * Choose each hotel's tags from its OWN dataset reviews.
+     * Primary ranking: number of reviews mentioning the aspect (review_count).
+     * Tie-breaker: average rating for that aspect. Never invent missing tags.
      */
     function getAspectScore(value) {
-        if (typeof value === 'number' && Number.isFinite(value)) {
-            return value;
-        }
-
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
         if (value && typeof value === 'object') {
-            const candidates = [
-                value.positive_rate,
-                value.positive_ratio,
-                value.positive_percentage,
-                value.positive_score,
-                value.score
-            ];
-
+            const candidates = [value.average_score, value.score, value.positive_rate,
+                value.positive_ratio, value.positive_percentage, value.positive_score];
             for (const candidate of candidates) {
-                if (
-                    typeof candidate === 'number' &&
-                    Number.isFinite(candidate)
-                ) {
-                    return candidate;
-                }
+                if (typeof candidate === 'number' && Number.isFinite(candidate)) return candidate;
             }
         }
-
         return null;
     }
 
-    const aspectScores = h.aspect_scores || h.aspects || {};
+    const aspectScoresRaw = h.aspect_scores || h.aspects || {};
+    // Normalize keys because API/dataset versions may use different casing or spaces.
+    const aspectScores = Object.fromEntries(
+        Object.entries(aspectScoresRaw).map(([key, value]) => [String(key).trim().toLowerCase(), value])
+    );
 
     const topAspects = Object.entries(aspectConfig)
         .map(([key, config]) => {
-            const rawScore = getAspectScore(aspectScores[key]);
-
-            return {
-                key,
-                ...config,
-                score: rawScore
-            };
+            const data = aspectScores[key.toLowerCase()];
+            const score = getAspectScore(data);
+            const rawCount = data && typeof data === 'object'
+                ? (data.review_count ?? data.mentions ?? data.count ?? data.total_reviews)
+                : 0;
+            const reviewCount = Number.isFinite(Number(rawCount)) ? Number(rawCount) : 0;
+            return { key, ...config, score, reviewCount };
         })
-        .filter(item => item.score !== null)
-        .sort((a, b) => b.score - a.score)
+        // A real matching-review count is the source of truth; a missing average
+        // score must not hide a valid aspect tag.
+        .filter(item => item.reviewCount > 0)
+        .sort((a, b) => (b.reviewCount - a.reviewCount) || ((b.score ?? -1) - (a.score ?? -1)))
         .slice(0, 3);
 
     const aspectTagsHtml = topAspects.length > 0
@@ -1543,7 +1517,7 @@ const hotelAddress = (
                             --aspect-color: ${aspect.color};
                             --aspect-color-bg: ${aspect.color}18;
                         "
-                        title="${escapeHtml(aspect.label)}"
+                        title="${escapeHtml(aspect.label)} · ${aspect.reviewCount} matching reviews${aspect.score !== null ? ` · avg ${Number(aspect.score).toFixed(2)}/5` : ''}"
                     >
                         <span class="hotel-aspect-dot"></span>
                         ${escapeHtml(aspect.label)}
@@ -1553,47 +1527,30 @@ const hotelAddress = (
         `
         : '';
 
-    const mediaHtml = photoUrl ? `
-        <div class="hotel-card-media" style="display: none;">
-            <div class="hotel-card-media-skeleton"></div>
-
+    // Always render a stable media frame. Missing/broken hotel photos fall back
+    // to a neutral hotel image rather than collapsing the card header.
+    const fallbackPhotoUrl = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80';
+    const initialPhotoUrl = photoUrl || fallbackPhotoUrl;
+    const mediaHtml = `
+        <div class="hotel-card-media">
+            <div class="hotel-card-media-placeholder" aria-hidden="true">
+                <span class="hotel-card-placeholder-icon">✦</span>
+                <span>Hotel preview</span>
+            </div>
             <img
-                src="${escapeHtml(photoUrl)}"
-                alt="${escapeHtml(h.hotel_name)}"
+                src="${escapeHtml(initialPhotoUrl)}"
+                alt="${escapeHtml(h.hotel_name || 'Hotel')}"
                 loading="lazy"
-                onload="this.parentElement.style.display='block'; this.classList.add('loaded');"
-                onerror="this.remove(); this.parentElement.style.display='none';"
+                onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none';"
+                onerror="if (!this.dataset.fallbackTried) { this.dataset.fallbackTried='1'; this.src='${fallbackPhotoUrl}'; } else { this.style.display='none'; this.previousElementSibling.style.display='flex'; }"
             >
-
             <div class="hotel-card-media-gradient"></div>
-
             <div class="card-badge-top-left">
-                <span class="card-star-badge">
-                    ${escapeHtml(starVal)}
-                </span>
-                <span class="card-score-badge">
-                    ★ ${scoreVal}
-                </span>
+                <span class="card-star-badge">${escapeHtml(starVal)}</span>
+                <span class="card-score-badge">★ ${scoreVal}</span>
             </div>
-
             <div class="card-badge-top-right">
-                <span class="card-rev-badge">
-                    ${revCount} revs
-                </span>
-            </div>
-        </div>
-    ` : `
-        <div class="hotel-card-top-header">
-            <div class="card-badges-row">
-                <span class="card-star-badge">
-                    ${escapeHtml(starVal)}
-                </span>
-                <span class="card-score-badge">
-                    ★ ${scoreVal}
-                </span>
-                <span class="card-rev-badge">
-                    ${revCount} revs
-                </span>
+                <span class="card-rev-badge">${revCount} revs</span>
             </div>
         </div>
     `;
