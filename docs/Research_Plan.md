@@ -43,45 +43,20 @@ _Bảng 2. Năm mô hình được chốt, nơi công bố, backbone và vai tr�
 
 
 ## **Ba câu hỏi nghiên cứu** 
+RQ1 (Thách thức bài toán thực tế - Thang điểm 5 sao vs. 2 lớp nhị phân):
+"Khi chuyển từ bài toán phân loại nhị phân 2 lớp (Tốt/Xấu) sang thang điểm 5 mức sao thực tế, độ chính xác khi tìm đoạn bằng chứng (rationale) và đánh giá cảm xúc theo từng khía cạnh giảm bao nhiêu, và sự sụt giảm này có tập trung chủ yếu ở các mức đánh giá trung gian (2 đến 4 sao) hay không?"
+• Giải thích dễ hiểu: Đa số các bài báo trước đây thường gộp điểm đánh giá thành 2 nhóm đơn giản: "Khen" và "Chê". Thực tế, khách sạn chấm điểm từ 1 đến 5 sao (rất khó phân biệt giữa 3 sao và 4 sao). RQ1 chứng minh rằng bài toán 5 sao thực tế khó hơn rất nhiều so với bài toán nhị phân, đặc biệt ở các review có mức điểm trung bình.
+• Thước đo định lượng: Điểm Token-F1 của đoạn bằng chứng, Macro-F1 của phân loại cảm xúc tách biệt theo từng mức từ 1 đến 5 sao.
 
-Mỗi câu hỏi được phát biểu kèm một giả thuyết có thể bác bỏ và một con số cụ thể để kết luận. RQ1 và RQ2 chỉ cần chạy năm mô hình rồi tính toán trên output, nên có kết quả sớm. Chỉ RQ3 cần sửa code. 
+RQ2 (Đóng góp của mô hình đề xuất CRAM-ABSA - Chống lẫn lộn bằng chứng):
+"Cơ chế phạt chồng lấn phân đoạn (ℒ_{overlap}) kết hợp hàm mất mát thứ bậc (CORN Loss) trong mô hình CRAM-ABSA có giúp loại bỏ hiện tượng 'lẫn bằng chứng' giữa các khía cạnh và giảm sai lệch dự đoán điểm sao mà không làm suy giảm chất lượng trích xuất câu văn hay không?"
+• Giải thích dễ hiểu: Trong một bài đánh giá, khách thường viết: "Phòng rất sạch nhưng nhân viên phục vụ chậm chạp". Mô hình thông thường hay bị "lẫn", lấy câu khen phòng sạch để làm căn cứ chấm điểm cho dịch vụ nhân viên.
+• Thước đo định lượng: Tỷ lệ chồng lấn/lẫn token giữa các khía cạnh (Leakage Rate), sai số tuyệt đối trung bình theo thứ tự (Macro-MAE), và Token-F1 qua thí nghiệm bóc tách thành phần (Ablation Study).
 
-_Bảng 3. Ba câu hỏi nghiên cứu, giả thuyết có thể bác bỏ và phép đo quyết định_ 
-
-|**STT**|**Câu hỏi nghiên cứu**|**Giả thuyết**|**Phép đo quyết định**|
-|---|---|---|---|
-|RQ1|Khi chuyển từ nhãn 2 lớp<br>sang 5 mức, token F1 của<br>rationale giảm bao nhiêu ở<br>từng mô hình, và mức giảm ở<br>review 2 tới 4 sao có lớn hơn<br>ở review 1 và 5 sao không|Mức giảm tập trung ở<br>các mức giữa, vì phân<br>biệt 3 với 4 sao cần bằng<br>chứng tinh hơn phân biệt<br>tốt với xấu|Token F1 của năm mô<br>hình ở hai thiết lập, tách<br>theo mức sao, kèm khoảng<br>tin cậy bootstrap|
-|RQ2|**Bao nhiêu phần trăm token**<br>**rationale của mỗi khía cạnh**<br>**rơi vào câu nói về khía cạnh**<br>**khác, và mức lẫn có tăng**<br>**theo độ tương quan điểm**<br>**giữa hai khía cạnh không**|Cặp khía cạnh có điểm<br>tương quan càng cao thì<br>lẫn càng nhiều, và xoá<br>câu của khía cạnh khác<br>làm điểm dự đoán đổi ít<br>nhất một mức ở một tỉ lệ<br>đáng kể review|Ma trận lẫn 3 × 3 cho năm<br>mô hình, tương quan giữa<br>mức lẫn và hệ số tương<br>quan điểm, tỉ lệ review đổi<br>điểm khi xoá câu|
-|RQ3|Thêm mất mát thứ tự và phạt<br>chồng lấn vào PLMR có đồng<br>thời giảm mức lẫn và giảm<br>macro-MAE mà không làm<br>giảm token F1 không|Phạt chồng lấn giảm lẫn,<br>mất mát thứ tự giảm<br>macro-MAE, và hai<br>thành phần không triệt<br>tiêu nhau|Ablation bốn cấu hình:<br>PLMR gốc, thêm mất mát<br>thứ tự, thêm phạt chồng<br>lấn, thêm cả hai|
-
-
-
-RQ2 cho thấy các khía cạnh trong cùng một review tương quan mạnh, nên mô hình dự đoán Service có thể lấy câu khen phòng sạch làm căn cứ mà vẫn đoán đúng điểm. Hiện tượng này đã được ghi nhận trên bộ BeerAdvocate nhưng chưa được đo có hệ thống trên review khách sạn ở thang 5 mức. Để biết câu nào thuộc khía cạnh nào, nhóm dùng từ khoá của từng khía cạnh cộng một bộ phân loại câu nhỏ, rồi kiểm tay 100 câu để báo độ chính xác của bước gán này. 
-
-## **Phương pháp đề xuất** 
-
-Phương pháp giữ nguyên kiến trúc của PLMR và chỉ thay hàm mất mát. Với mỗi khía cạnh a, bộ sinh tạo mặt nạ m_a trên các token, bộ dự đoán f_a chỉ nhìn phần văn bản được chọn: 
-
-_L = Σ_a ω(y_a) · L_ord( f_a(x ⊙ m_a), y_a ) + λ_1 · Σ_a m_a‖ ‖₁ + λ_2 · Σ_a≠b m_a,⟨ m_b⟩_ 
-
-Thành phần thứ nhất là mất mát thứ tự CORN thay cho cross-entropy, để mô hình hiểu rằng đoán 4 khi đúng là 5 ít sai hơn đoán 1. Trọng số ω(y) tỉ lệ nghịch với tần suất của mức sao để xử lý dữ liệu lệch. Thành phần thứ hai giữ rationale ngắn như các bài gốc. Thành phần thứ ba là điểm mới: phạt khi rationale của hai khía cạnh chọn cùng một đoạn, nhắm thẳng vào hiện tượng lẫn ở RQ2. Mỗi thành phần bật tắt được riêng, nên ablation ở RQ3 rất rõ ràng. 
-
-## **Chỉ số đánh giá** 
-
-Bảng 4 chốt các chỉ số theo bốn nhóm, tương ứng với bốn điều người đọc sẽ hỏi: đoán điểm có đúng không, bằng chứng có giống người chọn không, bằng chứng có thật sự là lý do của dự đoán không, và bằng chứng có lẫn khía cạnh không. 
-
-_Bảng 4. Chỉ số đánh giá được chốt theo bốn nhóm câu hỏi_ 
-
-|**STT**|**Nhóm**|**Chỉ số**|
-|---|---|---|
-|1|Dự đoán điểm|QWK (chỉ số chính), macro-F1 năm lớp, macro-MAE tính<br>trung bình theo từng mức sao|
-|2|Khớp với người|Token precision, recall và F1 so với rationale của người, độ<br>dài rationale|
-|3|Độ trung thực|Sufficiency (dự đoán từ riêng rationale) và<br>comprehensiveness (dự đoán khi đã xoá rationale) theo<br>chuẩn ERASER|
-|4|Lẫn khía cạnh|Tỉ lệ token rationale rơi vào câu của khía cạnh khác, tỉ lệ<br>review đổi điểm khi xoá câu của khía cạnh khác|
-
-
-
-Mọi cấu hình chạy 5 seed, báo trung bình và độ lệch chuẩn. Tập có rationale của người chỉ khoảng 100 review mỗi khía cạnh, nên token F1 phải kèm khoảng tin cậy bootstrap theo review. 
+RQ3 (Hiệu quả ứng dụng thực tiễn - Chatbot Hỏi Đáp & Trọng số thời gian):
+"Việc tích hợp bằng chứng khía cạnh từ CRAM-ABSA cùng cơ chế ưu tiên đánh giá mới theo thời gian (Time-weighting) giúp Chatbot cải thiện độ chính xác và tính thuyết phục của câu trả lời như thế nào so với các mô hình hỏi đáp truyền thống trên bộ benchmark thực tế?"
+• Giải thích dễ hiểu: Người dùng hỏi Chatbot: "Dạo này bữa sáng khách sạn thế nào?". Chatbot cần ưu tiên các review gần đây (vì chất lượng năm 2026 có thể đã khác năm 2019) và phải trích dẫn đúng đoạn nhận xét về bữa sáng để trả lời. RQ3 đánh giá xem chatbot được xây dựng có trả lời đúng trọng tâm và đáng tin cậy hơn chatbot thông thường trên bộ 60 câu hỏi thử nghiệm hay không.
+• Thước đo định lượng: Điểm ROUGE-L / Token-F1 của câu trả lời sinh ra, tỷ lệ câu trả lời truy xuất đúng bằng chứng khía cạnh (Aspect Retrieval Accuracy) trên bộ QA Benchmark qa_verified.json.
 
 ## **Lộ trình** 
 
