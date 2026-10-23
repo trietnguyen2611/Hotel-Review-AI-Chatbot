@@ -1,0 +1,907 @@
+\documentclass[pdflatex,sn-mathphys-num,iicol]{sn-jnl}
+
+%========================================================
+% Packages
+%========================================================
+
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage[title]{appendix}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{manyfoot}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{url}
+
+%========================================================
+% Theorem styles
+%========================================================
+\theoremstyle{thmstyleone}
+\newtheorem{theorem}{Theorem}
+
+\theoremstyle{thmstyletwo}
+\newtheorem{example}{Example}
+\newtheorem{remark}{Remark}
+
+\theoremstyle{thmstylethree}
+\newtheorem{definition}{Definition}
+
+\raggedbottom
+
+%========================================================
+% Document
+%========================================================
+\begin{document}
+
+%========================================================
+% Title
+%========================================================
+\title[Development of an Aspect-Based Review QA Chatbot for Hotel Services]
+{Development of an Aspect-Based Review QA Chatbot for Hotel Services}
+
+%========================================================
+% Authors
+%========================================================
+\author*[1]{
+\fnm{Nguyen Pham Minh} \sur{Triet}
+}
+
+\author[1]{
+\fnm{Nguyen Hoang Duy} \sur{Tien}
+}
+
+\author[1]{
+\fnm{Nguyen Bui Anh} \sur{Duy}
+}
+
+\affil*[1]{
+\orgname{FPT University},
+\orgaddress{
+\city{Ho Chi Minh City},
+\country{Vietnam}
+}
+\textit{Lecturer: Bui Danh Huong}
+}
+
+%========================================================
+% Abstract
+%========================================================
+
+\abstract{
+...
+}
+
+
+%========================================================
+% Keywords
+%========================================================
+\keywords{
+...
+}
+
+\maketitle
+
+%========================================================
+% 1. INTRODUCTION
+%========================================================
+\section{Introduction}
+\label{sec:introduction}
+
+\subsection{Background and Motivation}
+\label{subsec:background}
+Trong lĩnh vực dịch vụ du lịch việc đón nhận các đánh giá trực tuyến của khách hàng đóng vai trò quan trọng trong việc cung cấp thông tin về chất lượng sản phẩm và dịch vụ, Tuy nhiên, các điểm đánh giá chỉ phản ảnh được một số mức độ hài lòng tổng quát nhưng chưa gaiir thích được nguyên nhân khiến phần lớn khách hàng đưa ra đánh giá như vậy. Theo paper [1], “rating scores alone are not sufficient to undertake quality improvement of goods or understand the reasons for customer retention” [1]. Bên cạnh đó, việc phân tích bằng những phương pháp thủ công sẽ bị hạn chế về công sức (nhân sự) hay thời gian sẽ dẫn đến một vấn đề, đó là sự trên lệch[1]. Những hạn chế này sẽ dễ dàng cho thấy được về sự cần thiết của các phương pháp công khai về thông tin chi tiết từ dữ liệu đánh giái trực tuyến.
+
+Phân tích theo cảm xúc của từng khía cạnh (Aspect-Based Sentiment Analysis – ABSA) là một hướng tiếp cận giúp xác định rỏ cảm xúc của khách hàng
+
+\subsection{Problem Statement and Research Gap}
+\label{subsec:problem}
+...
+
+\subsection{Proposed Framework: CRAM-ABSA}
+\label{subsec:proposed_framework}
+...
+
+\subsection{Research Questions}
+\label{subsec:research_questions}
+
+This research addresses five research questions:
+
+\begin{enumerate}
+    \item \textbf{RQ1: Joint Learning Performance.}
+    Does CRAM-ABSA improve joint aspect-based sentiment analysis (ABSA)
+    and rating prediction compared with simple single-task and multi-task
+    baselines under the same Hotel-Disjoint data split?
+
+    \item \textbf{RQ2: Contribution of the Continuous Rating Head.}
+    Does the Continuous Rating Head improve global representation and
+    fine-grained opinion extraction, or does it primarily improve
+    overall rating prediction?
+
+    \item \textbf{RQ3: Conflict Attenuation Gating.}
+    Does the Conflict Attenuation Gating mechanism help the model handle
+    hotel reviews containing mixed or conflicting sentiments?
+
+    \item \textbf{RQ4: Overlap F1 and Exact F1.}
+    Why can the Overlap F1 score be high while the Exact F1 score remains
+    low? Do the errors primarily arise from span boundaries, aspect
+    mapping, or sentiment classification?
+
+    \item \textbf{RQ5: Hotel-Disjoint Evaluation.}
+    How does model performance under the Hotel-Disjoint evaluation
+    setting differ from performance under a random review split?
+\end{enumerate}
+
+These questions cover joint model performance, the contribution of
+individual components, fine-grained extraction errors, and
+generalization to hotels not represented in the training data.
+RQ1--RQ3 will be investigated through baseline comparisons and ablation
+experiments. RQ4 will examine differences between overlap-based and
+exact-match evaluation, while RQ5 will compare the Hotel-Disjoint and
+random-split evaluation settings using clearly defined data splits and
+consistent metrics.
+
+
+\subsection{Key Contributions}
+\label{subsec:key_contributions}
+
+The expected contributions of this research are as follows:
+
+\begin{itemize}
+    \item \textbf{A joint learning framework for hotel reviews:}
+    The study proposes CRAM-ABSA to investigate the joint learning of
+    fine-grained opinion extraction and overall rating prediction.
+    It examines the potential contributions of the Continuous Rating
+    Head and Conflict Attenuation Gating through comparative and
+    ablation experiments.
+
+    \item \textbf{A question-answering benchmark:}
+    The study develops a benchmark of 60 questions covering the six
+    main hotel review aspects. The questions will be used to evaluate
+    whether the chatbot can retrieve relevant review evidence and
+    provide answers that address users' information needs. The
+    evaluation criteria and expected answers should be defined before
+    testing to support consistent comparisons.
+
+    \item \textbf{A hotel review QA application and user interface:}
+    The project develops a user interface for interacting with the
+    hotel review analysis system. The application is intended to
+    support aspect-oriented queries, evidence-based answers, and
+    relevant follow-up questions. Its practical behavior will be
+    assessed separately from the model's task-level performance.
+
+    \item \textbf{A comparative and ablation study:}
+    The research compares the proposed framework with suitable
+    single-task and multi-task baselines. Ablation experiments will
+    examine the contribution of individual model components, while
+    application-level tests will investigate question-answering
+    behavior. Any reported improvement will be supported by measured
+    experimental results.
+\end{itemize}
+
+
+
+%========================================================
+% 2. Research Method
+%========================================================
+\section{Research Method}
+\label{sec:researchmethod}
+
+...
+
+\subsection{Thiết kế nghiên cứu - Research Pipeline}
+\label{subsec:researchpipeline}
+
+...
+
+\subsection{Dữ liệu \& Thu thập - Data Collecting}
+\label{subsec:datacollecting}
+
+...
+
+\subsection{Tiền xử lý - Data Preprocessing (EDA)}
+\label{subsec:datapreprocessing}
+
+...
+
+\subsection{Phát biểu bài toán - Problem Statement }
+\label{subsec:problemstatement}
+
+...
+
+\subsection{Phương pháp đề xuất - Proposed method}
+\label{subsec:proposedmethod}
+
+...
+
+\subsection{Thiết lập thực nghiệm - Experimental}
+\label{subsec:experimental}
+
+...
+
+\subsection{Tiêu chí đánh giá - Evaluation}
+\label{subsec:evaluation}
+
+...
+
+
+%========================================================
+% 3. Result & Discussion
+%========================================================
+\section{Result \& Discussion}
+\label{sec:resultanddiscussion}
+
+This research focuses on real-world online hotel reviews and applies
+Natural Language Processing (NLP), machine learning, and deep learning
+techniques to perform fine-grained opinion extraction and overall hotel
+rating prediction. The study investigates the relationship between
+aspect-level opinions and overall ratings through a joint learning
+framework, with the aim of improving the understanding of customer
+feedback.
+
+The scope is defined in terms of data, opinion analysis, rating
+prediction, model development, evaluation, and practical application.
+
+\subsection{Data Scope}
+\label{subsec:datascope}
+
+The research uses online hotel review data for analyzing customer
+opinions and evaluating rating prediction. The data scope includes
+review text, aspect and sentiment annotations where available, and
+overall rating information required for the corresponding prediction
+task. The availability and compatibility of these fields will determine
+which records can be used for each experiment.
+
+Data preprocessing will include identifying duplicate or invalid
+records, examining missing values, and preparing review text for model
+training and evaluation. Text processing will aim to preserve important
+sentiment-bearing expressions, negation, and contrastive statements,
+since these features can affect the interpretation of opinions across
+different hotel aspects.
+
+Exploratory data analysis will examine review length, aspect frequency,
+sentiment distribution, and aspect co-occurrence where supported by the
+available annotations. The resulting analysis will be used to
+characterize the dataset and identify challenges relevant to the
+proposed tasks.
+
+\subsection{Opinion Analysis Scope}
+\label{subsec:opinionscope}
+
+The research focuses on extracting aspect-related opinions and
+identifying the sentiment associated with each opinion. It adopts six
+main aspect categories:
+
+\begin{itemize}
+    \item \textbf{Service:} customer service and staff-related experiences.
+    \item \textbf{Facility:} hotel rooms, physical facilities, and
+    related infrastructure.
+    \item \textbf{Experience:} the customer's overall stay experience.
+    \item \textbf{Amenity:} available amenities and supporting services.
+    \item \textbf{Loyalty:} willingness to return to or recommend a hotel.
+    \item \textbf{Branding:} brand perception and related hotel identity.
+\end{itemize}
+
+These categories define the main aspect labels used in the research.
+More specific topics, such as room cleanliness, staff behavior, or
+hotel amenities, may be examined as sub-aspects when supported by the
+data and annotation scheme.
+
+The system aims to preserve different opinions expressed within the
+same review rather than assigning a single sentiment label to the
+entire document. For example, a review may describe a room positively
+while expressing dissatisfaction with staff service. Such cases
+illustrate the need to distinguish sentiment associated with different
+aspects.
+
+The evaluation will consider the relevant aspect, sentiment, and
+opinion-span predictions according to the annotation format and the
+defined evaluation protocol.
+
+\subsection{Rating Prediction Scope}
+\label{subsec:ratingscope}
+
+The second major task is to predict the overall rating associated with
+a hotel review. The research will investigate whether review text and
+information derived from fine-grained opinions can provide useful
+signals for estimating the reviewer's overall assessment.
+
+The study will compare appropriate model configurations to examine
+whether incorporating aspect-level information provides additional
+value beyond using review text alone. The rating representation,
+prediction target, and evaluation procedure will be defined consistently
+with the rating information available in the dataset.
+
+The proposed Continuous Rating Head is intended to support continuous
+rating prediction and to investigate how global rating information
+can contribute to fine-grained opinion extraction. Its implementation
+and effectiveness will be examined experimentally rather than assumed
+in advance.
+
+\subsection{Model Scope}
+\label{subsec:modelscope}
+
+The research considers Transformer-based language models for contextual
+text representation and fine-grained opinion analysis. BERT
+\cite{devlin2019bert} provides a relevant foundation for representing
+the linguistic context of hotel reviews.
+
+The proposed CRAM-ABSA framework investigates joint learning between
+fine-grained opinion extraction and overall rating prediction. It
+includes two proposed components:
+
+\begin{itemize}
+    \item \textbf{Continuous Rating Head:} designed to represent
+    overall rating information and investigate its contribution to
+    fine-grained opinion extraction.
+    \item \textbf{Conflict Attenuation Gating:} designed to regulate
+    the influence of conflicting sentiment information across
+    different aspects during joint learning.
+\end{itemize}
+
+The experimental comparison will include the following model settings,
+subject to the availability of compatible implementations and training
+configurations:
+
+\begin{enumerate}
+    \item A single-task model for fine-grained opinion extraction.
+    \item A single-task model for overall rating prediction.
+    \item A simple multi-task learning baseline.
+    \item The proposed CRAM-ABSA framework.
+\end{enumerate}
+
+The comparison will investigate whether joint learning and the proposed
+components provide measurable benefits over the selected baselines.
+The final model configurations and training procedures will be
+documented in the methodology and experimental setup.
+
+\subsection{Evaluation Scope}
+\label{subsec:evaluationscope}
+
+Fine-grained opinion extraction will be evaluated using Precision,
+Recall, and F1-score, with the calculation based on the relevant
+prediction unit and annotation scheme.
+
+\begin{equation}
+Precision =
+\frac{TP}{TP+FP}
+\end{equation}
+
+\begin{equation}
+Recall =
+\frac{TP}{TP+FN}
+\end{equation}
+
+\begin{equation}
+F1 =
+2 \times
+\frac{Precision \times Recall}
+{Precision + Recall}
+\end{equation}
+
+For continuous overall rating prediction, the research will use
+Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and the
+coefficient of determination ($R^2$).
+
+\begin{equation}
+MAE =
+\frac{1}{n}
+\sum_{i=1}^{n}
+|y_i-\hat{y}_i|
+\end{equation}
+
+\begin{equation}
+RMSE =
+\sqrt{
+\frac{1}{n}
+\sum_{i=1}^{n}
+(y_i-\hat{y}_i)^2
+}
+\end{equation}
+
+\begin{equation}
+R^2 =
+1 -
+\frac{
+\sum_{i=1}^{n}(y_i-\hat{y}_i)^2
+}{
+\sum_{i=1}^{n}(y_i-\bar{y})^2
+}
+\end{equation}
+
+Here, $y_i$ denotes the reference rating, $\hat{y}_i$ denotes the
+predicted rating, $\bar{y}$ denotes the mean reference rating, and
+$n$ denotes the number of evaluated samples.
+
+Ablation experiments will examine the individual contributions of
+the Continuous Rating Head and Conflict Attenuation Gating mechanism.
+The experimental protocol will keep the evaluation data and relevant
+training conditions consistent across compared configurations wherever
+possible.
+
+\subsection{Application Scope}
+\label{subsec:applicationscope}
+
+The research also considers the use of aspect-level opinions and
+overall rating information in a hotel review question-answering
+application. The intended system can support questions about specific
+dimensions of hotel experiences and provide responses based on
+relevant review evidence where available.
+
+The application serves as a practical context for the research.
+However, the main research focus remains the analysis of hotel reviews,
+fine-grained opinion extraction, overall rating prediction, and the
+evaluation of the proposed joint learning approach. Application-level
+responses will not be treated as evidence of model effectiveness
+without a separate evaluation.
+
+\subsection{Out of Scope}
+\label{subsec:outscope}
+
+The following areas are outside the scope of this research:
+
+\begin{itemize}
+    \item Hotel price optimization and dynamic pricing.
+    \item Hotel booking and reservation management.
+    \item Real-time hotel operations and resource management.
+    \item Direct control of hotel management processes.
+    \item Forecasting hotel market prices independently of review
+    analysis and rating prediction.
+\end{itemize}
+
+The research is limited to hotel review understanding, fine-grained
+opinion extraction, overall rating prediction, and the investigation
+of joint learning methods for these tasks.
+
+%========================================================
+% 4. Conclusion
+%========================================================
+\section{Conclusion}
+\label{sec:feasibility}
+
+This research is feasible because hotel review data and relevant annotation
+resources are available for developing and evaluating the proposed model.
+The project already has an English hotel review dataset in JSON format
+containing review text and annotated aspects and sentiments. These resources
+provide an initial basis for data analysis and fine-grained opinion
+extraction. However, the availability and consistency of overall rating
+labels must be checked before conducting rating prediction experiments.
+
+The required technologies are also accessible. Python and libraries such as
+Pandas, NumPy, Scikit-learn, PyTorch, and Hugging Face Transformers can
+support data preprocessing, exploratory data analysis, model development,
+training, and evaluation. These tools also allow the proposed joint learning
+framework to be compared with single-task and multi-task learning baselines.
+
+The project can be developed on a personal computer for data inspection,
+preprocessing, and initial experiments. Training Transformer-based models
+may require additional computing resources, depending on the model size,
+batch size, and dataset configuration. Therefore, a suitable GPU or
+cloud-based computing resource may be used when necessary.
+
+The research can be organized into manageable stages, including data
+preparation, exploratory analysis, baseline implementation, joint model
+development, experimental evaluation, and system integration. Team members
+can work in parallel on data processing, model development, evaluation, and
+documentation. This division of work supports progress within the proposed
+schedule while allowing sufficient time for debugging and experimental
+validation.
+
+Overall, the project is considered feasible because its initial dataset,
+software tools, and development workflow are available. Nevertheless, the
+final feasibility of the rating prediction component depends on the
+availability of compatible rating labels, while the proposed model
+improvements must be validated through experiments rather than assumed in advance.
+
+%========================================================
+% 5. APPROACH AND METHOD
+%========================================================
+\section{Approach and Method}
+\label{sec:method}
+
+This research follows a pipeline that combines Natural Language Processing
+(NLP), fine-grained opinion extraction, and overall rating prediction.
+The proposed CRAM-ABSA framework aims to learn aspect-level opinions and
+overall ratings jointly. The experiments will compare the proposed
+framework with single-task and multi-task learning baselines to evaluate
+the contribution of each component.
+
+\subsection{Step 1: Data Collection and Preprocessing}
+
+The study will use hotel review data containing review text and aspect-level
+annotations. The available English dataset, \texttt{TripAdvisor\_EN.json},
+contains review records with annotated aspects and sentiments. Before
+training, the data will be checked for duplicate records, missing text,
+invalid annotations, and inconsistent labels.
+
+Text preprocessing will include basic normalization and tokenization where
+required by the selected model. Negation words and contrastive expressions,
+such as ``not'' and ``but'', will be preserved because they can change the
+meaning or polarity of an opinion. Aspect and sentiment annotations will be
+checked against their corresponding text spans to maintain alignment between
+the original review and its labels.
+
+Overall rating prediction requires a compatible rating label for each
+review used in the experiment. Therefore, rating availability and label
+consistency will be verified before constructing the rating prediction
+dataset. If the aspect annotations and rating labels come from different
+sources, their compatibility must be established before they are combined.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]
+    {chart_img/31_missing_values_and_data_summary.png}
+    \caption{Dataset summary and missing-value analysis before preprocessing.}
+    \label{fig:dataset_summary}
+\end{figure}
+
+\FloatBarrier
+
+\subsection{Step 2: Exploratory Data Analysis}
+
+Exploratory Data Analysis (EDA) will be conducted to understand the dataset
+and identify potential issues before model training. The analysis will
+examine the number of valid reviews, missing values, review length, aspect
+frequency, sentiment distribution, and the co-occurrence of different
+aspects within the same review.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]
+    {chart_img/43_aspect_frequency_distribution.png}
+    \caption{Frequency distribution of the six main hotel review aspects.}
+    \label{fig:aspect_frequency}
+\end{figure}
+
+The analysis will also examine the sentiment distribution across the six
+aspect categories. This helps identify which aspects are commonly discussed
+positively, negatively, or neutrally in the available reviews.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]
+    {chart_img/44_aspect_sentiment_breakdown.png}
+    \caption{Sentiment distribution across the six main aspect categories.}
+    \label{fig:aspect_sentiment}
+\end{figure}
+
+The analysis will also investigate reviews that express different sentiments
+toward different aspects. For example, a review may describe a hotel's
+facilities positively while expressing dissatisfaction with its service.
+Such cases are important for evaluating whether the model can distinguish
+aspect-level opinions instead of assigning one sentiment to the entire
+review.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]
+    {chart_img/46_aspect_cooccurrence_matrix.png}
+    \caption{Co-occurrence of aspect categories within hotel reviews.}
+    \label{fig:aspect_cooccurrence}
+\end{figure}
+
+The EDA results will guide data preparation, experimental design, and the
+interpretation of model performance.
+
+\FloatBarrier
+
+\subsection{Step 3: Fine-Grained Opinion Extraction}
+
+The model will identify hotel aspects and their associated sentiments from
+each review. The study uses six main aspect categories:
+\textit{Service}, \textit{Facility}, \textit{Experience},
+\textit{Amenity}, \textit{Loyalty}, and \textit{Branding}. The sentiment
+labels are \textit{Positive}, \textit{Negative}, and \textit{Neutral},
+following the available annotation scheme.
+
+For example, the review ``The room was clean but the staff were
+unfriendly'' expresses different opinions about different parts of the
+hotel experience. The model should preserve this difference rather than
+assigning a single sentiment to the entire review. The final aspect labels
+must follow the dataset's annotation rules.
+
+A Transformer-based model will be used to learn contextual representations
+of review text and predict aspect and sentiment information. The proposed
+joint model will be evaluated against suitable single-task and multi-task
+baselines. Opinion extraction performance will be measured using
+Precision, Recall, and F1-score. Where span annotations are available,
+span-level evaluation will be used with a clearly defined matching
+criterion.
+
+\FloatBarrier
+
+\subsection{Step 4: Overall Rating Prediction}
+
+The study will investigate whether the model can predict an overall hotel
+review rating from textual information and, where appropriate, extracted
+aspect-level opinions. The proposed CRAM-ABSA framework includes a rating
+prediction component intended to learn the relationship between detailed
+opinions and the overall evaluation expressed in a review.
+
+The rating prediction target and output layer will be selected according
+to the available rating labels. If the target is a continuous numerical
+score, the model will be evaluated using Mean Absolute Error (MAE), Root
+Mean Squared Error (RMSE), and the coefficient of determination
+($R^2$). If the available labels are ordinal rating categories, the
+prediction setup and evaluation protocol will be adjusted to match that
+target.
+
+The experiments will compare a text-based rating prediction baseline with
+models that incorporate aspect-level opinion information. This comparison
+will help determine whether fine-grained opinions provide useful
+information for predicting overall ratings.
+
+\FloatBarrier
+
+\subsection{Step 5: Joint Learning and Ablation Studies}
+
+The proposed CRAM-ABSA framework will be compared with single-task models
+and a suitable multi-task learning baseline. The comparison will examine
+both aspect-level opinion extraction and overall rating prediction, using
+consistent data splits and evaluation procedures.
+
+% Add this figure only after the actual architecture diagram is available.
+% Make sure the diagram reflects the model used in the experiments.
+% \begin{figure*}[t]
+%     \centering
+%     \includegraphics[width=0.9\textwidth]
+%     {chart_img/cram_absa_architecture.png}
+%     \caption{Overview of the proposed CRAM-ABSA framework.}
+%     \label{fig:cram_absa_architecture}
+% \end{figure*}
+
+The study will investigate three main questions:
+\begin{itemize}
+    \item \textbf{Joint learning:} Does learning aspect-level opinions and
+    overall ratings together improve performance compared with training
+    separate task-specific models?
+
+    \item \textbf{Rating information:} Does incorporating overall rating
+    supervision help the model extract more accurate aspect-level opinions
+    or improve rating prediction?
+
+    \item \textbf{Conflict attenuation:} Does the proposed
+    Conflict Attenuation Gating mechanism help the model handle reviews
+    that contain different or conflicting opinions across aspects?
+\end{itemize}
+
+Ablation experiments will be conducted by removing or disabling selected
+components of the proposed framework while keeping the remaining
+experimental settings as consistent as possible. The results will be used
+to assess the contribution of each component. Any improvement will be
+reported only when it is supported by the experimental results.
+
+\FloatBarrier
+
+\subsection{Step 6: Application Integration}
+
+The research outputs may be integrated into a hotel review analysis
+application or chatbot. The application will allow users to ask questions
+about hotel services and receive concise answers based on the available
+reviews, aspect-level opinions, and rating information.
+
+The application will retrieve relevant review evidence and summarize
+opinions across the six main aspect categories. Its responses should
+reflect the available evidence and distinguish positive, negative, and
+neutral feedback where supported by the data. The application will be
+evaluated as a demonstration of the research workflow; its performance
+will not be treated as proof of model effectiveness without supporting
+experimental results.
+
+%========================================================
+% 6. RESEARCH PLAN
+%========================================================
+\section{Research Plan}
+\label{sec:plan}
+
+\begin{table*}[t]
+\centering
+\caption{Research Schedule}
+\label{tab:researchplan}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{0.07\textwidth}p{0.18\textwidth}p{0.43\textwidth}p{0.22\textwidth}}
+\toprule
+No. & Date & Task & Output \\
+\midrule
+
+1 &
+07/09/2026--13/09/2026 &
+Form the group, select the research topic, complete Sessions 1 and 2,
+and submit Project Planning &
+Project Planning file \\
+
+2 &
+14/09/2026--20/09/2026 &
+Complete Step 3, read three baseline papers, and draft the Research Proposal &
+Research Proposal Draft \\
+
+3 &
+21/09/2026--27/09/2026 &
+Complete Steps 4 and 5 and submit the Research Proposal &
+Research Proposal \\
+
+4 &
+28/09/2026--04/10/2026 &
+Complete Step 6 and prepare the LaTeX draft &
+LaTeX Draft, Prototype Chatbot \\
+
+5 &
+05/10/2026--11/10/2026 &
+Review 1 and complete Audit Log Round 1 &
+Audit Log 1, Review 1 Report \\
+
+6 &
+12/10/2026--18/10/2026 &
+Revise RQ1 and redo the six-step research process &
+Updated RQ and Pipeline \\
+
+7 &
+19/10/2026--25/10/2026 &
+Review 2, complete Audit Log Round 2, and write Methodology and Discussion &
+Methodology and Discussion Draft, Audit Log Round 2 \\
+
+8 &
+26/10/2026--01/11/2026 &
+Check the code, application, and papers; write the Abstract and Introduction &
+Final Code, Abstract and Introduction Draft \\
+
+9 &
+02/11/2026--08/11/2026 &
+Review 3, complete Audit Log Round 3, and submit the Final Report and Slides &
+Final Report, Slide Presentation \\
+
+10 &
+09/11/2026--15/11/2026 &
+Presentation, demo, Q\&A, and assessment &
+Demo, Q\&A \\
+
+\bottomrule
+\end{tabular}
+\end{table*}
+
+%========================================================
+% 7. EXPECTED RESULTS
+%========================================================
+\section{Expected Results}
+\label{sec:expected}
+
+This research is expected to develop and evaluate CRAM-ABSA, a joint
+learning framework that combines fine-grained aspect-based sentiment
+analysis with overall hotel rating prediction. The framework will be
+designed to analyze hotel reviews at both the aspect level and the overall
+rating level.
+
+The study is expected to provide a systematic comparison between the
+proposed framework, single-task models, and a simple multi-task learning
+baseline. Performance will be evaluated using appropriate metrics for
+aspect-level opinion extraction and overall rating prediction. The
+experimental results will determine whether joint learning provides
+advantages over the baseline approaches.
+
+The research is also expected to provide evidence about the contribution
+of overall rating information to fine-grained opinion extraction. In
+addition, the study will investigate whether the proposed Conflict
+Attenuation Gating mechanism helps the model handle reviews containing
+different or conflicting sentiments across hotel aspects.
+
+From a methodological perspective, the study will evaluate the proposed
+integration of the Continuous Rating Head and Conflict Attenuation Gating
+through comparative and ablation experiments. These experiments will
+examine the contribution of individual components and help answer the
+research questions. The effectiveness of each component will be determined
+from the experimental results rather than assumed in advance.
+
+From a practical perspective, the research may support the development of
+a hotel review analysis application or chatbot. The system is expected to
+summarize customer opinions across six main aspect categories:
+\textit{Service}, \textit{Facility}, \textit{Experience},
+\textit{Amenity}, \textit{Loyalty}, and \textit{Branding}. Where
+compatible rating data are available, it may also provide predicted
+overall ratings. These outputs could help users understand customer
+feedback more clearly and make better-informed hotel-related decisions.
+
+%========================================================
+% 8. CONCLUSION
+%========================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This research proposes CRAM-ABSA, a joint learning framework for fine-grained
+opinion extraction and overall hotel rating prediction from real-world hotel
+reviews. The framework aims to learn aspect-level opinions together with
+overall rating information, providing a more comprehensive understanding of
+customer feedback than analyzing these tasks independently.
+
+The study will compare the proposed framework with single-task and
+multi-task learning baselines to evaluate the potential benefits of joint
+learning. It will also investigate the contributions of the Continuous
+Rating Head and Conflict Attenuation Gating through comparative experiments
+and ablation studies. The results will help determine whether these
+components improve model performance and how overall rating information
+relates to aspect-level opinion extraction.
+
+Ultimately, this research aims to support the development of hotel review
+analysis systems that summarize customer opinions across six main aspects:
+Service, Facility, Experience, Amenity, Loyalty, and Branding. By combining
+fine-grained opinions with overall rating information, the proposed approach
+may help users better understand hotel feedback and make more informed
+decisions. The effectiveness of the framework will be determined through
+experimental evaluation.
+
+%========================================================
+% REFERENCES
+%========================================================
+\begin{thebibliography}{99}
+
+\bibitem{le2025hotel}
+Le, H. T. M., Phan-Thi, T.-A., Nguyen, B. T., \& Nguyen, T. Q.
+Mining online hotel reviews using big data and machine learning:
+An empirical study from an emerging country.
+Annals of Tourism Research Empirical Insights, 6, 100170 (2025).
+
+\bibitem{le2026hotel}
+Le, H. T. M., Nguyen, B. T., \& Nguyen, T. Q.
+Unlocking insights into customer sentiment analysis:
+Impact of loyalty on online hotel ratings.
+International Journal of Hospitality Management, 134, 104574 (2026).
+
+\bibitem{tran2019hotel}
+Tran, T., Ba, H., \& Huynh, V.-N.
+Measuring Hotel Review Sentiment: An Aspect-Based Sentiment Analysis Approach.
+Integrated Uncertainty in Knowledge Modelling and Decision Making (IUKM 2019),
+Lecture Notes in Computer Science, 11471, 393--405 (2019).
+
+\bibitem{devlin2019bert}
+Devlin, J., Chang, M.-W., Lee, K., \& Toutanova, K.
+BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding.
+Proceedings of NAACL-HLT, 4171--4186 (2019).
+
+\bibitem{hoang2019absa}
+Hoang, M., Bihorac, O. A., \& Rouces, J.
+Aspect-Based Sentiment Analysis using BERT.
+Proceedings of the 22nd Nordic Conference on Computational Linguistics,
+187--196 (2019).
+
+\bibitem{li2019bert}
+Li, X., Bing, L., Zhang, W., \& Lam, W.
+Exploiting BERT for End-to-End Aspect-based Sentiment Analysis.
+Proceedings of the 5th Workshop on Noisy User-generated Text,
+34--41 (2019).
+
+\bibitem{he2019interactive}
+He, R., Lee, W. S., Ng, H. T., \& Dahlmeier, D.
+An Interactive Multi-Task Learning Network for End-to-End Aspect-Based
+Sentiment Analysis.
+Proceedings of ACL 2019, 504--515 (2019).
+
+\bibitem{zhao2020spanmlt}
+Zhao, H., Huang, L., Zhang, R., Lu, Q., \& Xue, H.
+SpanMlt: A Span-based Multi-Task Learning Framework for Pair-wise Aspect
+and Opinion Terms Extraction.
+Proceedings of ACL 2020, 3239--3248 (2020).
+
+\bibitem{chen2020relation}
+Chen, Z., \& Qian, T.
+Relation-Aware Collaborative Learning for Unified Aspect-Based Sentiment Analysis.
+Proceedings of ACL 2020, 3685--3694 (2020).
+
+\bibitem{zhang2020multitask}
+Zhang, C., Li, Q., Song, D., \& Wang, B.
+A Multi-task Learning Framework for Opinion Triplet Extraction.
+Findings of EMNLP 2020 (2020).
+
+\end{thebibliography}
+
+\end{document}
