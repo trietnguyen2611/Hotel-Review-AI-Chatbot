@@ -3183,3 +3183,15 @@ body {
 }
 
 
+
+
+/* Removed hotel aspect tags and Recommended / Filter controls */
+.hotel-aspect-tags,
+.hotel-aspect-tag,
+.hotel-tags,
+.hotel-tag,
+#hotelSort,
+#toggleFilters,
+#hotelFilters {
+    display: none !important;
+}

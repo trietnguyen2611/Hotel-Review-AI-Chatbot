@@ -1440,93 +1440,6 @@ const hotelAddress = (
 
     const starVal = h.star || '4-star';
 
-    // Sáu khía cạnh và màu sắc thống nhất toàn bộ ứng dụng.
-    const aspectConfig = {
-        Service: {
-            label: 'Service',
-            color: '#22c55e'
-        },
-        Facility: {
-            label: 'Facility',
-            color: '#3b82f6'
-        },
-        Experience: {
-            label: 'Experience',
-            color: '#a855f7'
-        },
-        Amenity: {
-            label: 'Amenity',
-            color: '#f97316'
-        },
-        Loyalty: {
-            label: 'Loyalty',
-            color: '#ec4899'
-        },
-        Branding: {
-            label: 'Branding',
-            color: '#eab308'
-        }
-    };
-
-    /*
-     * Choose each hotel's tags from its OWN dataset reviews.
-     * Primary ranking: number of reviews mentioning the aspect (review_count).
-     * Tie-breaker: average rating for that aspect. Never invent missing tags.
-     */
-    function getAspectScore(value) {
-        if (typeof value === 'number' && Number.isFinite(value)) return value;
-        if (value && typeof value === 'object') {
-            const candidates = [value.average_score, value.score, value.positive_rate,
-                value.positive_ratio, value.positive_percentage, value.positive_score];
-            for (const candidate of candidates) {
-                if (typeof candidate === 'number' && Number.isFinite(candidate)) return candidate;
-            }
-        }
-        return null;
-    }
-
-    const aspectScoresRaw = h.aspect_scores || h.aspects || {};
-    // Normalize keys because API/dataset versions may use different casing or spaces.
-    const aspectScores = Object.fromEntries(
-        Object.entries(aspectScoresRaw).map(([key, value]) => [String(key).trim().toLowerCase(), value])
-    );
-
-    const topAspects = Object.entries(aspectConfig)
-        .map(([key, config]) => {
-            const data = aspectScores[key.toLowerCase()];
-            const score = getAspectScore(data);
-            const rawCount = data && typeof data === 'object'
-                ? (data.review_count ?? data.mentions ?? data.count ?? data.total_reviews)
-                : 0;
-            const reviewCount = Number.isFinite(Number(rawCount)) ? Number(rawCount) : 0;
-            return { key, ...config, score, reviewCount };
-        })
-        // A real matching-review count is the source of truth; a missing average
-        // score must not hide a valid aspect tag.
-        .filter(item => item.reviewCount > 0)
-        .sort((a, b) => (b.reviewCount - a.reviewCount) || ((b.score ?? -1) - (a.score ?? -1)))
-        .slice(0, 3);
-
-    const aspectTagsHtml = topAspects.length > 0
-        ? `
-            <div class="hotel-aspect-tags" aria-label="Top hotel aspects">
-                ${topAspects.map(aspect => `
-                    <span
-                        class="hotel-aspect-tag"
-                        style="
-                            --aspect-color: ${aspect.color};
-                            --aspect-color-bg: ${aspect.color}18;
-                        "
-                        title="${escapeHtml(aspect.label)} · ${aspect.reviewCount} matching reviews${aspect.score !== null ? ` · avg ${Number(aspect.score).toFixed(2)}/5` : ''}"
-                    >
-                        <span class="hotel-aspect-dot"></span>
-                        ${escapeHtml(aspect.label)}
-                    </span>
-                `).join('')}
-            </div>
-        `
-        : '';
-
     // Always render a stable media frame. Missing/broken hotel photos fall back
     // to a neutral hotel image rather than collapsing the card header.
     const fallbackPhotoUrl = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80';
@@ -1583,7 +1496,6 @@ const hotelAddress = (
                     </p>
                 ` : ''}
 
-                ${aspectTagsHtml}
 
                 <div class="hotel-card-footer">
                     <a
@@ -1722,6 +1634,25 @@ const hotelAddress = (
     }
 
     function initHotelSelection() {
+        // Remove the hotel-card aspect tags and the separate Recommended / Filter controls.
+        // City and hotel-search controls remain available.
+        document.querySelectorAll('.hotel-aspect-tags, .hotel-aspect-tag, .hotel-tags, .hotel-tag').forEach(node => node.remove());
+
+        const sortControl = document.getElementById('hotelSort');
+        if (sortControl) {
+            const sortLabel = sortControl.labels;
+            if (sortLabel) Array.from(sortLabel).forEach(label => label.remove());
+            sortControl.remove();
+        }
+
+        const filterToggle = document.getElementById('toggleFilters');
+        if (filterToggle) {
+            const filterWrapper = filterToggle.closest('.hotel-filter-control, .hotel-filter-wrap, .filter-control, .hotel-toolbar-filter') || filterToggle;
+            filterWrapper.remove();
+        }
+        const filterPanel = document.getElementById('hotelFilters');
+        if (filterPanel) filterPanel.remove();
+    
         if (elements.hotelSelectionGrid) {
             elements.hotelSelectionGrid.addEventListener('click', (e) => {
                 if (e.target.closest('.card-maps-link')) return;
