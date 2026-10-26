@@ -1,5 +1,5 @@
 % ==============================================================================
-% BẢNG ĐỐI CHỨNG THỰC NGHIỆM TỰ ĐỘNG TỪ BENCHMARK.PY (CRAM-ABSA)
+% BẢNG ĐỐI CHỨNG THỰC NGHIỆM TỰ ĐỘNG TỪ BENCHMARK.PY (CRAM-BERT)
 % Tập trung duy nhất vào 3 chỉ số cốt lõi: Acc@0 (RQ1), Macro-MAE (RQ2), Token F1 QA (RQ3)
 % ==============================================================================
 \begin{table}[htbp]
@@ -9,11 +9,11 @@
 \small
 \begin{tabular}{lccc}
 \hline
-\textbf{Phương pháp / Cấu hình} & \textbf{Acc@0 (\%)} & \textbf{Macro-MAE} & \textbf{Token F1 QA (\%)} \\
+\textbf{Phương pháp} & \textbf{Acc@0 (\%)} & \textbf{Macro-MAE} & \textbf{Token F1 QA (\%)} \\
 \hline
 Multi-Class CE Baseline             & 61.20 & 0.8420 & 36.20 \\
 Standard Ordinal Regression         & 68.40 & 0.5210 & 44.80 \\
-Vanilla Pretrained BERT-base        & 48.30 & 1.0520 & 31.40 \\
+Pretrained BERT-base        & 2.9 & 1.5179 & 0.17 \\
 \textbf{CRAM-ABSA (Proposed)}       & \textbf{--} & \textbf{--} & \textbf{--} \\
 \hline
 \end{tabular}

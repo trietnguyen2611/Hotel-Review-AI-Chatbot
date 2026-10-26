@@ -640,7 +640,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hotel QA BENCHMARK Suite</title>
+    <title>Hotel QA BENCHMARK</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -957,7 +957,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 </div>
                 <div class="brand-text">
                     <h1>Hotel QA BENCHMARK</h1>
-                    <p>Khung đánh giá đối chứng thực nghiệm 3 chỉ số khoa học cốt lõi</p>
                 </div>
             </div>
             <div class="badge-pill">
@@ -972,18 +971,18 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 <div class="card">
                     <h2 class="card-title">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
-                        Cấu hình Đo kiểm
+                        Cấu hình
                     </h2>
                     
                     <div class="form-group">
-                        <label for="modelSelect">Chọn Mô hình Cần Benchmark:</label>
+                        <label for="modelSelect">Model:</label>
                         <select id="modelSelect">
                             <!-- Populated dynamically via JS -->
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="sampleLimit">Giới hạn Mẫu Kiểm thử:</label>
+                        <label for="sampleLimit">Mẫu:</label>
                         <select id="sampleLimit">
                             <option value="999" selected>Toàn bộ Test Set (999 bản ghi)</option>
                             <option value="300">Đánh giá Nhanh (300 bản ghi)</option>
@@ -993,14 +992,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
                     <button class="btn-run" id="btnRun" onclick="startBenchmark()">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        <span>Bắt đầu Benchmark Ngay</span>
+                        <span>Bắt đầu</span>
                     </button>
                 </div>
 
                 <div class="card">
                     <h2 class="card-title">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        Quy tắc Khoa học
+                        Ghi chú:
                     </h2>
                     <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
                         • <strong>Acc@0 (RQ1):</strong> Đo độ chính xác phân loại sao tuyệt đối.<br>
@@ -1045,7 +1044,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                     </div>
 
                     <div class="console-box" id="consoleBox">Chào mừng bạn đến với CRAM-ABSA Benchmark Suite!
-Hãy chọn mô hình từ danh sách bên trái và nhấn 'Bắt đầu Benchmark Ngay'...</div>
+Hãy chọn mô hình từ danh sách bên trái và nhấn 'Bắt đầu</div>
                 </div>
 
                 <!-- LaTeX Export Card -->
