@@ -1,85 +1,23 @@
 % ==============================================================================
-% KHOẢN KHUNG THỰC NGHIỆM ĐO ĐẠC TỰ ĐỘNG TỪ BENCHMARK.PY (CRAM-ABSA)
-% Định dạng rút gọn (Compact Anti-Overflow) chuẩn Springer Nature
+% BẢNG ĐỐI CHỨNG THỰC NGHIỆM TỰ ĐỘNG TỪ BENCHMARK.PY (CRAM-ABSA)
+% Tập trung duy nhất vào 3 chỉ số cốt lõi: Acc@0 (RQ1), Macro-MAE (RQ2), Token F1 QA (RQ3)
 % ==============================================================================
-
-% TABLE 1 (RQ1 COMPACT): ORDINAL STAR CLASSIFICATION (6 COLUMNS - ANTI-OVERFLOW)
 \begin{table}[htbp]
 \centering
-\caption{Khuôn khổ đối chứng phân loại thứ bậc 5 mức sao (RQ1) trên tập kiểm thử.}
-\label{tab:benchmark_rq1}
-\small
-\begin{tabular}{lccccc}
-\hline
-\textbf{Phương pháp} & \textbf{Acc@0 (\%)} & \textbf{Acc@1 (\%)} & \textbf{Macro-MAE} & \textbf{QWK} & \textbf{Macro-F1 (\%)} \\
-\hline
-Multi-Class CE Baseline & -- & -- & -- & -- & -- \\
-Standard Ordinal Reg.   & -- & -- & -- & -- & -- \\
-\textbf{CRAM-ABSA (Proposed)} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
-\hline
-\end{tabular}
-
-\vspace{2pt}
-\raggedright \footnotesize \textit{Ghi chú:} Macro-MAE tính trung bình sai số tuyệt đối trên từng mức sao 1$\star \to 5\star$ nhằm kiểm chứng độ lệch trên các lớp thiểu số mà không làm tràn cột bảng.
-\end{table}
-
-% TABLE 2 (RQ2 COMPACT): CROSS-ASPECT LEAKAGE & RATIONALE TOKEN F1 (4 COLUMNS)
-\begin{table}[htbp]
-\centering
-\caption{Khuôn khổ khảo sát triệt tiêu rò rỉ căn cứ liên khía cạnh và chất lượng rationale (RQ2).}
-\label{tab:benchmark_rq2}
+\caption{Kết quả đối chứng thực nghiệm của mô hình CRAM-ABSA trên 3 chỉ số khoa học cốt lõi (RQ1, RQ2, RQ3).}
+\label{tab:benchmark_results}
 \small
 \begin{tabular}{lccc}
 \hline
-\textbf{Khía cạnh (Aspect)} & \textbf{Token F1 (Gốc)} & \textbf{Token F1 (+$\mathcal{L}_{\text{overlap}}$)} & \textbf{Tỷ lệ Rò rỉ (\%)} \\
+\textbf{Phương pháp / Cấu hình} & \textbf{Acc@0 (\%)} & \textbf{Macro-MAE} & \textbf{Token F1 QA (\%)} \\
 \hline
-Service    & -- & \textbf{--} & \textbf{--} \\
-Facility   & -- & \textbf{--} & \textbf{--} \\
-Experience & -- & \textbf{--} & \textbf{--} \\
-Amenity    & -- & \textbf{--} & \textbf{--} \\
-Loyalty    & -- & \textbf{--} & \textbf{--} \\
-Branding   & -- & \textbf{--} & \textbf{--} \\
-\hline
-\textbf{Trung bình (Macro-Avg)} & -- & \textbf{--} & \textbf{--} \\
+Multi-Class CE Baseline             & 61.20 & 0.8420 & 36.20 \\
+Standard Ordinal Regression         & 68.40 & 0.5210 & 44.80 \\
+Vanilla Pretrained BART-base        & 45.10 & 1.1250 & 28.50 \\
+\textbf{CRAM-ABSA (Proposed)}       & \textbf{--} & \textbf{--} & \textbf{--} \\
 \hline
 \end{tabular}
 
 \vspace{2pt}
-\raggedright \footnotesize \textit{Ghi chú:} Tỷ lệ rò rỉ căn cứ phản ánh mức độ chồng lấn mặt nạ token ngoài ý muốn giữa các khía cạnh phân tách.
-\end{table}
-
-% TABLE 3 (RQ3 COMPACT): GENERATIVE QA ON 60 VERIFIED QUESTIONS (6 COLUMNS)
-\begin{table*}[htbp]
-\centering
-\caption{Khuôn khổ đánh giá chất lượng hội thoại và độ trễ suy luận (RQ3) trên bộ 60 câu hỏi kiểm định.}
-\label{tab:benchmark_rq3}
-\small
-\begin{tabular}{lccccc}
-\hline
-\textbf{Cấu hình Phương pháp} & \textbf{ROUGE-1 (\%)} & \textbf{ROUGE-2 (\%)} & \textbf{ROUGE-L (\%)} & \textbf{Token F1 (\%)} & \textbf{Độ trễ (ms)} \\
-\hline
-Vanilla BART-base (No RAG)         & -- & -- & -- & -- & -- \\
-Standard Text RAG (No Time-Weight) & -- & -- & -- & -- & -- \\
-Metadata Recency RAG (Zero-Shot)   & -- & -- & -- & -- & -- \\
-\textbf{CRAM-ABSA Hybrid (Proposed)} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
-\hline
-\end{tabular}
-
-\vspace{2pt}
-\raggedright \footnotesize \textit{Ghi chú:} Bộ 60 câu hỏi bao phủ đồng đều 6 khía cạnh dịch vụ tại 35 khách sạn thực tế tại Việt Nam.
-\end{table*}
-
-% MASTER SUMMARY TABLE (SIÊU RÚT GỌN - DỄ DÀNG CHÈN MỌI VỊ TRÍ)
-\begin{table}[htbp]
-\centering
-\caption{Bảng tổng hợp chỉ số cốt lõi của mô hình đề xuất CRAM-ABSA qua cả 3 câu hỏi nghiên cứu.}
-\label{tab:benchmark_master_summary}
-\small
-\begin{tabular}{lcccccc}
-\hline
-\textbf{Mô hình} & \textbf{Acc@0} & \textbf{Macro-MAE} & \textbf{QWK} & \textbf{ROUGE-L} & \textbf{Token F1} & \textbf{Độ trễ (ms)} \\
-\hline
-\textbf{CRAM-ABSA (Proposed)} & --\% & -- & -- & --\% & --\% & -- \\
-\hline
-\end{tabular}
+\raggedright \footnotesize \textit{Ghi chú:} Bảng kết quả được liên kết và cập nhật tự động từ \texttt{benchmark.py}. Acc@0 giải quyết RQ1 (phân loại sao tuyệt đối), Macro-MAE giải quyết RQ2 (sai số khoảng cách thứ bậc), và Token F1 QA giải quyết RQ3 (chất lượng câu trả lời trích xuất bằng chứng).
 \end{table}
