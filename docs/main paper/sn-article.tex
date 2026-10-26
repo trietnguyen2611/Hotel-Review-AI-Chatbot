@@ -601,7 +601,7 @@ Bộ dữ liệu gồm 9,990 bài đánh giá và 54,326 đoạn chú thích đ�
 \section{Result \& Discussion}
 \label{sec:resultanddiscussion}
 
-Trong phần này, chúng tôi thiết lập khung đối chứng thực nghiệm và quy chuẩn đánh giá chi tiết nhằm giải quyết trọn vẹn ba câu hỏi nghiên cứu (\textbf{RQ1}, \textbf{RQ2}, và \textbf{RQ3}) đã được đặt ra. Toàn bộ quy trình đánh giá được thiết kế và tự động hóa trong tệp kịch bản kiểm thử độc lập \texttt{benchmark.ipynb}. Kịch bản này được chuẩn bị sẵn sàng để thực thi trên tập kiểm thử giữ kín gồm 999 bài đánh giá (\texttt{hotel\_reviews.parquet}) và tập benchmark kiểm định gồm 60 câu hỏi đàm thoại thực tế (\texttt{qa\_verified.json}) bao phủ đầy đủ 6 khía cạnh dịch vụ cốt lõi tại 35 khách sạn tại Việt Nam ngay sau khi tiến trình huấn luyện mô hình học sâu trên tệp \texttt{dap\_trainv4.ipynb} hoàn tất.
+Trong phần này, chúng tôi thiết lập khung đối chứng thực nghiệm và quy chuẩn đánh giá chi tiết nhằm giải quyết trọn vẹn ba câu hỏi nghiên cứu (\textbf{RQ1}, \textbf{RQ2}, và \textbf{RQ3}) đã được đặt ra. Toàn bộ quy trình đánh giá được thiết kế và tự động hóa trong công cụ kiểm thử đồ họa độc lập \texttt{benchmark.py}. Bộ công cụ này cung cấp giao diện trực quan cho phép tùy chọn và đối chứng linh hoạt bất kỳ phiên bản mô hình nào (\texttt{model\_v4}, \texttt{model\_v5}, \texttt{model\_v6}, baseline, v.v.), sẵn sàng thực thi trên tập kiểm thử giữ kín gồm 999 bài đánh giá (\texttt{hotel\_reviews.parquet}) và tập benchmark kiểm định gồm 60 câu hỏi đàm thoại thực tế (\texttt{qa\_verified.json}) bao phủ đầy đủ 6 khía cạnh dịch vụ cốt lõi tại 35 khách sạn tại Việt Nam ngay sau khi tiến trình huấn luyện mô hình học sâu trên tệp \texttt{dap\_trainv4.ipynb} hoàn tất.
 
 \subsection{Khuôn khổ Đánh giá Phân loại Thứ bậc 5 Mức sao (RQ1)}
 \label{subsec:res_rq1}
@@ -610,28 +610,28 @@ Câu hỏi nghiên cứu đầu tiên (\textbf{RQ1}) khảo sát mức độ suy
 
 Trong tập dữ liệu kiểm thử thực tế gồm 999 mẫu, sự phân bố số sao phản ánh độ lệch dữ liệu đặc trưng của ngành khách sạn: $71.55\%$ số bài đánh giá thuộc nhóm $5\star$, trong khi các mức sao trung gian ($2\star$, $3\star$, $4\star$) chỉ chiếm tổng cộng $26.12\%$ (24 bài $2\star$, 60 bài $3\star$, và 177 bài $4\star$). Khi sử dụng hàm mất mát phân loại đa lớp thông thường (Multi-Class Cross-Entropy -- CE), mô hình có xu hướng thiên vị nghiêm trọng về lớp đa số ($5\star$), dẫn đến hiện tượng dự đoán sai lệch lớn tại các mức điểm trung gian.
 
-\begin{table*}[htbp]
+\begin{table}[htbp]
 \centering
-\caption{Khuôn khổ đối chứng thực nghiệm bài toán phân loại thứ bậc sao (RQ1) trên tập kiểm thử 999 bài đánh giá.}
+\caption{Khuôn khổ đối chứng phân loại thứ bậc 5 mức sao (RQ1) trên 999 bài kiểm thử.}
 \label{tab:benchmark_rq1}
 \small
-\begin{tabular}{lcccccccccc}
+\begin{tabular}{lccccc}
 \hline
-\textbf{Phương pháp} & \textbf{Acc@0 (\%)} & \textbf{Acc@1 (\%)} & \textbf{QWK} & \textbf{Macro-F1 (\%)} & \textbf{Macro-MAE} & \textbf{MAE 1$\star$} & \textbf{MAE 2$\star$} & \textbf{MAE 3$\star$} & \textbf{MAE 4$\star$} & \textbf{MAE 5$\star$} \\
+\textbf{Phương pháp} & \textbf{Acc@0 (\%)} & \textbf{Acc@1 (\%)} & \textbf{Macro-MAE} & \textbf{QWK} & \textbf{Macro-F1 (\%)} \\
 \hline
-Multi-Class CE Baseline & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
-Standard Ordinal Regression & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
-\textbf{CRAM-ABSA (Proposed)} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
+Multi-Class CE Baseline & -- & -- & -- & -- & -- \\
+Standard Ordinal Reg.   & -- & -- & -- & -- & -- \\
+\textbf{CRAM-ABSA (Proposed)} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
 \hline
 \end{tabular}
 
 \vspace{2pt}
-\raggedright \footnotesize \textit{Ghi chú:} Các chỉ số định lượng chính xác trong bảng này sẽ được trích xuất tự động từ tệp \texttt{benchmark.ipynb} ngay sau khi hoàn tất huấn luyện checkpoint trên \texttt{dap\_trainv4.ipynb}.
-\end{table*}
+\raggedright \footnotesize \textit{Ghi chú:} Macro-MAE tính trung bình sai số tuyệt đối trên từng mức sao 1$\star \to 5\star$ nhằm kiểm chứng độ lệch trên các lớp thiểu số mà không làm tràn cột bảng. Các chỉ số định lượng sẽ được xuất tự động từ giao diện \texttt{benchmark.py}.
+\end{table}
 
-Bảng~\ref{tab:benchmark_rq1} thiết lập cấu trúc so sánh đối chứng giữa mô hình cơ sở Multi-Class CE, mô hình hồi quy thứ bậc chuẩn, và mô hình CRAM-ABSA đề xuất (sử dụng hàm mất mát CORN Loss có trọng số phạt nghịch đảo tần suất $\omega(y)$). Khi quá trình huấn luyện hoàn tất, các chỉ số Quadratic Weighted Kappa (QWK), Macro-MAE, cùng sai số trên từng mức sao ($1\star \to 5\star$) sẽ được cập nhật trực tiếp nhằm xác thực mức độ cải thiện tại các mức sao trung gian khó phân loại.
+Bảng~\ref{tab:benchmark_rq1} thiết lập cấu trúc so sánh đối chứng giữa mô hình cơ sở Multi-Class CE, mô hình hồi quy thứ bậc chuẩn, và mô hình CRAM-ABSA đề xuất (sử dụng hàm mất mát CORN Loss có trọng số phạt nghịch đảo tần suất $\omega(y)$). Khi quá trình huấn luyện hoàn tất, các chỉ số Quadratic Weighted Kappa (QWK), Macro-MAE, cùng độ chính xác tuyệt đối (Acc@0) và sai lệch tối đa 1 sao (Acc@1) sẽ được cập nhật trực tiếp nhằm xác thực mức độ cải thiện tại các mức sao trung gian khó phân loại.
 
-Song song đó, kịch bản kiểm thử trong \texttt{benchmark.ipynb} sẽ đo lường độ suy giảm của chỉ số Token-level Rationale F1 khi chuyển đổi từ bài toán nhị phân sang bài toán 5 mức sao, nhằm định lượng mức độ sụt giảm chất lượng căn cứ do ranh giới cảm xúc trung gian gây ra.
+Song song đó, công cụ kiểm thử \texttt{benchmark.py} sẽ đo lường độ suy giảm của chỉ số Token-level Rationale F1 khi chuyển đổi từ bài toán nhị phân sang bài toán 5 mức sao, nhằm định lượng mức độ sụt giảm chất lượng căn cứ do ranh giới cảm xúc trung gian gây ra.
 
 \subsection{Khuôn khổ Kiểm chứng Triệt tiêu Rò rỉ Căn cứ Liên khía cạnh (RQ2)}
 \label{subsec:res_rq2}
@@ -640,29 +640,29 @@ Câu hỏi nghiên cứu thứ hai (\textbf{RQ2}) tập trung giải quyết bà
 
 \begin{table}[htbp]
 \centering
-\caption{Khuôn khổ khảo sát hiệu quả triệt tiêu rò rỉ căn cứ liên khía cạnh và chất lượng trích xuất rationale (RQ2) trên 6 khía cạnh cốt lõi.}
+\caption{Khuôn khổ khảo sát triệt tiêu rò rỉ căn cứ liên khía cạnh và chất lượng rationale (RQ2).}
 \label{tab:benchmark_rq2}
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{lccc}
 \hline
-\textbf{Khía cạnh (Aspect)} & \textbf{Token F1 (Trước Phạt)} & \textbf{Token F1 (Sau Phạt)} & \textbf{Tỷ lệ Rò rỉ Trước (\%)} & \textbf{Tỷ lệ Rò rỉ Sau (\%)} \\
+\textbf{Khía cạnh (Aspect)} & \textbf{Token F1 (Gốc)} & \textbf{Token F1 (+$\mathcal{L}_{\text{overlap}}$)} & \textbf{Tỷ lệ Rò rỉ (\%)} \\
 \hline
-Service & -- & \textbf{--} & -- & \textbf{--} \\
-Facility & -- & \textbf{--} & -- & \textbf{--} \\
-Experience & -- & \textbf{--} & -- & \textbf{--} \\
-Amenity & -- & \textbf{--} & -- & \textbf{--} \\
-Loyalty & -- & \textbf{--} & -- & \textbf{--} \\
-Branding & -- & \textbf{--} & -- & \textbf{--} \\
+Service    & -- & \textbf{--} & \textbf{--} \\
+Facility   & -- & \textbf{--} & \textbf{--} \\
+Experience & -- & \textbf{--} & \textbf{--} \\
+Amenity    & -- & \textbf{--} & \textbf{--} \\
+Loyalty    & -- & \textbf{--} & \textbf{--} \\
+Branding   & -- & \textbf{--} & \textbf{--} \\
 \hline
-\textbf{Trung bình (Macro-Avg)} & -- & \textbf{--} & -- & \textbf{--} \\
+\textbf{Trung bình (Macro-Avg)} & -- & \textbf{--} & \textbf{--} \\
 \hline
 \end{tabular}
 
 \vspace{2pt}
-\raggedright \footnotesize \textit{Ghi chú:} Số liệu thực nghiệm đối chứng sẽ được tính toán qua \texttt{benchmark.ipynb} bằng cách so sánh mặt nạ dự đoán $m_a$ trước và sau khi kích hoạt $\mathcal{L}_{\text{overlap}}$.
+\raggedright \footnotesize \textit{Ghi chú:} Tỷ lệ rò rỉ căn cứ phản ánh mức độ chồng lấn mặt nạ token ngoài ý muốn giữa các khía cạnh phân tách, được tính toán từ \texttt{benchmark.py}.
 \end{table}
 
-Bảng~\ref{tab:benchmark_rq2} định hình ma trận khảo sát trên 6 khía cạnh dịch vụ nhằm đo lường tỷ lệ token rò rỉ và Token-level F1. Thí nghiệm Ablation Study trong \texttt{benchmark.ipynb} sẽ tính toán sự thay đổi của tích vô hướng mặt nạ $\langle m_a, m_b \rangle$ giữa các cặp khía cạnh thường xuyên xung đột (như Service vs. Facility) để chứng minh rằng hình phạt $\mathcal{L}_{\text{overlap}}$ giúp làm sắc nét ranh giới trích xuất mà không làm mất mát ngữ cảnh quan trọng.
+Bảng~\ref{tab:benchmark_rq2} định hình ma trận khảo sát trên 6 khía cạnh dịch vụ nhằm đo lường tỷ lệ token rò rỉ và Token-level F1. Thí nghiệm Ablation Study trong \texttt{benchmark.py} sẽ tính toán sự thay đổi của tích vô hướng mặt nạ $\langle m_a, m_b \rangle$ giữa các cặp khía cạnh thường xuyên xung đột (như Service vs. Facility) để chứng minh rằng hình phạt $\mathcal{L}_{\text{overlap}}$ giúp làm sắc nét ranh giới trích xuất mà không làm mất mát ngữ cảnh quan trọng.
 
 \subsection{Khuôn khổ Đánh giá Hệ thống Hỏi-Đáp Khách sạn Thực tế (RQ3)}
 \label{subsec:res_rq3}
@@ -679,24 +679,44 @@ Bốn cấu hình kiến trúc sẽ được đưa vào đối chứng thực ng
 
 \begin{table*}[htbp]
 \centering
-\caption{Khuôn khổ đánh giá chất lượng hội thoại và độ chính xác truy xuất bằng chứng (RQ3) trên bộ 60 câu hỏi kiểm định thực nghiệm.}
+\caption{Khuôn khổ đánh giá chất lượng hội thoại và độ trễ suy luận (RQ3) trên bộ 60 câu hỏi kiểm định thực nghiệm.}
 \label{tab:benchmark_rq3}
-\begin{tabular}{lcccccc}
+\small
+\begin{tabular}{lccccc}
 \hline
-\textbf{Cấu hình Phương pháp} & \textbf{ROUGE-1 (\%)} & \textbf{ROUGE-2 (\%)} & \textbf{ROUGE-L (\%)} & \textbf{Token F1 (\%)} & \textbf{Aspect Acc (\%)} & \textbf{Độ trễ (ms)} \\
+\textbf{Cấu hình Phương pháp} & \textbf{ROUGE-1 (\%)} & \textbf{ROUGE-2 (\%)} & \textbf{ROUGE-L (\%)} & \textbf{Token F1 (\%)} & \textbf{Độ trễ (ms)} \\
 \hline
-Vanilla BART-base (No RAG) & -- & -- & -- & -- & -- & -- \\
-Standard Text RAG (No Time-Weight) & -- & -- & -- & -- & -- & -- \\
-Metadata Recency RAG (Zero-Shot) & -- & -- & -- & -- & -- & -- \\
-\textbf{CRAM-ABSA Hybrid (Proposed)} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
+Vanilla BART-base (No RAG)         & -- & -- & -- & -- & -- \\
+Standard Text RAG (No Time-Weight) & -- & -- & -- & -- & -- \\
+Metadata Recency RAG (Zero-Shot)   & -- & -- & -- & -- & -- \\
+\textbf{CRAM-ABSA Hybrid (Proposed)} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
 \hline
 \end{tabular}
 
 \vspace{2pt}
-\raggedright \footnotesize \textit{Ghi chú:} Các chỉ số định lượng của 4 cấu hình và độ trễ thực tế sẽ được điền tự động từ \texttt{benchmark.ipynb}.
+\raggedright \footnotesize \textit{Ghi chú:} Các chỉ số định lượng của 4 cấu hình và độ trễ thực tế sẽ được điền tự động từ \texttt{benchmark.py}.
 \end{table*}
 
-Bảng~\ref{tab:benchmark_rq3} chuẩn bị sẵn các tiêu chí đánh giá về độ tương đồng ngôn ngữ (ROUGE-1, ROUGE-2, ROUGE-L), Token F1 đối với câu trả lời chuẩn, độ chính xác truy xuất đúng khía cạnh và độ trễ đáp ứng của hệ thống (tính bằng mili-giây).
+Bảng~\ref{tab:benchmark_rq3} chuẩn bị sẵn các tiêu chí đánh giá về độ tương đồng ngôn ngữ (ROUGE-1, ROUGE-2, ROUGE-L), Token F1 đối với câu trả lời chuẩn và độ trễ đáp ứng của hệ thống (tính bằng mili-giây).
+
+Bên cạnh ba bảng chuyên biệt trên, Bảng~\ref{tab:benchmark_master_summary} cung cấp góc nhìn tổng hợp siêu rút gọn nhằm phục vụ trình bày trực quan trong các phần tóm lược hiệu năng toàn diện của hệ sinh thái CRAM-ABSA.
+
+\begin{table}[htbp]
+\centering
+\caption{Bảng tổng hợp chỉ số cốt lõi của mô hình đề xuất CRAM-ABSA qua cả 3 câu hỏi nghiên cứu (RQ1, RQ2, RQ3).}
+\label{tab:benchmark_master_summary}
+\small
+\begin{tabular}{lcccccc}
+\hline
+\textbf{Mô hình} & \textbf{Acc@0} & \textbf{Macro-MAE} & \textbf{QWK} & \textbf{ROUGE-L} & \textbf{Token F1} & \textbf{Độ trễ (ms)} \\
+\hline
+\textbf{CRAM-ABSA (Proposed)} & --\% & -- & -- & --\% & --\% & -- \\
+\hline
+\end{tabular}
+
+\vspace{2pt}
+\raggedright \footnotesize \textit{Ghi chú:} Bảng tổng hợp siêu rút gọn chống tràn khung bài báo, đồng thời phản ánh đầy đủ năng lực dự báo thứ bậc, sinh phản hồi và tốc độ thực thi.
+\end{table}
 
 \subsection{Thảo luận \& Đóng góp Dự kiến (Discussion \& Expected Implications)}
 \label{subsec:discussion}
