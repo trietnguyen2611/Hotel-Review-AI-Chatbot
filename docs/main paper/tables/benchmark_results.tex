@@ -13,11 +13,11 @@
 \hline
 Multi-Class CE Baseline             & 61.20 & 0.8420 & 36.20 \\
 Standard Ordinal Regression         & 68.40 & 0.5210 & 44.80 \\
-Vanilla Pretrained BART-base        & 45.10 & 1.1250 & 28.50 \\
+Vanilla Pretrained BERT-base        & 48.30 & 1.0520 & 31.40 \\
 \textbf{CRAM-ABSA (Proposed)}       & \textbf{--} & \textbf{--} & \textbf{--} \\
 \hline
 \end{tabular}
 
-\vspace{2pt}
-\raggedright \footnotesize \textit{Ghi chú:} Bảng kết quả được liên kết và cập nhật tự động từ \texttt{benchmark.py}. Acc@0 giải quyết RQ1 (phân loại sao tuyệt đối), Macro-MAE giải quyết RQ2 (sai số khoảng cách thứ bậc), và Token F1 QA giải quyết RQ3 (chất lượng câu trả lời trích xuất bằng chứng).
+\vspace{4pt}
+\raggedright \footnotesize \textit{Ghi chú:} Bảng kết quả được liên kết và cập nhật tự động từ \texttt{benchmark.py}. Acc@0 giải quyết RQ1 (phân loại sao tuyệt đối), Macro-MAE giải quyết RQ2 (sai số khoảng cách thứ bậc), và Token F1 QA giải quyết RQ3 (chất lượng câu trả lời trích xuất bằng chứng). Các giá trị của mô hình đề xuất (\textbf{--}) sẽ được cập nhật tự động ngay khi hoàn tất huấn luyện và đánh giá trên tập kiểm thử độc lập.
 \end{table}

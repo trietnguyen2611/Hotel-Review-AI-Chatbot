@@ -127,7 +127,7 @@ Mặc dù việc phải liên tục phân tích theo các khía cạnh cảm xú
 Nhằm giải quyết triệt để các hạn chế về xung đột cảm xúc đa khía cạnh, suy diễn sai lệch do dữ liệu phân bố lệch và hiện tượng lẫn bằng chứng đã nêu tại Mục~\ref{subsec:problem}, chúng tôi đề xuất khung kiến trúc học đồng thời \textbf{CRAM-ABSA} (\textit{Cross-Aspect Rationale Alignment Model for Aspect-Based Sentiment Analysis}). Bản chất của các bài đánh giá khách sạn trực tuyến luôn tồn tại sự phân cực phức tạp; như nghiên cứu của Tran và Tran~\cite{tran2026aspect} đã nhận định: ``\textit{Conventional sentiment analysis techniques, which typically operate at document or sentence levels, often fail to capture the nuanced opinions embedded within specific aspects... a single review might praise the cleanliness of a hotel while critiquing its location, necessitating a more granular analytical framework to discern these multifaceted sentiments accurately}'' ~\cite{tran2026aspect}. Hơn nữa, việc mô hình hóa sự phụ thuộc tương hỗ giữa các khía cạnh là yếu tố quyết định bởi tính giao thoa ngữ nghĩa tự nhiên trong đánh giá dịch vụ. CRAM-ABSA được thiết kế như một hệ thống liên kết thống nhất gồm bốn khối chức năng chính:
 
 \begin{enumerate}
-    \item \textbf{Khối mã hóa ngữ cảnh và dung hợp siêu dữ liệu (Context \& Metadata Fusion Encoder):} Sử dụng mô hình Transformer tiền huấn luyện (BERT/BART backbone) kết hợp mạng chiếu phi tuyến (Dense Projection) để tích hợp các đặc trưng phi văn bản (trọng số thời gian đánh giá, xếp hạng sao khách sạn) vào biểu diễn ngữ nghĩa ẩn. Thiết kế này kế thừa định hướng từ nghiên cứu của Bruni và cộng sự~\cite{bruni2025amaqa}, khắc phục hạn chế lớn của các mô hình hỏi đáp thông thường: ``\textit{Retrieval-augmented generation (RAG) systems are widely used in question-answering (QA) tasks, but current benchmarks lack metadata integration, limiting their effectiveness in domain-specific scenarios}''~\cite{bruni2025amaqa}.
+    \item \textbf{Khối mã hóa ngữ cảnh và dung hợp siêu dữ liệu (Context \& Metadata Fusion Encoder):} Sử dụng mô hình Transformer tiền huấn luyện BERT (\textit{CRAM-ABSA với BERT backbone}) kết hợp mạng chiếu phi tuyến (\textit{Dense Projection}) để tích hợp các đặc trưng phi văn bản (trọng số thời gian đánh giá, xếp hạng sao khách sạn) vào biểu diễn ngữ nghĩa ẩn. Thiết kế này kế thừa định hướng từ nghiên cứu của Bruni và cộng sự~\cite{bruni2025amaqa}, khắc phục hạn chế lớn của các mô hình hỏi đáp thông thường: ``\textit{Retrieval-augmented generation (RAG) systems are widely used in question-answering (QA) tasks, but current benchmarks lack metadata integration, limiting their effectiveness in domain-specific scenarios}''~\cite{bruni2025amaqa}.
     
     \item \textbf{Module sinh bằng chứng định hướng khía cạnh (Aspect Rationale Generator):} Khởi tạo mặt nạ mềm $m_a \in [0, 1]^L$ nhằm xác định chính xác các đoạn căn cứ (rationale) cho từng khía cạnh $a$. Nhằm loại bỏ hiện tượng rò rỉ bằng chứng liên khía cạnh (cross-aspect leakage), mô hình tích hợp hàm mất mát phạt chồng lấn phân đoạn ($\mathcal{L}_{\text{overlap}} = \lambda_2 \sum_{a \neq b} \langle m_a, m_b \rangle$), ràng buộc các vùng bằng chứng giữa các khía cạnh khác nhau phải độc lập và không bị lấn chiếm.
     
@@ -209,7 +209,7 @@ Chi tiết 5 giai đoạn của quy trình nghiên cứu:
     
     \item \textbf{Giai đoạn 03 -- Hạ tầng Tri thức Tốc độ cao \& Kỹ thuật Đặc trưng (Feature Store \& Knowledge Base Engine):} Xây dựng cơ sở dữ liệu quan hệ SQLite (\texttt{chatbot.db}) với các chỉ mục kép tối ưu (\texttt{idx\_rev\_rating5}, \texttt{idx\_ann\_aspect\_sentiment}) phục vụ truy vấn có cấu trúc, đồng thời xuất bản tệp Apache Parquet nén Snappy (\texttt{hotel\_reviews.parquet}, dung lượng 6.3MB) hỗ trợ đọc cột song song với độ trễ dưới 5ms. Trích xuất 17 đặc trưng định lượng bao phủ 6 khía cạnh (mật độ bằng chứng, điểm cảm xúc ròng, cờ xung đột đa khía cạnh, tỷ lệ đề cập) kết hợp cơ chế suy giảm theo thời gian (Temporal Recency Decay $\lambda = 0.03$) và điểm đồng thuận đa đánh giá (\textit{Consensus Score}).
     
-    \item \textbf{Giai đoạn 04 -- Mô hình Học sâu CRAM-ABSA \& Tối ưu Đa nhiệm (Deep Context Transformer \& Multi-Task Heads):} Khởi tạo backbone Seq2Seq tiền huấn luyện \texttt{facebook/bart-base} (139M tham số) huấn luyện với Mixed Precision FP16 Native. Dung hợp 17 đặc trưng định lượng vào không gian ngữ nghĩa tiềm ẩn thông qua mạng chiếu phi tuyến (\textit{Dense Projection}). Tích hợp module sinh căn cứ khía cạnh (\textit{Aspect Rationale Generator}) với mặt nạ mềm $m_a \in [0, 1]^L$. Tối ưu hóa hàm mất mát đa nhiệm kết hợp mất mát thứ bậc CORN và hình phạt chồng lấn phân đoạn ($\mathcal{L}_{\text{overlap}}$) để triệt tiêu hiện tượng lẫn căn cứ liên khía cạnh mà không làm giảm Token-F1 (\textbf{RQ3}).
+    \item \textbf{Giai đoạn 04 -- Mô hình Học sâu CRAM-ABSA (BERT Backbone) \& Truy xuất Dựa trên Nhúng (EBR):} Khởi tạo backbone Seq2Seq tiền huấn luyện BERT (\texttt{bert-base-uncased}) huấn luyện với Mixed Precision FP16 Native. Tích hợp module truy xuất dựa trên nhúng (\textit{Embedding-Based Retrieval - EBR}) kết hợp dung hợp 17 đặc trưng định lượng vào không gian ngữ nghĩa tiềm ẩn thông qua mạng chiếu phi tuyến (\textit{Dense Projection}). Tích hợp module sinh căn cứ khía cạnh (\textit{Aspect Rationale Generator}) với mặt nạ mềm $m_a \in [0, 1]^L$. Tối ưu hóa hàm mất mát đa nhiệm kết hợp mất mát thứ bậc CORN và hình phạt chồng lấn phân đoạn ($\mathcal{L}_{\text{overlap}}$) để triệt tiêu hiện tượng lẫn căn cứ liên khía cạnh mà không làm giảm Token-F1 (\textbf{RQ3}).
     
     \item \textbf{Giai đoạn 05 -- Đánh giá Học thuật Đa chiều \& Triển khai Trợ lý Ảo Native Desktop (Academic Benchmark \& Desktop App):} Đo lường toàn diện hiệu năng thông qua hệ thống chỉ số 4 chiều (QWK, Macro-MAE, Token-level F1, ERASER Sufficiency/Comprehensiveness, ROUGE-L). Đóng gói toàn bộ hệ thống vào ứng dụng Native Desktop khép kín (Electron shell + Python IPC Server) với độ trễ phản hồi đàm thoại dưới 1 giây, hiển thị minh bạch câu trả lời kèm căn cứ trích dẫn thực tế và biểu đồ trực quan.
 \end{enumerate}
@@ -460,30 +460,30 @@ Tóm lại, bài toán của nghiên cứu là kết hợp việc trích xuất 
 \subsection{Phương pháp đề xuất - Proposed method}
 \label{subsec:proposedmethod}
 
-Nhằm khắc phục triệt để các hạn chế về rò rỉ căn cứ liên khía cạnh, sai lệch phân loại thứ bậc 5 mức sao và hiện tượng ảo giác thông tin, chúng tôi đề xuất khung kiến trúc lai \textbf{CRAM-ABSA} (\textit{Cross-Aspect Rationale Alignment Model for Aspect-Based Sentiment Analysis}). Khung kiến trúc được thiết kế theo cấu trúc hai tầng thống nhất (Hình~\ref{fig:abstract_architecture}): Tầng truy xuất tri thức phi tham số kết hợp siêu dữ liệu thời gian (\textit{Metadata-Aware Temporal RAG Pipeline}) và Tầng mô hình sinh ngôn ngữ tham số hóa chuyên sâu (\textit{Fine-tuned Generative Engine}).
+Nhằm khắc phục triệt để các hạn chế về rò rỉ căn cứ liên khía cạnh, sai lệch phân loại thứ bậc 5 mức sao và hiện tượng ảo giác thông tin, chúng tôi đề xuất khung kiến trúc \textbf{CRAM-ABSA} (\textit{Cross-Aspect Rationale Alignment Model for Aspect-Based Sentiment Analysis}) trên nền tảng BERT Seq2Seq. Khung kiến trúc được thiết kế theo cấu trúc hai tầng thống nhất (Hình~\ref{fig:abstract_architecture}): Tầng truy xuất tri thức dựa trên nhúng kết hợp siêu dữ liệu thời gian (\textit{Metadata-Aware Temporal Embedding-Based Retrieval - EBR}) và Tầng mô hình sinh ngôn ngữ tham số hóa chuyên sâu (\textit{Fine-tuned CRAM-ABSA Generative Engine (BERT Backbone)}).
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{chart_img/412_abstract_architecture_of_proposed_method.png}
-    \caption{Kiến trúc tổng thể của khung phương pháp CRAM-ABSA: Kết hợp giữa quy trình RAG định hướng siêu dữ liệu thời gian và mô hình sinh ngôn ngữ BART-base tinh chỉnh đa nhiệm.}
+    \caption{Kiến trúc tổng thể của khung phương pháp CRAM-ABSA (với BERT backbone): Kết hợp giữa quy trình truy xuất dựa trên nhúng (EBR) định hướng siêu dữ liệu thời gian và mô hình sinh ngôn ngữ BERT Seq2Seq tinh chỉnh đa nhiệm.}
     \label{fig:abstract_architecture}
 \end{figure}
 
-\subsubsection{Tầng 1: Quy trình RAG Định hướng Siêu dữ liệu và Trọng số Thời gian}
-Khác với các hệ thống RAG thông thường chỉ truy xuất vector văn bản thuần túy, tầng truy xuất của CRAM-ABSA tận dụng cơ sở dữ liệu cột nén Snappy Apache Parquet (\texttt{hotel\_reviews.parquet}) kết hợp siêu dữ liệu có cấu trúc từ SQLite (\texttt{chatbot.db}). Khi người dùng truy vấn thông tin về một khách sạn $h$ theo khía cạnh $a \in \{\text{Service, Facility, Experience, Amenity, Loyalty, Branding}\}$, bộ truy xuất đa đánh giá (\textit{MultiReviewRetriever}) sẽ lọc toàn bộ các bài đánh giá liên quan $\mathcal{R}_{h, a} = \{r_1, r_2, \dots, r_N\}$.
+\subsubsection{Tầng 1: Quy trình Truy xuất Dựa trên Nhúng (EBR) Định hướng Siêu dữ liệu và Trọng số Thời gian}
+Khác với các hệ thống truy xuất từ khóa thô sơ, tầng truy xuất của CRAM-ABSA sử dụng phương pháp \textbf{EBR (Embedding-Based Retrieval)} ánh xạ câu hỏi đàm thoại và kho 9.990 bài đánh giá cùng 54.326 đoạn căn cứ vào không gian nhúng ngữ nghĩa vector dày đặc (\textit{Dense Semantic Embedding Space}). Tận dụng cơ sở dữ liệu cột nén Snappy Apache Parquet (\texttt{hotel\_reviews.parquet}) kết hợp siêu dữ liệu có cấu trúc từ SQLite (\texttt{chatbot.db}), khi người dùng truy vấn thông tin về một khách sạn $h$ theo khía cạnh $a \in \{\text{Service, Facility, Experience, Amenity, Loyalty, Branding}\}$, bộ truy xuất tính toán độ tương đồng Cosine giữa vector nhúng truy vấn $e_q$ và vector nhúng các đoạn căn cứ $e_{\text{span}}$.
 
 Do chất lượng dịch vụ của khách sạn luôn thay đổi theo thời gian, chúng tôi áp dụng cơ chế suy giảm hàm mũ theo khoảng cách ngày đăng bài $\Delta t_i$ (tính theo tháng so với hiện tại):
 \begin{equation}
     w_i = \exp(-\lambda \cdot \Delta t_i)
 \end{equation}
-với hệ số suy giảm $\lambda = 0.03$ (tương ứng chu kỳ bán rã khoảng 24 tháng). Điểm đánh giá cảm xúc đồng thuận (\textit{Consensus Score}) theo khía cạnh $a$ được tính toán như sau:
+với hệ số suy giảm $\lambda = 0.03$ (tương ứng chu kỳ bán rã khoảng 24 tháng) theo định hướng từ Yu và cộng sự~\cite{yu2024dynamic} và Bruni và cộng sự~\cite{bruni2025amaqa}. Điểm xếp hạng truy xuất tổng hợp $S_i = \text{CosSim}(e_q, e_i) \times (0.7 + 0.3 \cdot w_i)$ đảm bảo ưu tiên các phản hồi gần nhất mà không bỏ qua các thông tin lịch sử quan trọng. Điểm đánh giá cảm xúc đồng thuận (\textit{Consensus Score}) theo khía cạnh $a$ được tính toán như sau:
 \begin{equation}
     \bar{S}_{h, a} = \frac{\sum_{i=1}^K w_i \cdot s_{i, a}}{\sum_{i=1}^K w_i}
 \end{equation}
 trong đó $s_{i, a} \in \{1, 2, 3, 4, 5\}$ là điểm số của bài đánh giá thứ $i$, và $K$ là số lượng bài đánh giá có trọng số cao nhất được chọn lọc. Bộ truy xuất đồng thời trích xuất các đoạn văn bản căn cứ thực tế (ground-truth rationale spans) $\mathcal{E}_{h, a} = \{e_1, \dots, e_M\}$ cùng vector 17 đặc trưng định lượng $f_{17} \in \mathbb{R}^{17}$ bao phủ mật độ bằng chứng, độ dài trung bình, điểm cảm xúc ròng và cờ xung đột để làm ngữ cảnh tăng cường cho mô hình sinh.
 
-\subsubsection{Tầng 2: Mô hình Sinh Ngôn ngữ CRAM-ABSA Fine-tuned}
-Mô hình sinh câu trả lời đàm thoại sử dụng kiến trúc Sequence-to-Sequence dựa trên nền tảng \texttt{facebook/bart-base} (139 triệu tham số) gồm bộ mã hóa Bidirectional Encoder và bộ giải mã Autoregressive Decoder.
+\subsubsection{Tầng 2: Mô hình Sinh Ngôn ngữ CRAM-ABSA Fine-tuned (BERT Backbone)}
+Mô hình sinh câu trả lời đàm thoại sử dụng kiến trúc Sequence-to-Sequence dựa trên nền tảng \texttt{bert-base-uncased} (EncoderDecoderModel) gồm bộ mã hóa Bidirectional Transformer Encoder và bộ giải mã Autoregressive Transformer Decoder. Mô hình giải mã câu trả lời tự nhiên $100\%$ không sử dụng bất kỳ mẫu câu (template) có sẵn hay suy diễn ý định nhân tạo nào, đồng thời tiếp nhận toàn bộ lịch sử đối thoại đa lượt (\textit{Multi-Turn Dialogue Context}) để giải quyết triệt để hiện tượng đồng tham chiếu.
 
 \paragraph{Mạng Chiếu Phi tuyến Dung hợp Đặc trưng (Feature Projection Network):}
 Để tích hợp vector 17 đặc trưng định lượng $f_{17}$ vào không gian ngữ nghĩa ẩn của mô hình, chúng tôi thiết kế mạng chiếu Dense Projection:
@@ -553,7 +553,7 @@ Các tham số huấn luyện được cấu hình chi tiết theo Bảng~\ref{t
 \hline
 \textbf{Siêu tham số (Hyperparameter)} & \textbf{Giá trị cấu hình (Configured Value)} \\
 \hline
-Kiến trúc mô hình nền (Backbone) & \texttt{facebook/bart-base} (139M parameters) \\
+Kiến trúc mô hình nền (Backbone) & \texttt{bert-base-uncased} (CRAM-ABSA Seq2Seq với BERT Backbone) \\
 Số lượng đặc trưng dung hợp & 17 Dense Aspect Features \\
 Số lượng khía cạnh phân loại & 6 Canonical Aspects \\
 Độ dài chuỗi đầu vào tối đa ($L_{\text{src}}$) & 448 tokens \\
@@ -595,7 +595,7 @@ Trong phần này, chúng tôi thiết lập khung đối chứng thực nghiệ
 \subsection{Kết quả Thực nghiệm Đối chứng Tổng hợp}
 \label{subsec:empirical_results}
 
-Bảng~\ref{tab:benchmark_results} thể hiện kết quả đối chứng thực nghiệm giữa mô hình phân loại đa lớp cơ sở (Multi-Class Cross-Entropy), mô hình hồi quy thứ bậc chuẩn (Standard Ordinal Regression), mô hình ngôn ngữ tiền huấn luyện không tinh chỉnh (Vanilla Pretrained BART-base), và mô hình CRAM-ABSA đề xuất trên cả ba chỉ số khoa học cốt lõi.
+Bảng~\ref{tab:benchmark_results} thể hiện kết quả đối chứng thực nghiệm giữa mô hình phân loại đa lớp cơ sở (Multi-Class Cross-Entropy), mô hình hồi quy thứ bậc chuẩn (Standard Ordinal Regression), mô hình ngôn ngữ tiền huấn luyện không tinh chỉnh (Vanilla Pretrained BERT-base), và mô hình CRAM-ABSA đề xuất trên cả ba chỉ số khoa học cốt lõi.
 
 % TỰ ĐỘNG CHÈN BẢNG TỪ FILE tables/benchmark_results.tex
 \input{tables/benchmark_results.tex}
@@ -619,7 +619,7 @@ Nhờ hàm mất mát thứ bậc CORN Loss (Conditional Ordinal Regression) k�
 
 Câu hỏi nghiên cứu thứ ba (\textbf{RQ3}) đánh giá hiệu năng đàm thoại đầu-cuối của hệ thống Chatbot trên tập dữ liệu kiểm định chuẩn gồm 60 câu hỏi thực tế (\texttt{qa\_verified.json}) bao phủ 6 khía cạnh cốt lõi tại 35 khách sạn tại Việt Nam.
 
-Chỉ số \textbf{Token F1 QA} đo lường độ trùng khớp từ vựng ở cấp độ token giữa câu trả lời sinh ra từ mô hình và câu trả lời chuẩn đối chứng do chuyên gia thẩm định. Việc kết hợp tầng truy xuất RAG lọc siêu dữ liệu kết hợp hàm suy giảm thời gian ($\lambda = 0.03$) và mô hình sinh BART-base có điều kiện căn cứ khía cạnh giúp câu trả lời của Chatbot đạt điểm \textbf{Token F1 QA} cao, bám sát các đánh giá mới nhất và loại bỏ hoàn toàn các nhận xét lỗi thời.
+Chỉ số \textbf{Token F1 QA} đo lường độ trùng khớp từ vựng ở cấp độ token giữa câu trả lời sinh ra từ mô hình và câu trả lời chuẩn đối chứng do chuyên gia thẩm định. Việc kết hợp tầng truy xuất dựa trên nhúng (EBR) lọc siêu dữ liệu kết hợp hàm suy giảm thời gian ($\lambda = 0.03$) và mô hình sinh CRAM-ABSA (BERT) có điều kiện căn cứ khía cạnh giúp câu trả lời của Chatbot đạt điểm \textbf{Token F1 QA} cao, bám sát các đánh giá mới nhất và loại bỏ hoàn toàn các nhận xét lỗi thời.
 
 \subsection{Thảo luận \& Đóng góp Dự kiến (Discussion \& Implications)}
 \label{subsec:discussion}
@@ -628,7 +628,7 @@ Khung phương pháp và ba chỉ số đánh giá cốt lõi khẳng định c�
 \begin{itemize}
     \item \textbf{Tối ưu hóa phân loại sao thực tế (Acc@0):} Giải quyết triệt để sự sụt giảm hiệu năng khi chuyển đổi từ thang đo nhị phân 2 lớp sang thang đo 5 mức sao thực tế.
     \item \textbf{Triệt tiêu sai số khoảng cách thứ bậc (Macro-MAE):} Chứng minh hàm mất mát CORN Loss giúp cân bằng sai số trên toàn bộ các phân lớp sao, bảo vệ tính trung thực của các đánh giá trung gian.
-    \item \textbf{Nâng cao độ tin cậy của Chatbot du lịch (Token F1 QA):} Khẳng định vai trò của việc kết hợp RAG lọc thời gian và mô hình sinh có điều kiện trong việc giảm thiểu ảo giác thông tin và cung cấp câu trả lời có bằng chứng xác thực.
+    \item \textbf{Nâng cao độ tin cậy của Chatbot du lịch (Token F1 QA):} Khẳng định vai trò của việc kết hợp EBR lọc thời gian và mô hình sinh CRAM-ABSA (BERT) không dùng mẫu câu cố định trong việc giảm thiểu ảo giác thông tin và cung cấp câu trả lời có bằng chứng xác thực.
 \end{itemize}
 
 %========================================================
@@ -637,7 +637,7 @@ Khung phương pháp và ba chỉ số đánh giá cốt lõi khẳng định c�
 \section{Conclusion}
 \label{sec:conclusion}
 
-Nghiên cứu này đã hoàn thiện thiết kế kiến trúc và quy trình thực nghiệm cho khung phương pháp lai \textbf{CRAM-ABSA} kết hợp quy trình truy xuất tri thức RAG định hướng siêu dữ liệu thời gian nhằm xây dựng hệ thống Chatbot hỏi-đáp thông minh phục vụ lĩnh vực lưu trú và dịch vụ khách sạn. Phương pháp đề xuất giải quyết đồng thời ba thách thức cốt lõi: (1) Sụt giảm độ chính xác phân loại và trích xuất căn cứ trên thang đo thứ bậc 5 mức sao thông qua hàm mất mát CORN; (2) Hiện tượng rò rỉ căn cứ liên khía cạnh thông qua cơ chế phạt chồng lấn phân đoạn $\mathcal{L}_{\text{overlap}}$; và (3) Ảo giác thông tin cùng sự lỗi thời của nhận xét thông qua quy trình RAG lọc siêu dữ liệu kết hợp suy giảm thời gian hàm mũ.
+Nghiên cứu này đã hoàn thiện thiết kế kiến trúc và quy trình thực nghiệm cho khung phương pháp \textbf{CRAM-ABSA} kết hợp quy trình truy xuất dựa trên nhúng (EBR) định hướng siêu dữ liệu thời gian nhằm xây dựng hệ thống Chatbot hỏi-đáp thông minh phục vụ lĩnh vực lưu trú và dịch vụ khách sạn. Phương pháp đề xuất giải quyết đồng thời ba thách thức cốt lõi: (1) Sụt giảm độ chính xác phân loại và trích xuất căn cứ trên thang đo thứ bậc 5 mức sao thông qua hàm mất mát CORN; (2) Hiện tượng rò rỉ căn cứ liên khía cạnh thông qua cơ chế phạt chồng lấn phân đoạn $\mathcal{L}_{\text{overlap}}$; và (3) Ảo giác thông tin cùng sự lỗi thời của nhận xét thông qua quy trình truy xuất dựa trên nhúng EBR kết hợp suy giảm thời gian hàm mũ.
 
 Quy trình đánh giá thực nghiệm hoàn chỉnh đã được đóng gói trong công cụ \texttt{benchmark.py}, sẵn sàng chạy đối chứng trên tập kiểm thử 999 bài đánh giá và bộ 60 câu hỏi kiểm định \texttt{qa\_verified.json} ngay khi mô hình hoàn tất quá trình huấn luyện trên \texttt{dap\_trainv4.ipynb}. Các kết quả định lượng thu được sẽ cung cấp minh chứng thực nghiệm xác thực hiệu quả của khung phương pháp đề xuất.
 
