@@ -1645,6 +1645,7 @@ class ConversationalQABot:
                 neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=ctx, aspect_id=asp_id)
 
                 # Pure 100% natural neural generation - zero template overrides
+                is_fallback = not bool(neural_ans)
                 if not neural_ans:
                     neural_ans = f"Regarding {aspect.lower()} at {h_name}, verified guest reviews report an average rating of {avg_score:.1f}/5.0 stars."
 
@@ -1678,7 +1679,11 @@ class ConversationalQABot:
                     "photo_url": matched_hotel.get('photo_url') or get_hotel_image_url(h_name, matched_hotel.get('location', ''), addr),
                     "original_reviews": original_reviews_data,
                     "citations": original_reviews_data,
-                    "context_applied": was_coref
+                    "context_applied": was_coref,
+                    "model_name": getattr(self.pipeline, 'active_model_name', 'model_v4'),
+                    "model_type": getattr(self.pipeline, 'model_type', 'seq2seq'),
+                    "inference_mode": "fallback_template" if is_fallback else "neural_generation",
+                    "prompt_used": prompt
                 }
 
                 state.history.append({"user": user_query, "bot": neural_ans})
@@ -1714,6 +1719,7 @@ class ConversationalQABot:
                 prompt = f"User Inquiry: {clean_q} | Target Aspect: Experience | Verified Context: Recommended hotel properties: {ctx}"
 
                 neural_ans = self.pipeline.generate(clean_q if self.pipeline.model_type == 'extractive_bert' else prompt, context_text=ctx)
+                is_fallback = not bool(neural_ans)
                 if not neural_ans:
                     neural_ans = f"Based on verified guest reviews, recommended accommodations include {top_h.get('hotel_name')} ({top_h.get('star', 'Standard')}) in {top_h.get('location', 'Vietnam')}, rated {top_h.get('score', 4.0):.1f}/5.0 stars."
 
@@ -1732,7 +1738,11 @@ class ConversationalQABot:
                     "photo_url": top_h.get('photo_url') or get_hotel_image_url(top_h.get('hotel_name', ''), top_h.get('location', ''), top_h.get('hotel_address', '')),
                     "original_reviews": orig_revs,
                     "citations": orig_revs,
-                    "context_applied": False
+                    "context_applied": False,
+                    "model_name": getattr(self.pipeline, 'active_model_name', 'model_v4'),
+                    "model_type": getattr(self.pipeline, 'model_type', 'seq2seq'),
+                    "inference_mode": "fallback_template" if is_fallback else "neural_generation",
+                    "prompt_used": prompt
                 }
                 state.history.append({"user": user_query, "bot": neural_ans})
                 return response_payload
@@ -1742,6 +1752,7 @@ class ConversationalQABot:
             # ------------------------------------------------------------------
             prompt = f"User Inquiry: {clean_q} | Target Aspect: Experience | Verified Context: AI Concierge Assistant for Vietnam Hotels and Accommodations"
             neural_ans = self.pipeline.generate(prompt)
+            is_fallback = not bool(neural_ans)
             if not neural_ans:
                 neural_ans = "Hello, I am your AI assistant specializing in hotel reviews, service quality, and accommodations across Vietnam. How can I help you today?"
 
@@ -1759,7 +1770,11 @@ class ConversationalQABot:
                 "maps_card": None,
                 "original_reviews": [],
                 "citations": [],
-                "context_applied": False
+                "context_applied": False,
+                "model_name": getattr(self.pipeline, 'active_model_name', 'model_v4'),
+                "model_type": getattr(self.pipeline, 'model_type', 'seq2seq'),
+                "inference_mode": "fallback_template" if is_fallback else "neural_generation",
+                "prompt_used": prompt
             }
             state.history.append({"user": user_query, "bot": neural_ans})
             return response_payload
@@ -1880,6 +1895,35 @@ class QAChatHandler(BaseHTTPRequestHandler):
                     'model_loaded': BOT.pipeline.loaded_successfully if BOT and BOT.pipeline else False,
                     'active_model': active_m
                 }).encode('utf-8'))
+            return
+
+        if parsed.path == '/api/session-debug':
+            query_params = urllib.parse.parse_qs(parsed.query)
+            s_id = query_params.get('session_id', [''])[0].strip()
+            session_data = {}
+            if BOT and hasattr(BOT, 'sessions') and s_id:
+                st = BOT.sessions.get_session(s_id)
+                if st:
+                    with st.lock:
+                        session_data = {
+                            'session_id': s_id,
+                            'current_hotel': st.current_hotel.get('hotel_name') if st.current_hotel else None,
+                            'last_aspect': st.last_aspect,
+                            'history_turns': len(st.history),
+                            'history': list(st.history)
+                        }
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self._send_cors_headers()
+            self.end_headers()
+            if not head_only:
+                self.wfile.write(json.dumps({
+                    'status': 'ok',
+                    'session': session_data,
+                    'active_model': getattr(BOT.pipeline, 'active_model_name', None) if BOT and BOT.pipeline else None,
+                    'model_type': getattr(BOT.pipeline, 'model_type', None) if BOT and BOT.pipeline else None,
+                    'database_size': len(HOTEL_DATABASE)
+                }, ensure_ascii=False).encode('utf-8'))
             return
 
         if parsed.path == '/api/models':
