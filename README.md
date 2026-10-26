@@ -68,8 +68,9 @@ Hotel-Review-AI-Chatbot/
 │       ├── tokenizer.json                # Bộ mã hóa từ vựng (BPE Tokenizer)
 │       └── model_metadata.json           # Lịch sử huấn luyện & tham số kỹ thuật
 │
-├── Project.ipynb                         # Notebook phân tích khám phá (EDA) & xuất dữ liệu
-├── Training_Kaggle.ipynb                 # Notebook huấn luyện mô hình Seq2Seq trên Kaggle GPU
+├── Project.ipynb                         # Notebook phân tích khám phá (EDA) & tiền xử lý đa nhiệm CRAM-ABSA
+├── dap_trainv4.ipynb                     # Notebook huấn luyện mô hình CRAM-ABSA (BART + CORN Loss) trên Kaggle GPU
+├── benchmark.ipynb                       # Notebook tự động kiểm thử định lượng RQ1, RQ2, RQ3 & xuất bảng LaTeX
 ├── requirements.txt                      # Danh sách các thư viện Python cần thiết
 └── README.md                             # Hướng dẫn tổng quan dự án
 ```
@@ -147,7 +148,8 @@ Tệp cài đặt sau khi đóng gói sẽ được tạo trong thư mục `rele
   3. Làm sạch dữ liệu, xử lý nhiễu, chuẩn hóa nhãn đa khía cạnh (Multi-Aspect Cleaning).
   4. Trực quan hóa dữ liệu EDA chuyên sâu (12 biểu đồ khoa học lưu tại `data/chart_img/`).
   5. Trích xuất đặc trưng dense feature và xuất dữ liệu ra định dạng Parquet Snappy thống nhất.
-- **[Training_Kaggle.ipynb](file:///Users/trietnguyen/Documents/DAP-Hotel/Training_Kaggle.ipynb)**: Huấn luyện mô hình học máy sinh văn bản (BART Seq2Seq) tối ưu hóa hàm mất mát đa nhiệm, đánh giá trên tập Test set với các chỉ số Perplexity, Token F1, ROUGE-L và xuất mô hình chuẩn hóa về thư mục `model/model_v3`.
+- **[dap_trainv4.ipynb](file:///Users/trietnguyen/Documents/DAP-Hotel/dap_trainv4.ipynb)**: Huấn luyện mô hình học sâu sinh văn bản CRAM-ABSA (facebook/bart-base) tối ưu hóa hàm mất mát liên hợp (CORN Ordinal Loss + Overlap Penalty $\mathcal{L}_{\text{overlap}}$ + Auxiliary Loss), hỗ trợ Mixed Precision FP16 Native trên Kaggle GPU Dual T4.
+- **[benchmark.ipynb](file:///Users/trietnguyen/Documents/DAP-Hotel/benchmark.ipynb)**: Bộ kiểm thử độc lập đánh giá định lượng 3 câu hỏi nghiên cứu (RQ1, RQ2, RQ3), tự động tính toán QWK, Macro-MAE, Rationale Token F1, ROUGE-L và xuất mã nguồn bảng LaTeX trực tiếp cho bài báo khoa học.
 
 ---
 

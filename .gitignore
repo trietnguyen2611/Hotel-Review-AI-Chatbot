@@ -51,14 +51,25 @@ ENV/
 .Spotlight-V100
 .Trashes
 
+# LaTeX Build Artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.synctex.gz
+*.fdb_latexmk
+*.fls
 
 .agents/
 node_modules/
 release/
 
 model/
+model_v*/
+hotel_aspect_qa_bart_engine/
 # Large Model Checkpoints
 *.pt
 *.bin
 *.safetensors
-model/

@@ -15,7 +15,8 @@
 \usepackage{amsthm}
 \usepackage{mathrsfs}
 \usepackage{newunicodechar}
-\newunicodechar{ℒ}{\mathcal{L}}
+\newunicodechar{ℒ}{\ensuremath{\mathcal{L}}}
+\newunicodechar{★}{\ensuremath{\star}}
 \usepackage[title]{appendix}
 \usepackage{xcolor}
 \usepackage{textcomp}
@@ -302,7 +303,7 @@ Phân bố dữ liệu trải nghiệm khách sạn tại các thành phố lớ
     \centering
     \includegraphics[width=0.8\linewidth]{chart_img/42_top10_hotels_highest_reviews.png}
     \caption{Top 10 khách sạn có nhiều review nhất.}
-    \label{fig:placeholder}
+    \label{fig:top10_hotels}
 \end{figure}
 
 Mỗi bài đánh giác có độ dài các ký tự thường trong khoản 450 đến 451 ký tự cho mỗi bài (khoảng 82 từ), trong khi độ dài trung bình là 398 ký tự với 72 từ. Các bài đánh giá thường dài từ 177 đến 847 ký tự, tường đương cới 30 đến hơn 150 từ.
@@ -313,14 +314,14 @@ Các đánh giá thường sẽ dài hơn khi nhận đánh giá 1 sao với tru
     \centering
     \includegraphics[width=0.8\linewidth]{chart_img/32_review_text_length_distribution.png}
     \caption{Phân bố độ dài của review}
-    \label{fig:placeholder}
+    \label{fig:review_len_dist}
 \end{figure}
 
 \begin{figure}
     \centering
     \includegraphics[width=0.8\linewidth]{chart_img/48_review_wordcount_by_star.png}
     \caption{Phân bố của đánh giá}
-    \label{fig:placeholder}
+    \label{fig:wordcount_by_star}
 \end{figure}
 
 Tần suất của sáu khái cạnh được phân bố rất lệch nhau. Service chiếm 19.289 đoạn bằng chứng (35,5\%), tiếp theo là Facility (12.641; 23,3\%), Experience (9.113; 16,\%) và Amenity (7.651; 14,1\%). Loyalty (4.293; 7,9\%) và Branding (1.339; 2,5\%) hiếm hơn nhiều, Service nhiều hơn Branding khoảng 14 lần. Tính theo số bài, Service xuất hiện trong 9.128 review (91,4\%), Facility trong 7.459 (74,7\%), Experience 6.029 (60,4\%), Amenity 5.648 (56,5\%), Loyalty 3.970 (39,7\%) và Branding chỉ 1.207 (12,1\%). Branding khan hiếm nên có thể là khía cạnh khó học nhất.
@@ -329,7 +330,7 @@ Tần suất của sáu khái cạnh được phân bố rất lệch nhau. Serv
     \centering
     \includegraphics[width=0.8\linewidth]{chart_img/43_aspect_frequency_distribution.png}
     \caption{Tần suất xuất hiện của các khía cạnh:}
-    \label{fig:placeholder}
+    \label{fig:aspect_freq_dist}
 \end{figure}
 
 Cảm xúc được phần theo các khía cạnh sẽ có khác biệt rất lớn, đa số trong đó khía cạnh trong đó Loyalty có tỷ lệ tích cực cao nhất (93\%), tiếp theo là Service (89,6\%) và Amenity (89\%). Facility thấp nhất với 78,2\% tích cực và 12,9\% tiêu cực (1.628 đoạn). Service có 6,4\% tiêu cực, Experience có 9,6\%, trong khi Branding có tỷ lệ tiêu cực khoảng 17\% nhưng số lượng dữ liệu ít hơn. Nhìn chung thì cảm xúc tiêu cực thường tập trung nhiều hơn ở facility.
@@ -338,7 +339,7 @@ Cảm xúc được phần theo các khía cạnh sẽ có khác biệt rất l�
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/44_aspect_sentiment_breakdown.png}
     \caption{Tỷ lệ cảm xúc}
-    \label{fig:placeholder}
+    \label{fig:aspect_sent_breakdown}
 \end{figure}
 
 Số khía cạnh của mỗi bài review, phần lớn bố chủ yếu từ 3 đến 4 khía cạnh, lần lượt chiểm35\% và 33,5\%. Trung bình mỗi bài đánh giá thường có hơn 3 khía cạnh, dễ dàng thấy là trong mỗi bài review thường sẽ có nhiều nội dung khác nhau trong một bài. Vì vậy việc mô hình phải xác định được cảm xúc của từng khía cạnh thay vì chỉ gán một nhãn chung cho toàn bộ bài đánh giá.
@@ -347,7 +348,7 @@ Số khía cạnh của mỗi bài review, phần lớn bố chủ yếu từ 3 
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/410_aspects_per_review_distribution.png}
     \caption{Số khía cạnh được đề cập trên mỗi bài: }
-    \label{fig:placeholder}
+    \label{fig:aspects_per_review}
 \end{figure}
 
 Song song với việc đó thì bằng chứng cũng là điều kiện để đảm bảo uy tín, cũng như tính nhiệm của người dùng cho hệ thống. Các đoạn bằng chúng thường sẽ độ dài khoản 63-74 ký tụ, chiếm khoản hơn 14\% độ dài của bài review. Review 1 sao thường có đoạn bằng chứng dài hơn review 5 sao. Theo các khía cạnh thì Branding, Amenity và Service có đoạn dài hơn, trong khi Loyalty ngắn nhất. Việc phải đánh giá và phân tích sẽ bị phần nào ảnh hưởng khi phải phân tích độ chính xác mà có sự khách biệt về độ dài như trên.
@@ -356,7 +357,7 @@ Song song với việc đó thì bằng chứng cũng là điều kiện để �
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/45_rationale_length_by_aspect.png}
     \caption{Phân bố độ dài đoạn bằng chứng theo khía cạnh: }
-    \label{fig:placeholder}
+    \label{fig:rationale_len_aspect}
 \end{figure}
 
 Các khía cạnh thường sẽ xuất hiện khách nhau trong cùng một bài review. Phổ biến nhất là Facility–Service (6.932 bài), tiếp theo là Experience–Service (5.512 bài) và Amenity–Service (5.224 bài). Service thường đi cùng các khía cạnh khác trong bài, trong khi đó Branding xuất hiện cùng các khía cạnh khác sẽ ít đi rất nhiều.
@@ -365,7 +366,7 @@ Các khía cạnh thường sẽ xuất hiện khách nhau trong cùng một bà
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/46_aspect_cooccurrence_matrix.png}
     \caption{ Ma trận đồng xuất hiện giữa các khía cạnh: }
-    \label{fig:placeholder}
+    \label{fig:aspect_cooccurrence}
 \end{figure}
 
 Một bài review sẽ thường là khen khía cạnh này và sẽ chê đi một khía cạnh nào đó khác. Trường hợp thường được thấy nhiều nhất là Service tích cực nhưng Facility tiêu cực (640 bài), tiếp theo là Amenity tích cực nhưng Facility tiêu cực (480 bài). Đây chỉ là phần nhỏ trong bài review, cung cho thấy là khách hàng sẽ chê sẽ có hài lòng về dịch như có thể chưa hài lòng về cơ sở vật chất, đồng thời làm nổi bật lên cho bài toán khi mà có sự xung đột về mặt cảm xúc như vậy mà chúng tôi đã dùng CRAM-ABSA hướng tới (RQ2).
@@ -374,7 +375,7 @@ Một bài review sẽ thường là khen khía cạnh này và sẽ chê đi m�
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/47_sentiment_divergence_rate.png}
     \caption{Ma trận phân kỳ cảm xúc (khía cạnh A tích cực, khía cạnh B tiêu cực): }
-    \label{fig:placeholder}
+    \label{fig:sentiment_divergence_eda}
 \end{figure}
 
 Trong hơn 54.000 đoạn chú thíc, chỉ có 8 trường hợp chồng lần giữa các khía cạnh. Cho thấy các đoạn bằng chứng khi phân tích trong dữ liệu hầu như không bị trùng lập. Nên là việc có sự nhầm lẫn bằng chứng giữa các khía cạnh chủ yêu sẽ là phát sinh từ trong quá trình dự đoán của mô hình, thay vì dữ liệu đã được gán nhãn chuẩn.
@@ -383,7 +384,7 @@ Trong hơn 54.000 đoạn chú thíc, chỉ có 8 trường hợp chồng lần 
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/49_cross_aspect_span_overlap.png}
     \caption{Số trường hợp chồng lấn tọa độ giữa các khía cạnh: }
-    \label{fig:placeholder}
+    \label{fig:cross_aspect_span_overlap_eda}
 \end{figure}
 
 F. Lưu trữ và truy vấn dữ liệu.
@@ -599,14 +600,123 @@ Bộ dữ liệu gồm 9,990 bài đánh giá và 54,326 đoạn chú thích đ�
 %========================================================
 \section{Result \& Discussion}
 \label{sec:resultanddiscussion}
-...
+
+Trong phần này, chúng tôi thiết lập khung đối chứng thực nghiệm và quy chuẩn đánh giá chi tiết nhằm giải quyết trọn vẹn ba câu hỏi nghiên cứu (\textbf{RQ1}, \textbf{RQ2}, và \textbf{RQ3}) đã được đặt ra. Toàn bộ quy trình đánh giá được thiết kế và tự động hóa trong tệp kịch bản kiểm thử độc lập \texttt{benchmark.ipynb}. Kịch bản này được chuẩn bị sẵn sàng để thực thi trên tập kiểm thử giữ kín gồm 999 bài đánh giá (\texttt{hotel\_reviews.parquet}) và tập benchmark kiểm định gồm 60 câu hỏi đàm thoại thực tế (\texttt{qa\_verified.json}) bao phủ đầy đủ 6 khía cạnh dịch vụ cốt lõi tại 35 khách sạn tại Việt Nam ngay sau khi tiến trình huấn luyện mô hình học sâu trên tệp \texttt{dap\_trainv4.ipynb} hoàn tất.
+
+\subsection{Khuôn khổ Đánh giá Phân loại Thứ bậc 5 Mức sao (RQ1)}
+\label{subsec:res_rq1}
+
+Câu hỏi nghiên cứu đầu tiên (\textbf{RQ1}) khảo sát mức độ suy giảm hiệu năng khi chuyển đổi từ bài toán phân loại cảm xúc nhị phân 2 lớp truyền thống (Tích cực / Tiêu cực) sang thang đo thứ bậc 5 mức sao thực tế ($1\star \to 5\star$), đồng thời kiểm chứng giả thuyết liệu sai số có tập trung chủ yếu ở các mức đánh giá trung gian ($2\star \to 4\star$) hay không.
+
+Trong tập dữ liệu kiểm thử thực tế gồm 999 mẫu, sự phân bố số sao phản ánh độ lệch dữ liệu đặc trưng của ngành khách sạn: $71.55\%$ số bài đánh giá thuộc nhóm $5\star$, trong khi các mức sao trung gian ($2\star$, $3\star$, $4\star$) chỉ chiếm tổng cộng $26.12\%$ (24 bài $2\star$, 60 bài $3\star$, và 177 bài $4\star$). Khi sử dụng hàm mất mát phân loại đa lớp thông thường (Multi-Class Cross-Entropy -- CE), mô hình có xu hướng thiên vị nghiêm trọng về lớp đa số ($5\star$), dẫn đến hiện tượng dự đoán sai lệch lớn tại các mức điểm trung gian.
+
+\begin{table*}[htbp]
+\centering
+\caption{Khuôn khổ đối chứng thực nghiệm bài toán phân loại thứ bậc sao (RQ1) trên tập kiểm thử 999 bài đánh giá.}
+\label{tab:benchmark_rq1}
+\small
+\begin{tabular}{lcccccccccc}
+\hline
+\textbf{Phương pháp} & \textbf{Acc@0 (\%)} & \textbf{Acc@1 (\%)} & \textbf{QWK} & \textbf{Macro-F1 (\%)} & \textbf{Macro-MAE} & \textbf{MAE 1$\star$} & \textbf{MAE 2$\star$} & \textbf{MAE 3$\star$} & \textbf{MAE 4$\star$} & \textbf{MAE 5$\star$} \\
+\hline
+Multi-Class CE Baseline & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+Standard Ordinal Regression & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+\textbf{CRAM-ABSA (Proposed)} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
+\hline
+\end{tabular}
+
+\vspace{2pt}
+\raggedright \footnotesize \textit{Ghi chú:} Các chỉ số định lượng chính xác trong bảng này sẽ được trích xuất tự động từ tệp \texttt{benchmark.ipynb} ngay sau khi hoàn tất huấn luyện checkpoint trên \texttt{dap\_trainv4.ipynb}.
+\end{table*}
+
+Bảng~\ref{tab:benchmark_rq1} thiết lập cấu trúc so sánh đối chứng giữa mô hình cơ sở Multi-Class CE, mô hình hồi quy thứ bậc chuẩn, và mô hình CRAM-ABSA đề xuất (sử dụng hàm mất mát CORN Loss có trọng số phạt nghịch đảo tần suất $\omega(y)$). Khi quá trình huấn luyện hoàn tất, các chỉ số Quadratic Weighted Kappa (QWK), Macro-MAE, cùng sai số trên từng mức sao ($1\star \to 5\star$) sẽ được cập nhật trực tiếp nhằm xác thực mức độ cải thiện tại các mức sao trung gian khó phân loại.
+
+Song song đó, kịch bản kiểm thử trong \texttt{benchmark.ipynb} sẽ đo lường độ suy giảm của chỉ số Token-level Rationale F1 khi chuyển đổi từ bài toán nhị phân sang bài toán 5 mức sao, nhằm định lượng mức độ sụt giảm chất lượng căn cứ do ranh giới cảm xúc trung gian gây ra.
+
+\subsection{Khuôn khổ Kiểm chứng Triệt tiêu Rò rỉ Căn cứ Liên khía cạnh (RQ2)}
+\label{subsec:res_rq2}
+
+Câu hỏi nghiên cứu thứ hai (\textbf{RQ2}) tập trung giải quyết bài toán: Liệu cơ chế phạt chồng lấn phân đoạn ($\mathcal{L}_{\text{overlap}}$) có triệt tiêu được hiện tượng lẫn lộn bằng chứng giữa các khía cạnh (\textit{Cross-Aspect Rationale Leakage}) mà không làm suy giảm chất lượng trích xuất câu văn hay không.
+
+\begin{table}[htbp]
+\centering
+\caption{Khuôn khổ khảo sát hiệu quả triệt tiêu rò rỉ căn cứ liên khía cạnh và chất lượng trích xuất rationale (RQ2) trên 6 khía cạnh cốt lõi.}
+\label{tab:benchmark_rq2}
+\small
+\begin{tabular}{lcccc}
+\hline
+\textbf{Khía cạnh (Aspect)} & \textbf{Token F1 (Trước Phạt)} & \textbf{Token F1 (Sau Phạt)} & \textbf{Tỷ lệ Rò rỉ Trước (\%)} & \textbf{Tỷ lệ Rò rỉ Sau (\%)} \\
+\hline
+Service & -- & \textbf{--} & -- & \textbf{--} \\
+Facility & -- & \textbf{--} & -- & \textbf{--} \\
+Experience & -- & \textbf{--} & -- & \textbf{--} \\
+Amenity & -- & \textbf{--} & -- & \textbf{--} \\
+Loyalty & -- & \textbf{--} & -- & \textbf{--} \\
+Branding & -- & \textbf{--} & -- & \textbf{--} \\
+\hline
+\textbf{Trung bình (Macro-Avg)} & -- & \textbf{--} & -- & \textbf{--} \\
+\hline
+\end{tabular}
+
+\vspace{2pt}
+\raggedright \footnotesize \textit{Ghi chú:} Số liệu thực nghiệm đối chứng sẽ được tính toán qua \texttt{benchmark.ipynb} bằng cách so sánh mặt nạ dự đoán $m_a$ trước và sau khi kích hoạt $\mathcal{L}_{\text{overlap}}$.
+\end{table}
+
+Bảng~\ref{tab:benchmark_rq2} định hình ma trận khảo sát trên 6 khía cạnh dịch vụ nhằm đo lường tỷ lệ token rò rỉ và Token-level F1. Thí nghiệm Ablation Study trong \texttt{benchmark.ipynb} sẽ tính toán sự thay đổi của tích vô hướng mặt nạ $\langle m_a, m_b \rangle$ giữa các cặp khía cạnh thường xuyên xung đột (như Service vs. Facility) để chứng minh rằng hình phạt $\mathcal{L}_{\text{overlap}}$ giúp làm sắc nét ranh giới trích xuất mà không làm mất mát ngữ cảnh quan trọng.
+
+\subsection{Khuôn khổ Đánh giá Hệ thống Hỏi-Đáp Khách sạn Thực tế (RQ3)}
+\label{subsec:res_rq3}
+
+Câu hỏi nghiên cứu thứ ba (\textbf{RQ3}) đánh giá hiệu năng đàm thoại đầu-cuối của hệ thống Chatbot trên tập dữ liệu kiểm định chuẩn gồm 60 câu hỏi thực tế (\texttt{qa\_verified.json}). Bộ benchmark này được phân bố cân bằng với 10 câu hỏi độc lập cho mỗi khía cạnh trong số 6 khía cạnh, gắn liền với 35 khách sạn thực tế tại Việt Nam cùng các đoạn bằng chứng chuẩn hóa do chuyên gia thẩm định.
+
+Bốn cấu hình kiến trúc sẽ được đưa vào đối chứng thực nghiệm:
+\begin{enumerate}
+    \item \textbf{Vanilla BART-base (No RAG):} Mô hình ngôn ngữ sinh câu trả lời trực tiếp mà không có ngữ cảnh truy xuất từ đánh giá khách sạn.
+    \item \textbf{Standard Text RAG:} Truy xuất đoạn văn bản thuần túy theo độ tương đồng ngữ nghĩa mà không có thông tin thời gian.
+    \item \textbf{Metadata Recency RAG (Zero-Shot):} Tầng truy xuất định hướng siêu dữ liệu kết hợp hàm suy giảm thời gian ($\lambda = 0.03$), sử dụng mô hình nền chưa tinh chỉnh.
+    \item \textbf{CRAM-ABSA Hybrid (Proposed):} Kiến trúc hoàn chỉnh tích hợp tầng truy xuất RAG lọc thời gian và mô hình sinh BART-base tinh chỉnh đa nhiệm với 17 đặc trưng định lượng.
+\end{enumerate}
+
+\begin{table*}[htbp]
+\centering
+\caption{Khuôn khổ đánh giá chất lượng hội thoại và độ chính xác truy xuất bằng chứng (RQ3) trên bộ 60 câu hỏi kiểm định thực nghiệm.}
+\label{tab:benchmark_rq3}
+\begin{tabular}{lcccccc}
+\hline
+\textbf{Cấu hình Phương pháp} & \textbf{ROUGE-1 (\%)} & \textbf{ROUGE-2 (\%)} & \textbf{ROUGE-L (\%)} & \textbf{Token F1 (\%)} & \textbf{Aspect Acc (\%)} & \textbf{Độ trễ (ms)} \\
+\hline
+Vanilla BART-base (No RAG) & -- & -- & -- & -- & -- & -- \\
+Standard Text RAG (No Time-Weight) & -- & -- & -- & -- & -- & -- \\
+Metadata Recency RAG (Zero-Shot) & -- & -- & -- & -- & -- & -- \\
+\textbf{CRAM-ABSA Hybrid (Proposed)} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
+\hline
+\end{tabular}
+
+\vspace{2pt}
+\raggedright \footnotesize \textit{Ghi chú:} Các chỉ số định lượng của 4 cấu hình và độ trễ thực tế sẽ được điền tự động từ \texttt{benchmark.ipynb}.
+\end{table*}
+
+Bảng~\ref{tab:benchmark_rq3} chuẩn bị sẵn các tiêu chí đánh giá về độ tương đồng ngôn ngữ (ROUGE-1, ROUGE-2, ROUGE-L), Token F1 đối với câu trả lời chuẩn, độ chính xác truy xuất đúng khía cạnh và độ trễ đáp ứng của hệ thống (tính bằng mili-giây).
+
+\subsection{Thảo luận \& Đóng góp Dự kiến (Discussion \& Expected Implications)}
+\label{subsec:discussion}
+
+Khung phương pháp và các thử nghiệm được thiết kế nhằm khẳng định các đóng góp chính:
+\begin{itemize}
+    \item \textbf{Tính khả thi của phân loại thứ bậc 5 mức sao:} Đánh giá toàn diện sự cần thiết của hàm mất mát CORN trong việc giải quyết tình trạng thiên lệch dữ liệu và lỗi phân loại ở các mức sao trung gian.
+    \item \textbf{Giải quyết rò rỉ căn cứ liên khía cạnh:} Chứng minh cơ chế phạt chồng lấn $\mathcal{L}_{\text{overlap}}$ mang lại giải pháp hiệu quả giúp mô hình phân tách rõ ràng bằng chứng giữa các khía cạnh dịch vụ độc lập.
+    \item \textbf{Nâng cao độ tin cậy của Chatbot du lịch:} Khẳng định vai trò của việc kết hợp RAG lọc thời gian ($\lambda=0.03$) và mô hình sinh có điều kiện trong việc giảm thiểu ảo giác thông tin và cung cấp câu trả lời có bằng chứng xác thực.
+\end{itemize}
 
 %========================================================
 % 4. Conclusion
 %========================================================
 \section{Conclusion}
 \label{sec:conclusion}
-...
+
+Nghiên cứu này đã hoàn thiện thiết kế kiến trúc và quy trình thực nghiệm cho khung phương pháp lai \textbf{CRAM-ABSA} kết hợp quy trình truy xuất tri thức RAG định hướng siêu dữ liệu thời gian nhằm xây dựng hệ thống Chatbot hỏi-đáp thông minh phục vụ lĩnh vực lưu trú và dịch vụ khách sạn. Phương pháp đề xuất giải quyết đồng thời ba thách thức cốt lõi: (1) Sụt giảm độ chính xác phân loại và trích xuất căn cứ trên thang đo thứ bậc 5 mức sao thông qua hàm mất mát CORN; (2) Hiện tượng rò rỉ căn cứ liên khía cạnh thông qua cơ chế phạt chồng lấn phân đoạn $\mathcal{L}_{\text{overlap}}$; và (3) Ảo giác thông tin cùng sự lỗi thời của nhận xét thông qua quy trình RAG lọc siêu dữ liệu kết hợp suy giảm thời gian hàm mũ.
+
+Quy trình đánh giá thực nghiệm hoàn chỉnh đã được đóng gói trong tệp \texttt{benchmark.ipynb}, sẵn sàng chạy đối chứng trên tập kiểm thử 999 bài đánh giá và bộ 60 câu hỏi kiểm định \texttt{qa\_verified.json} ngay khi mô hình hoàn tất quá trình huấn luyện trên \texttt{dap\_trainv4.ipynb}. Các kết quả định lượng thu được sẽ cung cấp minh chứng thực nghiệm xác thực hiệu quả của khung phương pháp đề xuất.
 
 %========================================================
 % 5. RESEARCH PLAN
@@ -614,7 +724,71 @@ Bộ dữ liệu gồm 9,990 bài đánh giá và 54,326 đoạn chú thích đ�
 \section{Research Plan}
 \label{sec:plan}
 
+\begin{table*}[t]
+\centering
+\caption{Research Schedule}
+\label{tab:researchplan}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{0.07\textwidth}p{0.18\textwidth}p{0.43\textwidth}p{0.22\textwidth}}
+\toprule
+No. & Date & Task & Output \\
+\midrule
 
+1 &
+07/09/2026--13/09/2026 &
+Form the group, select the research topic, complete Sessions 1 and 2,
+and submit Project Planning &
+Project Planning file \\
+
+2 &
+14/09/2026--20/09/2026 &
+Complete Step 3, read three baseline papers, and draft the Research Proposal &
+Research Proposal Draft \\
+
+3 &
+21/09/2026--27/09/2026 &
+Complete Steps 4 and 5 and submit the Research Proposal &
+Research Proposal \\
+
+4 &
+28/09/2026--04/10/2026 &
+Complete Step 6 and prepare the LaTeX draft &
+LaTeX Draft, Prototype Chatbot \\
+
+5 &
+05/10/2026--11/10/2026 &
+Review 1 and complete Audit Log Round 1 &
+Audit Log 1, Review 1 Report \\
+
+6 &
+12/10/2026--18/10/2026 &
+Revise RQ1 and redo the six-step research process &
+Updated RQ and Pipeline \\
+
+7 &
+19/10/2026--25/10/2026 &
+Review 2, complete Audit Log Round 2, and write Methodology and Discussion &
+Methodology and Discussion Draft, Audit Log Round 2 \\
+
+8 &
+26/10/2026--01/11/2026 &
+Check the code, application, and papers; write the Abstract and Introduction &
+Final Code, Abstract and Introduction Draft \\
+
+9 &
+02/11/2026--08/11/2026 &
+Review 3, complete Audit Log Round 3, and submit the Final Report and Slides &
+Final Report, Slide Presentation \\
+
+10 &
+09/11/2026--15/11/2026 &
+Presentation, demo, Q\&A, and assessment &
+Demo, Q\&A \\
+
+\bottomrule
+\end{tabular}
+\end{table*}
 
 %========================================================
 % REFERENCES

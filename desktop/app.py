@@ -1137,33 +1137,29 @@ class GenerativeQAPipeline:
     def _initialize(self, checkpoint_path: str):
         print(f"Loading Generative Model on {self.device}...")
 
-        # Priority 1: Search for fine-tuned checkpoints in order (v3 BART engine first, then v2, v1)
-        cand_candidates = [
+        # Priority 1: Dynamically scan for any model_v* versions (model_v4, model_v5, v6...) sorted descending
+        versioned_candidates = []
+        for sdir in [BASE_DIR, os.path.join(BASE_DIR, 'model')]:
+            if os.path.exists(sdir):
+                for item in os.listdir(sdir):
+                    full_p = os.path.join(sdir, item)
+                    m_dir = re.match(r'^model_v(\d+)$', item)
+                    if m_dir and os.path.isdir(full_p):
+                        versioned_candidates.append((int(m_dir.group(1)), full_p))
+                    m_f = re.match(r'^model_v(\d+)\.(pt|bin)$', item)
+                    if m_f and os.path.isfile(full_p):
+                        versioned_candidates.append((int(m_f.group(1)), full_p))
+        versioned_candidates.sort(key=lambda x: x[0], reverse=True)
+        dynamic_paths = [p for _, p in versioned_candidates]
+
+        cand_candidates = dynamic_paths + [
             os.path.join(MODEL_STORAGE_DIR, 'model.pt'),
-            os.path.join(BASE_DIR, 'model_v3'),
-            os.path.join(BASE_DIR, 'model', 'model_v3'),
             os.path.join(BASE_DIR, 'hotel_aspect_qa_bart_engine'),
             os.path.join(BASE_DIR, 'model', 'hotel_aspect_qa_bart_engine'),
-            os.path.join(BASE_DIR, 'model_v3', 'pytorch_model.bin'),
-            os.path.join(BASE_DIR, 'model_v3', 'model.safetensors'),
-            os.path.join(BASE_DIR, 'model', 'model_v3', 'pytorch_model.bin'),
-            os.path.join(BASE_DIR, 'model', 'model_v3', 'model.safetensors'),
-            os.path.join(BASE_DIR, 'hotel_aspect_qa_bart_engine', 'pytorch_model.bin'),
-            os.path.join(BASE_DIR, 'model', 'hotel_aspect_qa_bart_engine', 'pytorch_model.bin'),
             os.path.join(BASE_DIR, 'model', 'best_model.pt'),
             os.path.join(BASE_DIR, 'best_model.pt'),
-            os.path.join(BASE_DIR, 'model', 'model_v3_conversational_bart.pt'),
-            os.path.join(BASE_DIR, 'model_v3_conversational_bart.pt'),
-            os.path.join(BASE_DIR, 'model', 'model_v2_bart.pt'),
-            os.path.join(BASE_DIR, 'model_v2_bart.pt'),
-            os.path.join(BASE_DIR, 'model', 'model_v2.pt'),
-            os.path.join(BASE_DIR, 'model_v2.pt'),
-            os.path.join(BASE_DIR, 'model', 'model.pt'),
-            os.path.join(BASE_DIR, 'model.pt'),
-            os.path.join(BASE_DIR, 'model', 'model_v1.pt'),
             os.path.join(BASE_DIR, checkpoint_path),
-            checkpoint_path,
-            os.path.join(BASE_DIR, 'model', 'modelv1.pt')
+            checkpoint_path
         ]
         for p in cand_candidates:
             if os.path.exists(p):

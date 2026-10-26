@@ -1,0 +1,9 @@
+{
+  "status": "pending_training_completion",
+  "message": "Các chỉ số thực nghiệm sẽ được tính toán và lưu tự động vào tệp này ngay sau khi hoàn tất huấn luyện dap_trainv4.ipynb và chạy benchmark.ipynb.",
+  "expected_evaluations": {
+    "rq1": ["Acc@0", "Acc@1", "QWK", "Macro-F1", "Macro-MAE", "MAE_1to5_stars"],
+    "rq2": ["Token_F1_per_aspect", "Cross_aspect_leakage_rate", "Collision_rate"],
+    "rq3": ["ROUGE-1", "ROUGE-2", "ROUGE-L", "Token_F1", "Aspect_Retrieval_Accuracy", "Inference_Latency_ms"]
+  }
+}
