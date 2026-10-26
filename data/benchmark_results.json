@@ -1,12 +1,12 @@
 {
-  "model_name": "bert-base-uncased",
-  "model_identifier": "bert-base-uncased",
+  "model_name": "modelv4",
+  "model_identifier": "model/model_v4",
   "device": "cpu",
-  "timestamp": "2026-10-26 10:49:50",
+  "timestamp": "2026-10-26 13:14:46",
   "num_test_samples": 999,
   "num_qa_samples": 60,
-  "acc0": 2.9,
-  "macro_mae": 1.5179,
-  "token_f1_qa": 0.17,
-  "duration_sec": 317.92
+  "acc0": 66.27,
+  "macro_mae": 0.7492,
+  "token_f1_qa": 19.0,
+  "duration_sec": 175.48
 }

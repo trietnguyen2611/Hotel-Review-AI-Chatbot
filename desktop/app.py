@@ -1199,10 +1199,21 @@ class GenerativeQAPipeline:
                         self.tokenizer = AutoTokenizer.from_pretrained('facebook/bart-base')
                     self.model = AutoModelForSeq2SeqLM.from_pretrained(custom_model_path).to(self.device)
                     self.model_type = 'seq2seq'
+                    if getattr(self.model.config, 'is_encoder_decoder', False):
+                        dec_start = getattr(self.model.config, 'decoder_start_token_id', None) or getattr(self.tokenizer, 'cls_token_id', None) or 101
+                        pad_id = getattr(self.model.config, 'pad_token_id', None) or getattr(self.tokenizer, 'pad_token_id', 0)
+                        eos_id = getattr(self.model.config, 'eos_token_id', None) or getattr(self.tokenizer, 'sep_token_id', None) or 102
+                        self.model.config.decoder_start_token_id = dec_start
+                        self.model.config.pad_token_id = pad_id
+                        self.model.config.eos_token_id = eos_id
+                        if hasattr(self.model, 'generation_config') and self.model.generation_config is not None:
+                            self.model.generation_config.decoder_start_token_id = dec_start
+                            self.model.generation_config.pad_token_id = pad_id
+                            self.model.generation_config.eos_token_id = eos_id
                     self.model.eval()
                     self.loaded_successfully = True
                     self.active_model_name = os.path.basename(custom_model_path)
-                    print(f"Successfully reloaded model directory from {custom_model_path}.")
+                    print(f"Successfully reloaded model directory from {custom_model_path} (decoder_start_token_id={getattr(self.model.generation_config, 'decoder_start_token_id', None)}).")
                     return True
 
                 # 2. Checkpoint file (.pt, .bin, .safetensors)
@@ -1348,6 +1359,12 @@ class GenerativeQAPipeline:
                     return ""
                 else:
                     enc = self.tokenizer(prompt_text, max_length=512, truncation=True, return_tensors='pt').to(self.device)
+                    extra_gen_args = {}
+                    if getattr(self.model.config, 'is_encoder_decoder', False):
+                        dec_start = getattr(self.model.generation_config, 'decoder_start_token_id', None) or getattr(self.model.config, 'decoder_start_token_id', None) or getattr(self.tokenizer, 'cls_token_id', 101)
+                        eos_id = getattr(self.model.generation_config, 'eos_token_id', None) or getattr(self.model.config, 'eos_token_id', None) or getattr(self.tokenizer, 'sep_token_id', 102)
+                        extra_gen_args['decoder_start_token_id'] = dec_start
+                        extra_gen_args['eos_token_id'] = eos_id
                     with torch.no_grad():
                         outputs = self.model.generate(
                             input_ids=enc['input_ids'],
@@ -1355,8 +1372,9 @@ class GenerativeQAPipeline:
                             max_new_tokens=max_new_tokens,
                             num_beams=4,
                             no_repeat_ngram_size=3,
-                            repetition_penalty=1.1,
-                            early_stopping=True
+                            repetition_penalty=1.15,
+                            early_stopping=True,
+                            **extra_gen_args
                         )
                     ans = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
                     if ans:
@@ -1370,7 +1388,8 @@ class GenerativeQAPipeline:
                             max_new_tokens=max_new_tokens,
                             temperature=0.7,
                             top_p=0.9,
-                            do_sample=True
+                            do_sample=True,
+                            **extra_gen_args
                         )
                     return self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
         except Exception as e:
