@@ -23,7 +23,8 @@
         edit: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
         pin: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-2-6V4H7v7l-2 6z"/><line x1="9" y1="4" x2="9" y2="2"/><line x1="15" y1="4" x2="15" y2="2"/></svg>`,
         pinFilled: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="fill: currentColor;"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-2-6V4H7v7l-2 6z"/><line x1="9" y1="4" x2="9" y2="2"/><line x1="15" y1="4" x2="15" y2="2"/></svg>`,
-        trash: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`
+        trash: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
+        download: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
     };
 
     // -------------------------------------------------------------------------
@@ -61,6 +62,7 @@
         modelDropdownList: document.getElementById('modelDropdownList'),
 
         topbarBrowseBtn: document.getElementById('topbarBrowseBtn'),
+        exportDebugLogBtn: document.getElementById('exportDebugLogBtn'),
         hotelSelectionView: document.getElementById('hotelSelectionView'),
         hotelSelectionGrid: document.getElementById('hotelSelectionGrid'),
         chatWorkspaceView: document.getElementById('chatWorkspaceView'),
@@ -452,6 +454,160 @@
         }
     }
 
+    function showToast(message, duration = 3200) {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = 'toast-item';
+        toast.innerHTML = `
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="stroke: #10b981; fill: none; stroke-width: 2;">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>${escapeHtml(message)}</span>
+        `;
+        container.appendChild(toast);
+        window.requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 250);
+        }, duration);
+    }
+
+    async function exportConversationLog(targetConvId) {
+        const convId = targetConvId || activeConvId;
+        const conv = conversations.find(c => c.id === convId);
+        if (!conv) {
+            alert('Không tìm thấy cuộc hội thoại để xuất log.');
+            return;
+        }
+
+        const msgList = conv.messages || [];
+        if (msgList.length === 0) {
+            if (!confirm('Cuộc hội thoại hiện tại chưa có tin nhắn nào. Bạn có muốn xuất thông tin metadata khởi tạo không?')) {
+                return;
+            }
+        }
+
+        // Fetch backend debug state for session if available
+        let backendDebug = null;
+        if (conv.sessionId) {
+            try {
+                const resp = await fetch(`/api/session-debug?session_id=${encodeURIComponent(conv.sessionId)}`);
+                if (resp.ok) {
+                    backendDebug = await resp.json();
+                }
+            } catch (err) {
+                console.warn('Backend debug fetch failed:', err);
+            }
+        }
+
+        const currentModel = elements.currentModelLabel ? elements.currentModelLabel.textContent.trim() : 'model_v4';
+
+        const exportPayload = {
+            export_version: "2.0-debug",
+            exported_at: new Date().toISOString(),
+            metadata: {
+                app_name: "DAP-Hotel AI Concierge (CRAM-ABSA Framework)",
+                conversation_id: conv.id,
+                session_id: conv.sessionId || 'default_session',
+                title: conv.title || 'Conversation',
+                created_at: new Date(conv.createdAt || Date.now()).toISOString(),
+                updated_at: new Date(conv.updatedAt || Date.now()).toISOString(),
+                total_turns: msgList.length,
+                pinned: Boolean(conv.pinned),
+                active_model: currentModel
+            },
+            selected_hotel: conv.selectedHotel ? {
+                hotel_name: conv.selectedHotel.hotel_name || '',
+                star: conv.selectedHotel.star || 'Standard',
+                score: conv.selectedHotel.score || null,
+                location: conv.selectedHotel.location || '',
+                address: conv.selectedHotel.address || '',
+                review_count: conv.selectedHotel.review_count || 0,
+                aspect_scores: conv.selectedHotel.aspect_scores || {}
+            } : null,
+            backend_session_state: backendDebug ? backendDebug.session : null,
+            backend_environment: backendDebug ? {
+                active_model: backendDebug.active_model,
+                model_type: backendDebug.model_type,
+                database_size: backendDebug.database_size
+            } : null,
+            dialogue_turns: msgList.map((m, idx) => {
+                if (m.role === 'user') {
+                    return {
+                        turn_index: idx + 1,
+                        role: 'user',
+                        timestamp: new Date(m.timestamp || Date.now()).toISOString(),
+                        query: m.text || ''
+                    };
+                } else if (m.role === 'bot') {
+                    const d = m.data || {};
+                    return {
+                        turn_index: idx + 1,
+                        role: 'bot',
+                        timestamp: new Date(m.timestamp || Date.now()).toISOString(),
+                        answer: d.answer || d.reply || '',
+                        inference_mode: d.inference_mode || 'neural_generation',
+                        model_name: d.model_name || currentModel,
+                        model_type: d.model_type || 'seq2seq',
+                        target_aspect: d.aspect || null,
+                        aspect_title: d.aspect_title || null,
+                        predicted_sentiment: d.sentiment || null,
+                        confidence_score: d.confidence || null,
+                        context_applied: Boolean(d.context_applied),
+                        prompt_given_to_model: d.prompt_used || null,
+                        retrieved_citations_count: (d.citations || d.original_reviews || []).length,
+                        retrieved_evidence: (d.citations || d.original_reviews || []).map(r => ({
+                            date: r.date || 'Recent',
+                            score: r.score || null,
+                            sentiment: r.sentiment || null,
+                            recency_weight: r.recency_weight || null,
+                            text: r.text || '',
+                            aspect_spans: r.aspect_spans || []
+                        })),
+                        raw_response_payload: d
+                    };
+                } else {
+                    return {
+                        turn_index: idx + 1,
+                        role: m.role || 'system',
+                        timestamp: new Date(m.timestamp || Date.now()).toISOString(),
+                        content: m.text || m.data || ''
+                    };
+                }
+            })
+        };
+
+        const jsonContent = JSON.stringify(exportPayload, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const safeHotel = (conv.selectedHotel?.hotel_name || conv.title || 'chat')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .slice(0, 25);
+        const timestampStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const filename = `dap_debug_${safeHotel}_${timestampStr}.json`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast(`Đã xuất JSON log: ${filename}`);
+    }
+
     function createConvItemHtml(conv) {
         const isActive = conv.id === activeConvId;
         const pinIcon = conv.pinned ? SVG.pinFilled : SVG.pin;
@@ -467,6 +623,9 @@
                     </div>
                 </div>
                 <div class="conv-actions">
+                    <button type="button" class="conv-action-btn export-btn" data-action="export" title="Xuất JSON log để debug" aria-label="Export JSON log">
+                        ${SVG.download}
+                    </button>
                     <button type="button" class="conv-action-btn edit-btn" data-action="rename" title="Rename conversation" aria-label="Rename conversation">
                         ${SVG.edit}
                     </button>
@@ -582,7 +741,9 @@
         if (actionBtn) {
             e.stopPropagation();
             const action = actionBtn.getAttribute('data-action');
-            if (action === 'rename') {
+            if (action === 'export') {
+                exportConversationLog(convId);
+            } else if (action === 'rename') {
                 startRenameConversation(convId);
             } else if (action === 'pin') {
                 togglePinConversation(convId, e);
@@ -611,6 +772,13 @@
     elements.recentList.addEventListener('click', handleConvListClick);
     elements.recentList.addEventListener('keydown', handleConvListKeydown);
     elements.newChatBtn.addEventListener('click', handleNewChat);
+
+    if (elements.exportDebugLogBtn) {
+        elements.exportDebugLogBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            exportConversationLog(activeConvId);
+        });
+    }
 
     // -------------------------------------------------------------------------
     // Project Model Selection (from folder model/)

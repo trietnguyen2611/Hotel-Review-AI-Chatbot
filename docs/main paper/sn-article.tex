@@ -1,4 +1,4 @@
-\documentclass[pdflatex,sn-mathphys-num,iicol]{sn-jnl}
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
 
 %========================================================
 % Packages
@@ -99,86 +99,67 @@
 %========================================================
 % 1. INTRODUCTION
 %========================================================
-\section{Introduction}
+\section{Giới thiệu (Introduction)}
 \label{sec:introduction}
 
-\subsection{Background and Motivation}
+\subsection{Bối cảnh và Động lực Nghiên cứu}
 \label{subsec:background}
-Trong lĩnh vực dịch vụ du lịch việc đón nhận các đánh giá trực tuyến của khách hàng đóng vai trò quan trọng trong việc cung cấp thông tin về chất lượng sản phẩm và dịch vụ, Tuy nhiên, các điểm đánh giá chỉ phản ảnh được một số mức độ hài lòng tổng quát nhưng chưa gaiir thích được nguyên nhân khiến phần lớn khách hàng đưa ra đánh giá như vậy. Theo paper~\cite{namee2023hybrid}, “rating scores alone are not sufficient to undertake quality improvement of goods or understand the reasons for customer retention”~\cite{namee2023hybrid}. Bên cạnh đó, việc phân tích bằng những phương pháp thủ công sẽ bị hạn chế về công sức (nhân sự) hay thời gian sẽ dẫn đến một vấn đề, đó là sự trên lệch. Những hạn chế này sẽ dễ dàng cho thấy được về sự cần thiết của các phương pháp công khai về thông tin chi tiết từ dữ liệu đánh giái trực tuyến.
+Trong ngành dịch vụ lưu trú và du lịch, phản hồi trực tuyến của khách hàng đóng vai trò then chốt trong việc phản ánh chất lượng trải nghiệm và định hướng lựa chọn của người tiêu dùng. Tuy nhiên, các điểm số đánh giá tổng quát (rating scores) thường chỉ biểu thị mức độ hài lòng chung mà không thể lý giải nguyên nhân cụ thể dẫn đến nhận định của khách hàng~\cite{namee2023hybrid}. Việc phân tích thủ công nguồn dữ liệu đánh giá khổng lồ này đòi hỏi chi phí nhân sự và thời gian lớn, đồng thời dễ phát sinh sai lệch chủ quan.
 
-Phân tích theo cảm xúc của từng khía cạnh (Aspect-Based Sentiment Analysis – ABSA) là một hướng tiếp cận giúp xác định rỏ cảm xúc của khách hàng theo từng khía cạnh cụ thể. Paper~\cite{namee2023hybrid} chỉ ra việc phân tích cảm xúc nếu chỉ theo cấp độ tài liệu thì chỉ có thể đánh giá được phần nào, chứ chưa chắc sẽ đánh giá chính xác việc một người khách có thật sự thích hay k thích một sản phẩm, dịch vụ; trong đó, nêu việc phân tích theo đúng khía cạnh có thể làm rõ cảm xúc gắn với từng cử chỉ hay đặc điểm cụ thể. Đối với lĩnh vực khách sạn, phần lớn các khía cạnh sẽ được chú ý bảo gồm chất lượng phục vụ, sự thoải mái, độ sạch sẽ, vị trí và thái độ của nhân viên~\cite{bimaputra2023aspect} "The selected aspects refer to the aspects that the hotel provides to its customers in creating its own competitiveness, broadly speaking these aspects such as hotel safety, service, comfort, attitude of hotel staff and cleanliness of the hotel environment."~\cite{bimaputra2023aspect}. Việc dựa trên các khía cạnh đó để đánh giá và đưa ra nhận xét về chất lượng dịch vụ vì vậy việc cung cấp thông tin chi tiết sẽ tốt hơn rất nhiều cho trải nghiệm của người khách hàng đối với khách sạn hay các dịch vụ lưu trú.
+Phân tích cảm xúc theo khía cạnh (Aspect-Based Sentiment Analysis -- ABSA) là hướng tiếp cận hiệu quả giúp bóc tách chi tiết cảm xúc của khách hàng gắn liền với từng thuộc tính dịch vụ cụ thể như chất lượng phục vụ, cơ sở vật chất, vị trí địa lý hay thái độ của nhân viên~\cite{bimaputra2023aspect}. Việc khai thác thông tin đa khía cạnh kết hợp với công nghệ hỏi đáp thông minh (Question Answering -- QA Chatbot) cho phép người dùng truy vấn thông tin bằng ngôn ngữ tự nhiên và nhận được câu trả lời chính xác, minh bạch dựa trên trải nghiệm thực tế, thay vì phải tự tìm kiếm và đọc hàng trăm bài đánh giá rời rạc trên mạng xã hội.
 
-Xuất phát từ những hạn chế trên, đề tại này hướng đế để có thể xây dưng một hệ thống chatbot hỏi đáp (Question Answering -  QA Chatbot) cho người tiêu dùng, để có thể tăng phần nào trải nghiệm, dựa trên việc đánh giá và phân tích đa khía cạnh. Hệ thống thường hướng đến người tiêu dùng nên giao diện sẽ phần nào dễ dùng cũng như truy vấn thống tin bằng ngôn ngữ tự nhiên để giúp dễ dàng đưa ra câu trả lời phù hợp cho họ, thay vì phải tự tìm và xem từng đánh giá trên mạng xã hội. Qua đó, đề tài này sẽ khai thác ưu điểm của phân tích cảm úc theo khía cạnh để cố thể hổ trợ người dùng có thể tiếp cận được thông tin uy tín và chất lượng khách sạn một cách thuận tiện và có trong tâm hơn là việc chỉ trả lời qua loa.
-
-
-\subsection{Problem Statement and Research Gap}
+\subsection{Thách thức Nghiên cứu và Khoảng trống Tri thức}
 \label{subsec:problem}
-Mặc dù việc phải liên tục phân tích theo các khía cạnh cảm xúc của con người (Aspect-Based Sentiment Analysis – ABSA) để có thể giúp khai thác ý kiến khách háng chi tiết hơn, nên việc có thể đưa ra đánh giá cũng như là xây dựng được một hệ thống hỏi đáp sẽ phải chịu nhiều thách thức lớn.
+Mặc dù ABSA mang lại nhiều tiềm năng ứng dụng, việc xây dựng một hệ thống hỏi đáp đàm thoại đáng tin cậy dựa trên dữ liệu đánh giá khách sạn vẫn đối mặt với ba thách thức cốt lõi:
 
-\textbf{Thứ nhất, về mâu thuẫn cảm xúc nội tai (Conflicting Sentiments).} Một đánh giá sẽ có thể có nhiều mặt cảm xúc trong đó như việc có thể đưa ra đánh giá tích cực và đồng thời cũng có thể có một số tiêu cực đối với một số khía cạnh khác nhau, chẳng hạn như khen phòng sạch nhưng mà chất lượng dịch vụ rất tệ hay nhân viên có thái độ không tốt. Việc có nhiều cảm xúc trong một bình luận sẽ gây khó khăn, cũng như là rào cản rất lớn trong quá trình học hỏi của chatbot, khi phải liên tục đánh giá xem khia cạnh nào bị đánh giá xấu.
+\textbf{Thứ nhất, xung đột cảm xúc nội tại (Conflicting Sentiments):} Một bài đánh giá thường bao hàm nhiều sắc thái đối lập, ví dụ như khen ngợi phòng ốc tiện nghi nhưng phàn nàn gay gắt về tốc độ phục vụ của nhân viên lễ tân. Hiện tượng ý kiến hai chiều này gây khó khăn lớn cho các mô hình phân loại truyền thống khi cố gắng tổng hợp nhận định chung.
 
-\textbf{Thứ hai, về vấn dề thời gian (Time Weighting)}. Khi mà có quá nhiều nhữ đánh giá cụ thể, việc phải lựa trọn xem chất lượng của đánh giá tại thời điểm đó có đúng không. Phần lớn cách đánh giá sẽ sau này sẽ cho ra kết quả đúng so với các đánh giá cũ tại cùng một thời điểm. Vì vậy hệ thống sẽ ưu tiên lựa chọn những cái gần tại thời điểm đó nhất. Ví dụ như việc ta có hai đánh giá như sao, 01/01/2019 cho là 2 sao trên thang điểm chấm, trong khi đánh giá gần đây nhất là 02/10/2026 sẽ cho kết quả là 5 sao trên thang điểm và đưa ra những đánh giá cụ thể hơn. Dựa vào đó kết quả đánh giá sao này sẽ cho thấy dịch vụ cũng như là chất lượng đã thay đổi nhiều hơn sau này. vì vậy các giá trị mang tính minh hoạ cho cơ chế ưu tiên hơn khi lựa chọn thông tin mới nhất.
+\textbf{Thứ hai, tính biến động theo thời gian (Temporal Dynamics):} Chất lượng dịch vụ khách sạn không cố định mà thay đổi theo thời gian. Các đánh giá gần đây phản ánh hiện trạng dịch vụ chính xác hơn so với các đánh giá từ nhiều năm trước. Do đó, hệ thống cần một cơ chế gán trọng số thời gian phù hợp để ưu tiên thông tin mới nhất mà vẫn bảo tồn bức tranh đánh giá tổng thể.
 
-\textbf{Cuối cùng, hiểu ngữ cảnh và liên kết các câu lệnh trong hội thoại (Context Understanding and Conversational Continuity)}. Chatbot cần hiểu mối liên hệ giữa các câu hỏi liên tiếp nhau và ghi nhận lại những thông tin từ các cuộc hội thoại đó. Nếu không thể duy trì được ngũ cảnh, hệ thông sẽ đưa ra những câu trả lời không chính xác theo yêu cầu của người dùng.
+\textbf{Thứ ba, duy trì ngữ cảnh đàm thoại đa lượt (Conversational Context Continuity):} Trong các phiên hội thoại thực tế, người dùng thường đặt các câu hỏi ngắn nối tiếp nhau hoặc sử dụng đại từ thay thế (đồng tham chiếu). Nếu không duy trì được trạng thái ngữ cảnh, hệ thống sẽ dễ đưa ra câu trả lời sai lệch hoặc lạc đề.
 
-
-\subsection{Proposed Framework: CRAM-ABSA}
+\subsection{Khung Kiến trúc Đề xuất: CRAM-ABSA}
 \label{subsec:proposed_framework}
-Nhằm giải quyết triệt để các hạn chế về xung đột cảm xúc đa khía cạnh, suy diễn sai lệch do dữ liệu phân bố lệch và hiện tượng lẫn bằng chứng đã nêu tại Mục~\ref{subsec:problem}, chúng tôi đề xuất khung kiến trúc học đồng thời \textbf{CRAM-ABSA} (\textit{Cross-Aspect Rationale Alignment Model for Aspect-Based Sentiment Analysis}). Bản chất của các bài đánh giá khách sạn trực tuyến luôn tồn tại sự phân cực phức tạp; như nghiên cứu của Tran và Tran~\cite{tran2026aspect} đã nhận định: ``\textit{Conventional sentiment analysis techniques, which typically operate at document or sentence levels, often fail to capture the nuanced opinions embedded within specific aspects... a single review might praise the cleanliness of a hotel while critiquing its location, necessitating a more granular analytical framework to discern these multifaceted sentiments accurately}'' ~\cite{tran2026aspect}. Hơn nữa, việc mô hình hóa sự phụ thuộc tương hỗ giữa các khía cạnh là yếu tố quyết định bởi tính giao thoa ngữ nghĩa tự nhiên trong đánh giá dịch vụ. CRAM-ABSA được thiết kế như một hệ thống liên kết thống nhất gồm bốn khối chức năng chính:
+Nhằm khắc phục triệt để các hạn chế về xung đột cảm xúc đa khía cạnh, suy diễn sai lệch do dữ liệu phân bố lệch và hiện tượng lẫn bằng chứng, chúng tôi đề xuất khung kiến trúc học đồng thời \textbf{CRAM-ABSA} (\textit{Cross-Aspect Rationale Alignment Model for Aspect-Based Sentiment Analysis}) trên nền tảng BERT Seq2Seq. Mô hình được xây dựng như một hệ thống liên kết thống nhất gồm bốn khối chức năng chính:
 
 \begin{enumerate}
-    \item \textbf{Khối mã hóa ngữ cảnh và dung hợp siêu dữ liệu (Context \& Metadata Fusion Encoder):} Sử dụng mô hình Transformer tiền huấn luyện BERT (\textit{CRAM-ABSA với BERT backbone}) kết hợp mạng chiếu phi tuyến (\textit{Dense Projection}) để tích hợp các đặc trưng phi văn bản (trọng số thời gian đánh giá, xếp hạng sao khách sạn) vào biểu diễn ngữ nghĩa ẩn. Thiết kế này kế thừa định hướng từ nghiên cứu của Bruni và cộng sự~\cite{bruni2025amaqa}, khắc phục hạn chế lớn của các mô hình hỏi đáp thông thường: ``\textit{Retrieval-augmented generation (RAG) systems are widely used in question-answering (QA) tasks, but current benchmarks lack metadata integration, limiting their effectiveness in domain-specific scenarios}''~\cite{bruni2025amaqa}.
+    \item \textbf{Khối mã hóa ngữ cảnh và dung hợp siêu dữ liệu (Context \& Metadata Fusion Encoder):} Sử dụng mô hình Transformer tiền huấn luyện BERT kết hợp mạng chiếu phi tuyến (Dense Projection) để tích hợp các đặc trưng định lượng và siêu dữ liệu (trọng số thời gian, xếp hạng sao) vào không gian ngữ nghĩa ẩn, nâng cao năng lực định vị ngữ cảnh~\cite{bruni2025amaqa}.
     
-    \item \textbf{Module sinh bằng chứng định hướng khía cạnh (Aspect Rationale Generator):} Khởi tạo mặt nạ mềm $m_a \in [0, 1]^L$ nhằm xác định chính xác các đoạn căn cứ (rationale) cho từng khía cạnh $a$. Nhằm loại bỏ hiện tượng rò rỉ bằng chứng liên khía cạnh (cross-aspect leakage), mô hình tích hợp hàm mất mát phạt chồng lấn phân đoạn ($\mathcal{L}_{\text{overlap}} = \lambda_2 \sum_{a \neq b} \langle m_a, m_b \rangle$), ràng buộc các vùng bằng chứng giữa các khía cạnh khác nhau phải độc lập và không bị lấn chiếm.
+    \item \textbf{Module sinh bằng chứng định hướng khía cạnh (Aspect Rationale Generator):} Ước lượng mặt nạ mềm nhằm xác định chính xác các đoạn căn cứ (rationale) cho từng khía cạnh. Mô hình áp dụng hàm mất mát phạt chồng lấn phân đoạn nhằm loại bỏ hiện tượng rò rỉ căn cứ liên khía cạnh, bảo đảm các vùng bằng chứng giữa các khía cạnh độc lập và không bị lấn chiếm.
     
-    \item \textbf{Đầu hồi quy thứ bậc và phân loại cảm xúc (Ordinal Rating \& Sentiment Heads):} Thay vì đơn giản hóa bài toán về phân loại nhị phân, CRAM-ABSA dự đoán trực tiếp mức độ hài lòng trên thang điểm 5 sao thông qua hàm mất mát thứ bậc CORN (Conditional Ordinal Regression for Neural Networks) kết hợp trọng số phạt nghịch đảo tần suất lớp $\omega(y_a)$, phản ánh đúng trật tự khoảng cách mức sao và xử lý hiệu quả hiện tượng mất cân bằng dữ liệu cực đoan.
+    \item \textbf{Đầu hồi quy thứ bậc và phân loại cảm xúc (Ordinal Rating \& Sentiment Heads):} Dự đoán trực tiếp mức độ hài lòng trên thang điểm 5 sao thông qua hồi quy thứ bậc CORN (Conditional Ordinal Regression) kết hợp tái cân bằng trọng số lớp, phản ánh đúng khoảng cách giữa các bậc sao và giải quyết bài toán mất cân bằng dữ liệu cực đoan.
     
-    \item \textbf{Bộ giải mã hội thoại phục vụ Chatbot QA (Generative Decoder):} Tiếp nhận các biểu diễn văn bản đã được tăng cường trọng số từ bằng chứng khía cạnh ($x \odot (1 + m_a)$) để tự động sinh câu trả lời tự nhiên, giàu thông tin và minh bạch căn cứ cho người dùng trong từng phiên truy vấn.
+    \item \textbf{Bộ giải mã đàm thoại sinh ngôn ngữ tự nhiên (Generative Decoder):} Tiếp nhận biểu diễn ngữ cảnh đã được tăng cường trọng số từ bằng chứng khía cạnh để sinh câu trả lời tự nhiên, chính xác và minh bạch căn cứ cho người dùng.
 \end{enumerate}
-\subsection{Research Questions}
+
+\subsection{Câu hỏi Nghiên cứu (Research Questions)}
 \label{subsec:research_questions}
-
-Nghiên cứu này tập trung giải quyết ba câu hỏi nghiên cứu trọng tâm (\textbf{RQ1}, \textbf{RQ2}, \textbf{RQ3}), tương ứng với ba chỉ số đo lường định lượng cốt lõi:
+Nghiên cứu tập trung giải quyết ba câu hỏi nghiên cứu cốt lõi:
 
 \begin{enumerate}
-    \item \textbf{RQ1: Độ chính xác phân loại tuyệt đối (Acc@0) trên thang 5 mức sao thực tế đạt mức độ nào so với các mô hình cơ sở phân loại đa lớp?}
+    \item \textbf{RQ1:} \textit{Khung mô hình CRAM-ABSA đạt độ chính xác phân loại tuyệt đối (Acc@0) trên thang đo 5 mức sao thực tế như thế nào so với các phương pháp phân loại đa lớp thông thường trong điều kiện dữ liệu lệch cực đoan?}
     
-    Phần lớn nghiên cứu trước đây đơn giản hóa bài toán bằng cách gộp cảm xúc nhị phân 2 lớp (Tốt/Xấu). Khi chuyển sang thang 5 mức sao thực tế ($1\star \to 5\star$), mô hình phải đối mặt với độ lệch dữ liệu nghiêm trọng (hơn 71\% là 5 sao). RQ1 khảo sát tỷ lệ dự đoán chính xác tuyệt đối (\textbf{Acc@0}) của mô hình CRAM-ABSA đề xuất so với phân loại đa lớp thông thường (Multi-Class Cross-Entropy) trên tập kiểm thử giữ kín 999 bài đánh giá.
-    
-    $\rightarrow$ \textit{Thước đo định lượng cốt lõi:} \textbf{Acc@0 (\%)} (Exact Match Star Accuracy).
+    $\rightarrow$ \textit{Chỉ số đo lường:} \textbf{Acc@0 (\%)} (Exact Match Star Accuracy).
 
-    \item \textbf{RQ2: Hàm mất mát thứ bậc CORN Loss có giảm thiểu sai số khoảng cách tuyệt đối trung bình (Macro-MAE) đồng đều trên cả 5 phân lớp sao (đặc biệt các lớp trung gian khó phân loại 2--4 sao) hay không?}
+    \item \textbf{RQ2:} \textit{Hàm mất mát thứ bậc CORN có giúp giảm thiểu sai số khoảng cách tuyệt đối trung bình (Macro-MAE) đồng đều trên cả 5 phân lớp sao (đặc biệt ở các lớp trung gian 2--4 sao) hay không?}
     
-    Trong phân loại thứ bậc, khoảng cách sai số giữa 1 sao và 5 sao nghiêm trọng hơn nhiều so với giữa 4 sao và 5 sao. Hàm mất mát đa lớp thông thường coi mọi sai số đều như nhau. RQ2 kiểm chứng xem việc áp dụng hàm mất mát thứ bậc CORN Loss có giúp mô hình thu hẹp sai số khoảng cách và đạt mức sai số tuyệt đối trung bình (\textbf{Macro-MAE}) tối ưu trên từng mức điểm sao hay không.
-    
-    $\rightarrow$ \textit{Thước đo định lượng cốt lõi:} \textbf{Macro-MAE} (Mean Absolute Error tính bình quân trên 5 mức sao).
+    $\rightarrow$ \textit{Chỉ số đo lường:} \textbf{Macro-MAE} (Mean Absolute Error bình quân trên 5 mức sao).
 
-    \item \textbf{RQ3: Việc tích hợp bằng chứng trích xuất từ CRAM-ABSA cùng cơ chế suy giảm thời gian giúp Chatbot cải thiện độ chuẩn xác từ vựng (Token F1 QA) ra sao trên bộ kiểm định thực tế?}
+    \item \textbf{RQ3:} \textit{Cơ chế học đồng thời căn cứ khía cạnh kết hợp suy giảm thời gian cải thiện độ chuẩn xác từ vựng (Token F1 QA) của Chatbot ra sao trên tập benchmark kiểm định thực tế?}
     
-    Khi người dùng hỏi Chatbot về dịch vụ cụ thể tại một khách sạn, câu trả lời cần bám sát bằng chứng thực tế từ các bài đánh giá gần nhất thay vì sinh văn chung chung hoặc ảo giác. RQ3 đo lường mức độ tương đồng và chuẩn xác từ vựng giữa câu trả lời do mô hình sinh ra và câu trả lời chuẩn do chuyên gia thẩm định trên bộ benchmark 60 câu hỏi kiểm định thực nghiệm (\texttt{qa\_verified.json}).
-    
-    $\rightarrow$ \textit{Thước đo định lượng cốt lõi:} \textbf{Token F1 QA (\%)} (Token-level F1 Score trên 60 câu hỏi QA thực nghiệm).
+    $\rightarrow$ \textit{Chỉ số đo lường:} \textbf{Token F1 QA (\%)} (Token-level F1 Score trên 60 câu hỏi QA thực nghiệm).
 \end{enumerate}
 
-
-\subsection{Key Contributions}
+\subsection{Đóng góp Khoa học Chính}
 \label{subsec:key_contributions}
+Nghiên cứu mang lại ba đóng góp khoa học chính:
 
-The key contributions of this research as follows:
 \begin{itemize}
+    \item \textbf{Khung kiến trúc học đồng thời CRAM-ABSA:} Đề xuất mô hình liên hợp giải quyết đồng thời bài toán trích xuất bằng chứng khía cạnh, hồi quy thứ bậc điểm sao và sinh câu trả lời đàm thoại không dựa trên mẫu câu cố định, triệt tiêu hiện tượng rò rỉ căn cứ giữa các khía cạnh.
 
-    \item \textbf{a. Bộ benchmark gopf 60 câu hỏi QA thực nghiệm dành cho chatbot:} 
-    
-    Chúng tôi xây dựng bộ benchmark gồm 60 câu hỏi- đáo dùng để đánh giá chatbot hỏi đáp dựa trên review thật từ tất cả khách sạn có đánh giá trên thị trường. Bộ câu hỏi nhằm vào các khả năng truy xuất đúng bằng chứng theo cạnh và tổng hợp ý kiên từ nhiều đánh giá, thay vì chỉ đo độ  chính xác được phân loại theo từng cảm xúc của con người. Đây là thước đo gần với tính huống sử dụng thực tế hơn các chỉ số ABSA được công số trên truyền thông.
+    \item \textbf{Bộ dữ liệu kiểm thử thực nghiệm (Benchmark QA 60 câu hỏi):} Xây dựng tập kiểm thử chuẩn gồm 60 cặp câu hỏi--đáp thực tế (\texttt{qa\_verified.json}) có thẩm định căn cứ từ chuyên gia, cung cấp thước đo khách quan đánh giá năng lực trích xuất bằng chứng và đàm thoại của chatbot trong môi trường thực tiễn.
 
-    \item \textbf{b. Bộ giao diện UI được thử nghiệm và ablation study có đối chứng chặt chẽ trên dữ liệu khách sạn:}
-    
-    Chúng tôi thiết giao diện thử nghiệm để người dùng có thể đặt câu hỏi và xem được câu trả lời kèm theo hình ảnh cũng như là bằng chứng góc về những đoạn đánh giá về khách sạn đó. Song song đó, ablation study được thực hiện trên cùng bộ dữ liệu của khách sạn, với các điều kiện được kiểm soát. Nghiên cứu so sánh và đánh giá về sự khác biệt giữa bài toán phân loại nhị phân và phân loại thứ bậc theo 5 mức như (RQ1), đồng thời phải đưa ra và phân tích được những ảnh hướng riêng biệt của từng thành phần của từng hàm mất mát, bao gồm Ordinal Loss (CORN) và cơ chế phạt chồng lấn (RQ3), nhằm làm rõ đóng góp của từng thành phần đối với hiệu quả mô hình.
-
-
-    \item \textbf{c. Framework học đồng thời CRAM-ABSA giải quyết việc xung đột cảm xúc trên từng bình luận của từng khách sạn:}
-    
-     Một bài đánh giá thường khen khía cạnh này những cũng có thể sẽ có chê những khía cạnh khác. Phân tích dữ liệu cho thấy tình huống này khá phổ biến, ví dụ có hơn 640 các review của 1 khách sạn thường trong đó sẽ bao gôm khen, chê hay có thể có cả 2 trong một bài đánh giá. Vì vậy CRAM-ABSA học đồng thời việc phải xác định đoạn bằng chứng (rationale) và dự đoán cảm xúc theo từng khía cạnh. Mục tiêu là giảm hiện tượng bằng chứng của khía cạnh này "lẫn" sang khía cạch khác (RQ2,RQ3), mà không làm giảm các biến đánh giá của F1.
+    \item \textbf{Nghiên cứu thực nghiệm đối chứng toàn diện và ứng dụng Native Desktop:} Thực hiện phân tích loại trừ (ablation study) có kiểm soát làm rõ đóng góp của từng thành phần tổn thất (CORN Loss, Overlap Penalty), đồng thời đóng gói toàn bộ giải pháp thành ứng dụng Native Desktop hoàn chỉnh với độ trễ phản hồi dưới 1 giây.
 \end{itemize}
 
 
@@ -195,7 +176,7 @@ The key contributions of this research as follows:
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{chart_img/411_research_pipeline.png}
+    \makebox[\textwidth][c]{\includegraphics[width=1.22\textwidth]{chart_img/411_research_pipeline.png}}
     \caption{Sơ đồ quy trình nghiên cứu (Research Pipeline) của khung kiến trúc CRAM-ABSA qua 5 giai đoạn.}
     \label{fig:research_pipeline}
 \end{figure}
@@ -257,27 +238,15 @@ Quá trình kiểm tra chất lượng cho thấy cả hai bảng đều không 
 
 D. Xây dựng đặc trưng.
 
-Hệ thống tiếp tục tạo ra 17 đặc trưng cho mỗi review từ dữ liệu chú thích, chia thành bốn nhóm: 
-- \textbf{Cấu trúc và bằng chứng:} Số lượng khía cạnh, khía cạnh chiếm ưu thế, tỷ lệ bao phủ khía cạnh, mật độ và độ dài trung bình của bằng chứng.
-- \textbf{Cảm xúc tổng thể:} Điểm cảm xúc ròng, cờ xung đột cảm xúc và mức độ đồng thuận.
-- \textbf{Cảm xúc theo khía cạnh}: Sáu đặc trưng phản ánh cảm xúc trên các khía cạnh tương ứng với giá trị $+1$ (Positive), 0 (Neutral), và $-1$ (Negative). Trong trường hợp có nhiều đoạn cho một khía cạnh, nhãn của đoạn chiếm đa số sẽ được sử dụng.
-- **Thời gian:** Trọng số thời gian và điểm cảm xúc được xác định theo thời gian, với công thức:
-\[
-w = \exp(-\lambda \cdot \Delta)
-\]
-Trong đó, \(\lambda = 0,03\) và \(\Delta\) là khoảng thời gian (tháng) giữa lần review và review mới nhất của cùng khách sạn. Trọng số này nhằm ưu tiên các đánh giá gần đây hơn.
+Hệ thống tiếp tục trích xuất 17 đặc trưng định lượng cho mỗi bài đánh giá từ tập chú thích căn cứ, phân bố theo 4 nhóm chính:
+- \textbf{Cấu trúc và bằng chứng:} Số lượng khía cạnh được đề cập, khía cạnh chiếm ưu thế, tỷ lệ bao phủ khía cạnh, mật độ căn cứ và độ dài trung bình của đoạn trích dẫn.
+- \textbf{Cảm xúc tổng thể:} Điểm cảm xúc ròng (net sentiment score), cờ đánh dấu xung đột cảm xúc đa khía cạnh và mức độ đồng thuận.
+- \textbf{Cảm xúc theo từng khía cạnh:} 6 đặc trưng phân cực cảm xúc tương ứng trên 6 khía cạnh chuẩn, nhận giá trị $+1$ (Positive), $0$ (Neutral) và $-1$ (Negative). Trường hợp một khía cạnh xuất hiện nhiều đoạn căn cứ, nhãn chiếm đa số được sử dụng làm đại diện.
+- \textbf{Thời gian:} Khoảng cách thời gian (tính theo tháng) từ thời điểm đánh giá đến hiện tại, phục vụ việc áp dụng hàm suy giảm thời gian và tính điểm đồng thuận trọng số trong quá trình truy xuất.
 
-Khi trả lời câu hỏi liên quan đến khía cạnh, hệ thống sẽ chọn 3–5 review liên quan và tính toán điểm cảm xúc tổng hợp có trọng số bằng công thức:
-\[
-S_{\text{agg}} =
-\frac{\sum_i w_i c_i s_i}
-{\sum_i w_i c_i}
-\]
-Trong đó, \(w_i\) là trọng số thời gian, \(c_i\) là độ tin cậy trong việc trích xuất, và \(s_i \in \{-1,0,+1\}\) là nhãn cảm xúc. Điểm tổng hợp này được sử dụng để tạo các phản hồi tự nhiên kèm theo các đoạn bằng chứng gốc.
+E. Phân tích khám phá dữ liệu (EDA):
 
-E. Phân tích EDA:
-
-Độ dài văn bản. Mỗi bài review dài trung bình 350,7 ký tự (82,1 ký tự), trung vị 398 ký tự (72 từ). Độ dài dao động từ 177 đến 847 ký tự, tương ứng khoảng từ 30 đến 150 từ. phạm vi hẹp này cho thấy dữ liệu gốc có vẻ đã được chọn lọc rất kỷ từ trước thèo độ dài, nên văn bản phù hợp với giới hạn đầu vào của các mô hình ngôn ngũ huấn luyện.
+Về độ dài văn bản, mỗi bài đánh giá có độ dài trung bình $350{,}7$ ký tự ($\approx 82{,}1$ từ), trung vị 398 ký tự ($\approx 72$ từ), dao động từ 177 đến 847 ký tự ($30$--$150$ từ). Khoảng dao động gọn gàng này hoàn toàn tương thích với giới hạn chuỗi đầu vào (maximum sequence length) của các mô hình Transformer mà không cần cắt tỉa gây mất mát ngữ cảnh. Điểm đánh giá trung bình đạt $4{,}52$ đến $5{,}00$ sao (độ lệch chuẩn khoảng $0{,}89$), thể hiện xu hướng đánh giá tích cực áp đảo trong tập dữ liệu (71.55\% là đánh giá 5 sao).
 
 
 \begin{figure}[H]
@@ -287,95 +256,61 @@ E. Phân tích EDA:
     \label{fig}
 \end{figure}
 
-Phân bố dữ liệu trải nghiệm khách sạn tại các thành phố lớn ở VIỆT NAM như Hà Nội, TP Hồ Chí Minh(Sài Gòn) và Hội An, không bị chi phối hay làm sai lệch thông tin từ bất kỳ bên thứ ba nào, hoàn toàn đều lấy đánh giá từ trải nghiệm của người tiêu dùng trên các ứng dụng như google map hay map của iphone. Khách sạn có nhiều review nhất (Sofitel Legend Metropole Hà Nội) chỉ có 85 bài, tương đương 0,9\% toàn bộ dữ liệu, và mười khách sạn đứng đầu cộng lại mới chiếm khoảng 6,0\% (598 bài). Điểm trung bình của nhóm này nằm trong khoảng 4,52 đến 5,00 sao, phù hợp với xu hướng lệch tích cực ở trên.
+Phân bố đánh giá phản ánh trải nghiệm thực tế của du khách tại các khách sạn ở các trung tâm du lịch lớn của Việt Nam (Hà Nội, TP. Hồ Chí Minh, Hội An). Khách sạn có số lượng đánh giá cao nhất (Sofitel Legend Metropole Hà Nội) sở hữu 85 bài (chiếm 0,9\% dữ liệu), và 10 khách sạn hàng đầu cộng lại chỉ chiếm khoảng 6,0\% (598 bài), cho thấy dữ liệu có độ phân tán tốt, không bị chi phối bởi một vài cơ sở lưu trú cục bộ (Hình~\ref{fig:top10_hotels}). Về tương quan độ dài, các bài đánh giá tiêu cực (1 sao) thường có xu hướng giải thích chi tiết hơn với độ dài trung bình khoảng 101 từ, dài hơn đáng kể so với các đánh giá tích cực 5 sao (trung bình khoảng 60 từ).
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{chart_img/42_top10_hotels_highest_reviews.png}
-    \caption{Top 10 khách sạn có nhiều review nhất.}
+    \caption{Top 10 khách sạn có nhiều bài đánh giá nhất trong tập dữ liệu.}
     \label{fig:top10_hotels}
 \end{figure}
 
-Mỗi bài đánh giác có độ dài các ký tự thường trong khoản 450 đến 451 ký tự cho mỗi bài (khoảng 82 từ), trong khi độ dài trung bình là 398 ký tự với 72 từ. Các bài đánh giá thường dài từ 177 đến 847 ký tự, tường đương cới 30 đến hơn 150 từ.
+Tần suất xuất hiện của 6 khía cạnh chuẩn có sự phân hóa đáng kể (Hình~\ref{fig:aspect_freq_dist}). Trong đó, \textit{Service} chiếm tỷ trọng lớn nhất với 19.289 đoạn căn cứ (35,5\% tổng số chú thích, xuất hiện trong 91,4\% số bài đánh giá), tiếp theo là \textit{Facility} (12.641 đoạn; 23,3\%), \textit{Experience} (9.113 đoạn; 16,8\%) và \textit{Amenity} (7.651 đoạn; 14,1\%). Hai khía cạnh \textit{Loyalty} (4.293 đoạn; 7,9\%) và \textit{Branding} (1.339 đoạn; 2,5\%) chiếm tỷ lệ thấp hơn, phản ánh đặc thù hành vi khách hàng thường tập trung nhận xét về dịch vụ và phòng ốc trực tiếp.
 
-Các đánh giá thường sẽ dài hơn khi nhận đánh giá 1 sao với trung bình mỗi bài khoản 101 từ, khác rất nhiều với đánh gái 5 sao chỉ có hơn 60 từ cho mỗi bài. Điểm đánh giá trung bình thường đạt từ 4,5 tới 5 sao( độ lệch chuẩn khoản 0,89), thể hiện xu hướng thường được đánh giá tích cực hơn so với phần còn lại.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{chart_img/32_review_text_length_distribution.png}
-    \caption{Phân bố độ dài của review}
-    \label{fig:review_len_dist}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{chart_img/48_review_wordcount_by_star.png}
-    \caption{Phân bố của đánh giá}
-    \label{fig:wordcount_by_star}
-\end{figure}
-
-Tần suất của sáu khái cạnh được phân bố rất lệch nhau. Service chiếm 19.289 đoạn bằng chứng (35,5\%), tiếp theo là Facility (12.641; 23,3\%), Experience (9.113; 16,\%) và Amenity (7.651; 14,1\%). Loyalty (4.293; 7,9\%) và Branding (1.339; 2,5\%) hiếm hơn nhiều, Service nhiều hơn Branding khoảng 14 lần. Tính theo số bài, Service xuất hiện trong 9.128 review (91,4\%), Facility trong 7.459 (74,7\%), Experience 6.029 (60,4\%), Amenity 5.648 (56,5\%), Loyalty 3.970 (39,7\%) và Branding chỉ 1.207 (12,1\%). Branding khan hiếm nên có thể là khía cạnh khó học nhất.
-
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\linewidth]{chart_img/43_aspect_frequency_distribution.png}
-    \caption{Tần suất xuất hiện của các khía cạnh:}
+    \caption{Tần suất xuất hiện của các khía cạnh.}
     \label{fig:aspect_freq_dist}
 \end{figure}
 
-Cảm xúc được phần theo các khía cạnh sẽ có khác biệt rất lớn, đa số trong đó khía cạnh trong đó Loyalty có tỷ lệ tích cực cao nhất (93\%), tiếp theo là Service (89,6\%) và Amenity (89\%). Facility thấp nhất với 78,2\% tích cực và 12,9\% tiêu cực (1.628 đoạn). Service có 6,4\% tiêu cực, Experience có 9,6\%, trong khi Branding có tỷ lệ tiêu cực khoảng 17\% nhưng số lượng dữ liệu ít hơn. Nhìn chung thì cảm xúc tiêu cực thường tập trung nhiều hơn ở facility.
+Phân bố cảm xúc theo từng khía cạnh (Hình~\ref{fig:aspect_sent_breakdown}) cho thấy tỷ lệ tích cực chiếm ưu thế ở hầu hết các khía cạnh, cao nhất là \textit{Loyalty} (93,0\%), \textit{Service} (89,6\%) và \textit{Amenity} (89,0\%). Ngược lại, khía cạnh \textit{Facility} ghi nhận tỷ lệ tiêu cực cao nhất với 12,9\% (1.628 đoạn), cho thấy các phàn nàn của du khách chủ yếu phát sinh từ cơ sở vật chất phòng nghỉ.
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/44_aspect_sentiment_breakdown.png}
-    \caption{Tỷ lệ cảm xúc}
+    \caption{Tỷ lệ phân bố cảm xúc theo từng khía cạnh.}
     \label{fig:aspect_sent_breakdown}
 \end{figure}
 
-Số khía cạnh của mỗi bài review, phần lớn bố chủ yếu từ 3 đến 4 khía cạnh, lần lượt chiểm35\% và 33,5\%. Trung bình mỗi bài đánh giá thường có hơn 3 khía cạnh, dễ dàng thấy là trong mỗi bài review thường sẽ có nhiều nội dung khác nhau trong một bài. Vì vậy việc mô hình phải xác định được cảm xúc của từng khía cạnh thay vì chỉ gán một nhãn chung cho toàn bộ bài đánh giá.
+Về mức độ phức hợp của nội dung, hơn 68\% số bài đánh giá đề cập từ 3 đến 4 khía cạnh đồng thời (Hình~\ref{fig:aspects_per_review}), với trung bình 3,4 khía cạnh trên mỗi bài. Điều này đòi hỏi mô hình phải có khả năng phân rã đa nhãn chuẩn xác thay vì chỉ gán nhãn đơn cho toàn văn bản.
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/410_aspects_per_review_distribution.png}
-    \caption{Số khía cạnh được đề cập trên mỗi bài: }
+    \caption{Phân bố số lượng khía cạnh được đề cập trong mỗi bài đánh giá.}
     \label{fig:aspects_per_review}
 \end{figure}
 
-Song song với việc đó thì bằng chứng cũng là điều kiện để đảm bảo uy tín, cũng như tính nhiệm của người dùng cho hệ thống. Các đoạn bằng chúng thường sẽ độ dài khoản 63-74 ký tụ, chiếm khoản hơn 14\% độ dài của bài review. Review 1 sao thường có đoạn bằng chứng dài hơn review 5 sao. Theo các khía cạnh thì Branding, Amenity và Service có đoạn dài hơn, trong khi Loyalty ngắn nhất. Việc phải đánh giá và phân tích sẽ bị phần nào ảnh hưởng khi phải phân tích độ chính xác mà có sự khách biệt về độ dài như trên.
+Về đặc tính đoạn căn cứ (rationale spans), độ dài trung bình dao động từ 63 đến 74 ký tự (Hình~\ref{fig:rationale_len_aspect}), chiếm khoảng 14\% dung lượng văn bản của bài đánh giá. Các bài đánh giá 1 sao thường có đoạn căn cứ dài hơn so với đánh giá 5 sao do khách hàng có xu hướng miêu tả chi tiết các sự cố phát sinh.
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/45_rationale_length_by_aspect.png}
-    \caption{Phân bố độ dài đoạn bằng chứng theo khía cạnh: }
+    \caption{Phân bố độ dài đoạn bằng chứng theo khía cạnh.}
     \label{fig:rationale_len_aspect}
 \end{figure}
 
-Các khía cạnh thường sẽ xuất hiện khách nhau trong cùng một bài review. Phổ biến nhất là Facility–Service (6.932 bài), tiếp theo là Experience–Service (5.512 bài) và Amenity–Service (5.224 bài). Service thường đi cùng các khía cạnh khác trong bài, trong khi đó Branding xuất hiện cùng các khía cạnh khác sẽ ít đi rất nhiều.
+Ma trận đồng xuất hiện giữa các khía cạnh (Hình~\ref{fig:aspect_cooccurrence}) chỉ ra rằng cặp khía cạnh \textit{Facility--Service} xuất hiện cùng nhau phổ biến nhất (6.932 bài), kế đến là \textit{Experience--Service} (5.512 bài) và \textit{Amenity--Service} (5.224 bài).
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{chart_img/46_aspect_cooccurrence_matrix.png}
-    \caption{ Ma trận đồng xuất hiện giữa các khía cạnh: }
+    \caption{Ma trận đồng xuất hiện giữa các khía cạnh.}
     \label{fig:aspect_cooccurrence}
 \end{figure}
 
-Một bài review sẽ thường là khen khía cạnh này và sẽ chê đi một khía cạnh nào đó khác. Trường hợp thường được thấy nhiều nhất là Service tích cực nhưng Facility tiêu cực (640 bài), tiếp theo là Amenity tích cực nhưng Facility tiêu cực (480 bài). Đây chỉ là phần nhỏ trong bài review, cung cho thấy là khách hàng sẽ chê sẽ có hài lòng về dịch như có thể chưa hài lòng về cơ sở vật chất, đồng thời làm nổi bật lên cho bài toán khi mà có sự xung đột về mặt cảm xúc như vậy mà chúng tôi đã dùng CRAM-ABSA hướng tới (RQ2).
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.75\linewidth]{chart_img/47_sentiment_divergence_rate.png}
-    \caption{Ma trận phân kỳ cảm xúc (khía cạnh A tích cực, khía cạnh B tiêu cực): }
-    \label{fig:sentiment_divergence_eda}
-\end{figure}
-
-Trong hơn 54.000 đoạn chú thíc, chỉ có 8 trường hợp chồng lần giữa các khía cạnh. Cho thấy các đoạn bằng chứng khi phân tích trong dữ liệu hầu như không bị trùng lập. Nên là việc có sự nhầm lẫn bằng chứng giữa các khía cạnh chủ yêu sẽ là phát sinh từ trong quá trình dự đoán của mô hình, thay vì dữ liệu đã được gán nhãn chuẩn.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.75\linewidth]{chart_img/49_cross_aspect_span_overlap.png}
-    \caption{Số trường hợp chồng lấn tọa độ giữa các khía cạnh: }
-    \label{fig:cross_aspect_span_overlap_eda}
-\end{figure}
+Đáng chú ý, hiện tượng ý kiến hai chiều đối lập (\textit{dual valences} -- khách hàng khen ngợi khía cạnh này nhưng chê trách khía cạnh khác trong cùng một bài viết) và hiện tượng chồng lấn ranh giới văn bản giữa các khía cạnh xuất hiện với tần suất đáng kể trong thực tế. Các quan sát thực nghiệm này được phân tích sâu sắc tại Mục~\ref{subsec:problemstatement} (Hình~\ref{fig:sentiment_divergence} và Hình~\ref{fig:span_overlap}), đóng vai trò là động lực khoa học then chốt để xây dựng hàm mất mát chống rò rỉ $\mathcal{L}_{\text{overlap}}$ trong mô hình CRAM-ABSA.
 
 F. Lưu trữ và truy vấn dữ liệu.
  
@@ -393,146 +328,61 @@ Các truy vấn SQL được thiết kế để trả lời cho ba câu hỏi ng
 \subsection{Phát biểu bài toán - Problem Statement}
 \label{subsec:problemstatement}
 
-Trong nghiên cứu này, chúng tôi tập trung xây dựng một hệ thống phân tích đánh giá khách sạn theo từng khía cạnh và sử dụng kết quả phân tích để hỗ trợ chatbot trả lời câu hỏi của người dùng. Phương pháp phân tích cảm xúc theo khía cạnh (Aspect-Based Sentiment Analysis -- ABSA) đã được chứng minh là hướng tiếp cận cần thiết khi các phương thức khảo sát truyền thống không còn đáp ứng được lượng phản hồi trực tuyến khổng lồ; như Nawawi và cộng sự~\cite{nawawi2024exploring} đã chỉ ra: ``\textit{Traditional feedback methods like surveys often fail to capture the nuanced and real-time experiences of tourists... This study proposes integrating aspect-based sentiment analysis with zero-shot learning to analyze online tourist reviews effectively without requiring extensive annotated datasets}''~\cite{nawawi2024exploring}. Bên cạnh đó, việc áp dụng các phương pháp lai kết hợp giữa khai phá ý kiến và xử lý ngôn ngữ tự nhiên cũng được Yu và cộng sự~\cite{yu2024dynamic} nhấn mạnh nhằm mở rộng quy mô phân tích đa thuộc tính dịch vụ: ``\textit{This study compared and analysed the consumer demands of hotels in different cities via a dynamic perspective, and used hybrid methods to improve the granularity of the analysis}''~\cite{yu2024dynamic}. Đồng thời, việc phân tích định lượng tương quan giữa các chủ đề khía cạnh trong văn bản nhận xét với điểm số đánh giá thực tế của khách hàng đã khẳng định tính vượt trội so với việc chỉ nhìn nhận cảm xúc chung, đúng như nhận định của Nakamura và Oomiya~\cite{nakamura2021applying}: ``\textit{the relationships between topics and evaluations, which are quantified to consider future guidelines and services}''~\cite{nakamura2021applying}.
-
-Từ đó, nghiên cứu hướng đến việc giải quyết ba nhiệm vụ chính: trích xuất đoạn văn bản làm bằng chứng cho từng khía cạnh, xác định cảm xúc tương ứng và dự đoán điểm đánh giá tổng thể. Các kết quả này tiếp tục được sử dụng để hỗ trợ chatbot tìm kiếm thông tin và trả lời câu hỏi dựa trên những đánh giá thực tế của khách hàng.
-
-\subsubsection{Định nghĩa bài toán}
-
-Đầu vào của hệ thống là nội dung đánh giá khách sạn cùng với những thông tin liên quan có sẵn, chẳng hạn như tên khách sạn, điểm đánh giá và thời gian đăng bài. Cấu trúc dữ liệu này kế thừa định dạng chuẩn hóa trong nghiên cứu phản hồi trực tuyến của Nakamura và Oomiya~\cite{nakamura2021applying}: ``\textit{Each data point is composed of each contributor's review text, assessment scores, and the date on which the review was published}''~\cite{nakamura2021applying}, trong đó các tác giả xác định rõ các thành phần đánh giá bao gồm: ``\textit{assessment items such as `overall,' `cleanliness,' `service and staff,' `amenities' and `properly conditioned.' Their items are 5 points of Likert scales}''~\cite{nakamura2021applying}. Từ những thông tin này, hệ thống cần xác định các khía cạnh được đề cập, tìm những đoạn văn bản thể hiện nhận xét của khách hàng và dự đoán cảm xúc tương ứng. Ngoài ra, nghiên cứu còn xem xét nhiệm vụ dự đoán điểm đánh giá tổng thể trên thang từ 1 đến 5 sao.
-
-Có thể biểu diễn đầu vào của bài toán như sau:
-
-\[
-X = (R, M)
-\]
-
-Trong đó, $R$ là nội dung bài đánh giá và $M$ là tập hợp các thông tin bổ sung (metadata) có sẵn. Đầu ra của hệ thống được biểu diễn như sau:
-
-\[
-Y = (E, S, \hat{r})
-\]
-
-Trong đó, $E$ là các đoạn bằng chứng được trích xuất từ bài đánh giá, $S$ là nhãn cảm xúc tương ứng với từng khía cạnh và $\hat{r}$ là điểm đánh giá tổng thể được mô hình dự đoán.
-
-Cách biểu diễn này giúp phân chia bài toán thành những nhiệm vụ cụ thể, đồng thời giữ được mối liên hệ giữa nội dung đánh giá, bằng chứng và kết quả dự đoán. Tuy nhiên, chất lượng của hệ thống không chỉ phụ thuộc vào khả năng phân loại cảm xúc mà còn phụ thuộc vào việc mô hình có xác định đúng đoạn văn bản làm căn cứ cho dự đoán hay không.
-
-\subsubsection{Trích xuất bằng chứng theo từng khía cạnh}
-
-Một khó khăn cốt lõi của bài toán là một bài đánh giá thường đề cập đến nhiều khía cạnh khác nhau và chứa các ý kiến phân cực phức tạp. Yu và cộng sự~\cite{yu2024dynamic} đã chỉ ra hiện tượng ý kiến hai chiều đối lập thường trực trong đánh giá khách sạn: ``\textit{online reviews usually have dual valences; that is, even if certain attribute characteristics do not meet customer expectations, customers are still satisfied with the hotel because of other well-performing attributes}''~\cite{yu2024dynamic}. Hiểu một cách đơn giản, trong cùng một kỳ nghỉ, khách hàng hiếm khi hài lòng hoặc không hài lòng với toàn bộ mọi thứ; họ thường khen khía cạnh này nhưng đồng thời chê khía cạnh khác. Ví dụ thực tế: một du khách có thể viết \textit{``Khách sạn có phòng ốc rất sạch sẽ và tiện nghi, nhưng nhân viên phục vụ thì thiếu thân thiện và xử lý nhận phòng rất chậm''}. Nếu hệ thống AI chỉ dùng phương pháp phân tích cảm xúc chung cho toàn bộ bài viết, mô hình sẽ gán một nhãn duy nhất (như dán nhãn tích cực vì thấy nhiều lời khen phòng) và hoàn toàn bỏ qua sự bức xúc của khách hàng về dịch vụ.
+Trong nghiên cứu này, chúng tôi xây dựng hệ thống phân tích đánh giá khách sạn theo khía cạnh nhằm hỗ trợ chatbot hỏi đáp minh bạch. Phương pháp phân tích cảm xúc theo khía cạnh (ABSA) đóng vai trò then chốt khi các phương thức khảo sát truyền thống không còn đáp ứng được quy mô phản hồi trực tuyến khổng lồ~\cite{nawawi2024exploring,yu2024dynamic}. Từ chuỗi văn bản đánh giá và siêu dữ liệu (tên khách sạn, ngày đăng bài, điểm số Likert 5 mức)~\cite{nakamura2021applying}, hệ thống cần thực hiện đồng thời ba nhiệm vụ: trích xuất các đoạn căn cứ văn bản (rationale spans), nhận diện nhãn cảm xúc trên 6 khía cạnh chuẩn (\textit{Service, Facility, Experience, Amenity, Loyalty, Branding}), và dự đoán điểm đánh giá thứ bậc tổng thể (1--5 sao).
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{chart_img/47_sentiment_divergence_rate.png}
-    \caption{Ma trận phân kỳ cảm xúc giữa các cặp khía cạnh (Aspect A Tích cực vs. Aspect B Tiêu cực), minh chứng trực quan cho hiện tượng ý kiến hai chiều đối lập (\textit{dual valences}) trong dữ liệu thực tế.}
+    \caption{Ma trận phân kỳ cảm xúc giữa các cặp khía cạnh, minh chứng cho hiện tượng ý kiến hai chiều đối lập (\textit{dual valences}).}
     \label{fig:sentiment_divergence}
 \end{figure}
 
-Để minh chứng cho hiện tượng này trên dữ liệu thực nghiệm, Hình~\ref{fig:sentiment_divergence} thể hiện ma trận phân kỳ cảm xúc: trục dọc biểu thị các khía cạnh được khách hàng khen ngợi (Positive), còn trục ngang biểu thị các khía cạnh bị chê trách (Negative) trong cùng một bài đánh giá. Biểu đồ chỉ ra rằng sự phân kỳ xảy ra rất phổ biến giữa nhóm khía cạnh Cơ sở vật chất (\textit{Facility}), Trải nghiệm chung (\textit{Experience}) và Chất lượng dịch vụ (\textit{Service}). Điều này khẳng định rằng cảm xúc của du khách gắn liền với từng dịch vụ cụ thể là hoàn toàn độc lập, đòi hỏi bài toán phải bóc tách cảm xúc ở cấp độ khía cạnh riêng biệt.
-
-Để giải quyết vấn đề trên, nghiên cứu tập trung vào sáu khía cạnh chính của chatbot, gồm \textit{Service}, \textit{Facility}, \textit{Experience}, \textit{Amenity}, \textit{Loyalty} và \textit{Branding}. Mỗi khía cạnh cần được liên kết với đoạn văn bản phù hợp trong bài đánh giá. Chẳng hạn, nhận xét về thái độ nhân viên cần được sử dụng làm bằng chứng cho khía cạnh dịch vụ, trong khi nhận xét về độ sạch sẽ của phòng cần được gắn với khía cạnh tương ứng.
-
-Để thực hiện điều này một cách chuẩn xác, việc phân rã bài đánh giá thành các phân đoạn câu (sentence segments) là điều kiện tiên quyết, tương tự như quy trình được Nawawi và cộng sự~\cite{nawawi2024exploring} đề xuất: ``\textit{the research framework involves keyword extraction, sentence segment detection, aspect construction, and sentiment polarity measurement... Each identified segment, along with its corresponding keywords, was then subjected to sentiment polarity measurement}''~\cite{nawawi2024exploring}. Dựa trên định hướng này, bài toán trong nghiên cứu không chỉ là xác định cảm xúc mà còn là tìm đúng đoạn văn bản làm bằng chứng độc lập cho từng khía cạnh.
+Một thách thức cốt lõi là các bài đánh giá thường chứa các ý kiến hai chiều đối lập (\textit{dual valences})~\cite{yu2024dynamic}: du khách thường hài lòng với khía cạnh này nhưng không hài lòng với khía cạnh khác trong cùng một kỳ nghỉ. Như minh chứng tại Hình~\ref{fig:sentiment_divergence}, sự phân kỳ cảm xúc diễn ra rất phổ biến giữa nhóm Cơ sở vật chất (\textit{Facility}) và Dịch vụ (\textit{Service}). Nếu hệ thống chỉ gán một nhãn cảm xúc chung cho toàn bộ bài viết, các phản ánh cụ thể của du khách sẽ bị bỏ sót, khẳng định tính tất yếu của việc bóc tách cảm xúc độc lập theo từng khía cạnh.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{chart_img/49_cross_aspect_span_overlap.png}
-    \caption{Thống kê số trường hợp chồng lấn tọa độ văn bản (bằng chứng) giữa các cặp khía cạnh, minh họa thách thức rò rỉ và lẫn bằng chứng (\textit{cross-aspect rationale leakage}).}
+    \caption{Thống kê số trường hợp chồng lấn ranh giới văn bản giữa các khía cạnh, minh họa thách thức rò rỉ căn cứ (\textit{rationale leakage}).}
     \label{fig:span_overlap}
 \end{figure}
 
-Tuy nhiên, trong văn bản thực tế, người dùng thường viết các câu phức hợp nối liền nhau, dẫn đến hiện tượng chồng lấn tọa độ ký tự (span overlap) giữa các đoạn bằng chứng. Như minh họa tại Hình~\ref{fig:span_overlap}, dữ liệu ghi nhận hàng trăm trường hợp ranh giới văn bản giữa các khía cạnh (đặc biệt là giữa \textit{Facility} và \textit{Service}) bị trùng đè lên nhau. Hậu quả thực tế là nếu mô hình AI không được ràng buộc chặt chẽ, hiện tượng rò rỉ bằng chứng liên khía cạnh (\textit{cross-aspect rationale leakage}) sẽ xảy ra: mô hình có thể lấy nhầm một câu khen về phòng ngủ tiện nghi để trả lời cho câu hỏi của người dùng về thái độ phục vụ của nhân viên lễ tân. Đây là một sai sót nghiêm trọng làm giảm tính minh bạch và độ tin cậy của chatbot. Vì vậy, số liệu thực nghiệm từ Hình~\ref{fig:span_overlap} chính là cơ sở cốt lõi để nghiên cứu thiết kế cơ chế phạt chồng lấn phân đoạn ($\mathcal{L}_{\text{overlap}}$) trong khung CRAM-ABSA nhằm ép các vùng bằng chứng phải hoàn toàn tách biệt.
-
-
-\subsubsection{Hỏi đáp khách sạn dựa trên bằng chứng}
-
-Các kết quả phân tích được sử dụng để hỗ trợ chatbot trả lời câu hỏi liên quan đến khách sạn. Khi người dùng đặt câu hỏi, hệ thống cần xác định khách sạn được quan tâm, khía cạnh cần tìm hiểu và nội dung thông tin mà người dùng muốn biết. Sau đó, chatbot tìm kiếm những đánh giá phù hợp và sử dụng các đoạn bằng chứng liên quan để tạo câu trả lời.
-
-Việc kết hợp nội dung văn bản với siêu dữ liệu (metadata) giải quyết hạn chế lớn của các mô hình hỏi đáp truyền thống, như Bruni và cộng sự~\cite{bruni2025amaqa} đã khẳng định: ``\textit{Retrieval-augmented generation (RAG) systems are widely used in question-answering (QA) tasks, but current benchmarks lack metadata integration, limiting their effectiveness in domain-specific scenarios}''~\cite{bruni2025amaqa}. Trong bài toán của chúng tôi, các thông tin như tên khách sạn, khía cạnh đánh giá và thời gian đăng bài được sử dụng để thu hẹp không gian tìm kiếm trước khi tổng hợp câu trả lời.
-
-Ví dụ, khi người dùng hỏi về chất lượng bữa sáng hoặc thái độ phục vụ của nhân viên, chatbot cần ưu tiên những đánh giá liên quan trực tiếp đến nội dung đó thay vì đưa ra nhận xét chung chung về khách sạn. Câu trả lời cần ngắn gọn, dễ hiểu và có căn cứ từ dữ liệu. Nếu không tìm thấy đủ bằng chứng phù hợp, hệ thống cần thể hiện rõ giới hạn thông tin thay vì tự đưa ra kết luận không được hỗ trợ bởi các bài đánh giá.
-
-Thông tin thời gian cũng đóng vai trò quyết định khi người dùng muốn tìm hiểu về chất lượng dịch vụ gần đây. Thay vì giả định chất lượng dịch vụ là cố định, Yu và cộng sự~\cite{yu2024dynamic} đã chứng minh rằng: ``\textit{The results indicate that the hotel attributes that consumers care about (e.g., Clean, Breakfast, and Front Desk) are dynamically fluctuating, and the attention and satisfaction of corresponding attributes will also change... it is particularly important to classify service quality attributes from a dynamic perspective}''~\cite{yu2024dynamic}. Đồng thời, việc phân tích mốc thời gian đăng bài như phương pháp của Nakamura và Oomiya~\cite{nakamura2021applying} giúp theo dõi sự dịch chuyển thực tế trong dịch vụ của khách sạn qua từng giai đoạn. Do đó, trong trường hợp dữ liệu có ngày đăng hợp lệ, những đánh giá mới hơn sẽ được ưu tiên trong quá trình truy xuất để phản ánh đúng hiện trạng, trong khi vẫn lưu giữ các đánh giá cũ để tái hiện bức tranh trải nghiệm dài hạn của khách sạn.
-
-Tóm lại, bài toán của nghiên cứu là kết hợp việc trích xuất bằng chứng, phân tích cảm xúc theo khía cạnh và dự đoán điểm đánh giá để hỗ trợ chatbot hỏi đáp về khách sạn. Hệ thống hướng đến việc cung cấp câu trả lời đúng trọng tâm, hạn chế nhầm lẫn giữa các khía cạnh và sử dụng những nhận xét thực tế làm căn cứ. Phần tiếp theo sẽ trình bày phương pháp đề xuất CRAM-ABSA và cách các thành phần của mô hình được thiết kế để giải quyết những vấn đề trên.
+Bên cạnh đó, trong văn bản tự nhiên, ranh giới giữa các câu nhận xét thường bị đan xen, dẫn đến hiện tượng chồng lấn tọa độ span (Hình~\ref{fig:span_overlap}). Nếu không có cơ chế ràng buộc chặt chẽ, mô hình sẽ gặp hiện tượng rò rỉ căn cứ liên khía cạnh (\textit{cross-aspect rationale leakage}), ví dụ lấy nhầm nhận xét về phòng nghỉ để trả lời cho câu hỏi về thái độ nhân viên lễ tân. Cuối cùng, việc tích hợp siêu dữ liệu thời gian~\cite{bruni2025amaqa,yu2024dynamic} là bắt buộc nhằm ưu tiên các đánh giá gần nhất, phản ánh trung thực biến động chất lượng dịch vụ và cung cấp câu trả lời có căn cứ xác thực cho người dùng.
 
 
 \subsection{Phương pháp đề xuất - Proposed method}
 \label{subsec:proposedmethod}
 
-Nhằm khắc phục triệt để các hạn chế về rò rỉ căn cứ liên khía cạnh, sai lệch phân loại thứ bậc 5 mức sao và hiện tượng ảo giác thông tin, chúng tôi đề xuất khung kiến trúc \textbf{CRAM-ABSA} (\textit{Cross-Aspect Rationale Alignment Model for Aspect-Based Sentiment Analysis}) trên nền tảng BERT Seq2Seq. Khung kiến trúc được thiết kế theo cấu trúc hai tầng thống nhất (Hình~\ref{fig:abstract_architecture}): Tầng truy xuất tri thức dựa trên nhúng kết hợp siêu dữ liệu thời gian (\textit{Metadata-Aware Temporal Embedding-Based Retrieval - EBR}) và Tầng mô hình sinh ngôn ngữ tham số hóa chuyên sâu (\textit{Fine-tuned CRAM-ABSA Generative Engine (BERT Backbone)}).
+Để khắc phục hiện tượng rò rỉ căn cứ liên khía cạnh, sai lệch phân loại thứ bậc và ảo giác thông tin, chúng tôi đề xuất khung kiến trúc \textbf{CRAM-ABSA} (\textit{Cross-Aspect Rationale Alignment Model for Aspect-Based Sentiment Analysis}) trên nền tảng BERT Seq2Seq (Hình~\ref{fig:abstract_architecture}). Khung phương pháp gồm hai tầng thống nhất: Tầng truy xuất định hướng thời gian (EBR) và Tầng mô hình sinh ngôn ngữ đa nhiệm.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{chart_img/412_abstract_architecture_of_proposed_method.png}
-    \caption{Kiến trúc tổng thể của khung phương pháp CRAM-ABSA (với BERT backbone): Kết hợp giữa quy trình truy xuất dựa trên nhúng (EBR) định hướng siêu dữ liệu thời gian và mô hình sinh ngôn ngữ BERT Seq2Seq tinh chỉnh đa nhiệm.}
+    \makebox[\textwidth][c]{\includegraphics[width=1.18\textwidth]{chart_img/412_abstract_architecture_of_proposed_method.png}}
+    \caption{Kiến trúc tổng thể của khung phương pháp CRAM-ABSA (BERT backbone): Kết hợp truy xuất dựa trên nhúng (EBR) định hướng thời gian và mô hình sinh ngôn ngữ đa nhiệm.}
     \label{fig:abstract_architecture}
 \end{figure}
 
-\subsubsection{Tầng 1: Quy trình Truy xuất Dựa trên Nhúng (EBR) Định hướng Siêu dữ liệu và Trọng số Thời gian}
-Khác với các hệ thống truy xuất từ khóa thô sơ, tầng truy xuất của CRAM-ABSA sử dụng phương pháp \textbf{EBR (Embedding-Based Retrieval)} ánh xạ câu hỏi đàm thoại và kho 9.990 bài đánh giá cùng 54.326 đoạn căn cứ vào không gian nhúng ngữ nghĩa vector dày đặc (\textit{Dense Semantic Embedding Space}). Tận dụng cơ sở dữ liệu cột nén Snappy Apache Parquet (\texttt{hotel\_reviews.parquet}) kết hợp siêu dữ liệu có cấu trúc từ SQLite (\texttt{chatbot.db}), khi người dùng truy vấn thông tin về một khách sạn $h$ theo khía cạnh $a \in \{\text{Service, Facility, Experience, Amenity, Loyalty, Branding}\}$, bộ truy xuất tính toán độ tương đồng Cosine giữa vector nhúng truy vấn $e_q$ và vector nhúng các đoạn căn cứ $e_{\text{span}}$.
+\subsubsection{Tầng 1: Truy xuất Dựa trên Nhúng (EBR) Định hướng Thời gian}
+Tầng truy xuất ánh xạ câu hỏi đàm thoại và kho 9.990 bài đánh giá cùng 54.326 đoạn căn cứ vào không gian nhúng ngữ nghĩa vector dày đặc (\textit{Dense Semantic Embedding Space}), lưu trữ trong cơ sở dữ liệu cột nén Snappy Parquet và SQLite. Nhằm mô hình hóa sự biến động chất lượng dịch vụ theo thời gian~\cite{yu2024dynamic}, chúng tôi áp dụng trọng số suy giảm hàm mũ $w = \exp(-\lambda \Delta t)$ với $\lambda = 0{,}03$ ($\Delta t$ là số tháng so với bài đánh giá mới nhất). Điểm xếp hạng truy xuất kết hợp độ tương đồng ngữ nghĩa và trọng số thời gian, từ đó trích xuất các đoạn căn cứ phù hợp nhất cùng vector 17 đặc trưng định lượng (mật độ bằng chứng, cảm xúc ròng, cờ xung đột) để làm ngữ cảnh tăng cường cho mô hình sinh.
 
-Do chất lượng dịch vụ của khách sạn luôn thay đổi theo thời gian, chúng tôi áp dụng cơ chế suy giảm hàm mũ theo khoảng cách ngày đăng bài $\Delta t_i$ (tính theo tháng so với hiện tại):
+\subsubsection{Tầng 2: Mô hình Sinh Ngôn ngữ CRAM-ABSA Đa nhiệm}
+Mô hình sử dụng kiến trúc Sequence-to-Sequence dựa trên nền tảng \texttt{bert-base-uncased} (EncoderDecoderModel), tiếp nhận toàn bộ lịch sử đối thoại đa lượt để sinh phản hồi tự nhiên kèm căn cứ trích dẫn mà không phụ thuộc vào mẫu câu dựng sẵn.
+
+Vector 17 đặc trưng định lượng được tích hợp vào không gian ngữ nghĩa thông qua mạng chiếu phi tuyến hai lớp (Dense Projection) và hòa trộn vào token đầu tiên của bộ mã hóa theo cơ chế residual conditioning. Đồng thời, mô hình sinh mặt nạ mềm (soft mask) theo từng khía cạnh để định hướng bộ giải mã chỉ tập trung vào phân đoạn văn bản mang bằng chứng thực tế.
+
+\paragraph{Hàm mất mát đa nhiệm liên hợp:}
+Mô hình CRAM-ABSA được huấn luyện đồng thời thông qua hàm mất mát toàn phần:
 \begin{equation}
-    w_i = \exp(-\lambda \cdot \Delta t_i)
-\end{equation}
-với hệ số suy giảm $\lambda = 0.03$ (tương ứng chu kỳ bán rã khoảng 24 tháng) theo định hướng từ Yu và cộng sự~\cite{yu2024dynamic} và Bruni và cộng sự~\cite{bruni2025amaqa}. Điểm xếp hạng truy xuất tổng hợp $S_i = \text{CosSim}(e_q, e_i) \times (0.7 + 0.3 \cdot w_i)$ đảm bảo ưu tiên các phản hồi gần nhất mà không bỏ qua các thông tin lịch sử quan trọng. Điểm đánh giá cảm xúc đồng thuận (\textit{Consensus Score}) theo khía cạnh $a$ được tính toán như sau:
-\begin{equation}
-    \bar{S}_{h, a} = \frac{\sum_{i=1}^K w_i \cdot s_{i, a}}{\sum_{i=1}^K w_i}
-\end{equation}
-trong đó $s_{i, a} \in \{1, 2, 3, 4, 5\}$ là điểm số của bài đánh giá thứ $i$, và $K$ là số lượng bài đánh giá có trọng số cao nhất được chọn lọc. Bộ truy xuất đồng thời trích xuất các đoạn văn bản căn cứ thực tế (ground-truth rationale spans) $\mathcal{E}_{h, a} = \{e_1, \dots, e_M\}$ cùng vector 17 đặc trưng định lượng $f_{17} \in \mathbb{R}^{17}$ bao phủ mật độ bằng chứng, độ dài trung bình, điểm cảm xúc ròng và cờ xung đột để làm ngữ cảnh tăng cường cho mô hình sinh.
-
-\subsubsection{Tầng 2: Mô hình Sinh Ngôn ngữ CRAM-ABSA Fine-tuned (BERT Backbone)}
-Mô hình sinh câu trả lời đàm thoại sử dụng kiến trúc Sequence-to-Sequence dựa trên nền tảng \texttt{bert-base-uncased} (EncoderDecoderModel) gồm bộ mã hóa Bidirectional Transformer Encoder và bộ giải mã Autoregressive Transformer Decoder. Mô hình giải mã câu trả lời tự nhiên $100\%$ không sử dụng bất kỳ mẫu câu (template) có sẵn hay suy diễn ý định nhân tạo nào, đồng thời tiếp nhận toàn bộ lịch sử đối thoại đa lượt (\textit{Multi-Turn Dialogue Context}) để giải quyết triệt để hiện tượng đồng tham chiếu.
-
-\paragraph{Mạng Chiếu Phi tuyến Dung hợp Đặc trưng (Feature Projection Network):}
-Để tích hợp vector 17 đặc trưng định lượng $f_{17}$ vào không gian ngữ nghĩa ẩn của mô hình, chúng tôi thiết kế mạng chiếu Dense Projection:
-\begin{equation}
-    h_{\text{feat}} = \text{LayerNorm}(\mathbf{W}_2 \cdot \text{GELU}(\mathbf{W}_1 f_{17} + b_1) + b_2) \in \mathbb{R}^{d_{\text{model}}}
-\end{equation}
-với $d_{\text{model}} = 768$. Biểu diễn $h_{\text{feat}}$ sau đó được cộng hòa trộn trực tiếp vào token embedding đầu tiên (\texttt{[BOS]}) của Encoder theo cơ chế residual conditioning:
-\begin{equation}
-    \mathbf{E}' = \mathbf{E} + \alpha_{\text{res}} \cdot h_{\text{feat}}
-\end{equation}
-với hệ số tỷ lệ $\alpha_{\text{res}} = 0.15$, giúp mô hình tiếp nhận đầy đủ thông tin thống kê định lượng của toàn bộ khách sạn ngay từ tầng biểu diễn từ vựng.
-
-\paragraph{Module Sinh Căn cứ Định hướng Khía cạnh (Aspect Rationale Generator):}
-Với mỗi khía cạnh $a$, bộ tạo căn cứ ước lượng một mặt nạ mềm $m_a \in [0, 1]^L$ trên chuỗi $L$ token đầu vào thông qua hàm sigmoid:
-\begin{equation}
-    m_{a, t} = \sigma(\mathbf{W}_a \cdot h_t^{\text{enc}} + b_a)
-\end{equation}
-Chuỗi văn bản sau khi lọc căn cứ $x \odot m_a$ đảm bảo bộ giải mã chỉ nhìn thấy phần thông tin thực sự làm bằng chứng cho khía cạnh đó.
-
-\paragraph{Hàm Mất mát Đa nhiệm và Ràng buộc Chống Rò rỉ:}
-Hệ thống được tối ưu hóa đồng thời thông qua 4 thành phần hàm mất mát:
-\begin{enumerate}
-    \item \textbf{Mất mát sinh ngôn ngữ (Autoregressive LM Loss):} Tối ưu hóa xác suất hợp lý log-likelihood có áp dụng kỹ thuật làm mịn nhãn (Label Smoothing $\epsilon = 0.1$):
-    \begin{equation}
-        \mathcal{L}_{\text{gen}} = -\sum_{t=1}^T \log P(y_t \mid y_{<t}, x, h_{\text{feat}})
-    \end{equation}
-
-    \item \textbf{Mất mát thứ bậc CORN (Conditional Ordinal Regression Loss):} Khắc phục hiện tượng sụt giảm độ chính xác trên các mức đánh giá trung gian 2--4 sao (\textbf{RQ1}) và mất cân bằng dữ liệu cực đoan. Với $K=5$ mức sao, mô hình dự đoán $K-1=4$ phân loại nhị phân điều kiện:
-    \begin{equation}
-        \mathcal{L}_{\text{CORN}} = -\sum_{k=1}^{K-1} \omega(y) \left[ \mathbb{I}(y > k) \log \sigma(z_k) + \mathbb{I}(y \le k) \log (1 - \sigma(z_k)) \right]
-    \end{equation}
-    trong đó $\omega(y)$ là trọng số phạt nghịch đảo tần suất lớp, ngăn chặn mô hình thiên vị về nhãn 5 sao.
-
-    \item \textbf{Hình phạt chồng lấn phân đoạn (Overlap Penalty Loss):} Triệt tiêu hiện tượng rò rỉ căn cứ liên khía cạnh (\textbf{RQ2, RQ3}) bằng cách phạt tích vô hướng giữa các mặt nạ căn cứ của hai khía cạnh phân biệt:
-    \begin{equation}
-        \mathcal{L}_{\text{overlap}} = \lambda_{\text{ov}} \sum_{a \neq b} \langle m_a, m_b \rangle = \lambda_{\text{ov}} \sum_{a \neq b} \sum_{t=1}^L m_{a, t} \cdot m_{b, t}
-    \end{equation}
-
-    \item \textbf{Mất mát phân loại phụ (Auxiliary Classification Losses):} Hỗ trợ neo giữ không gian biểu diễn ẩn của khía cạnh và cảm xúc:
-    \begin{equation}
-        \mathcal{L}_{\text{aux}} = \mathcal{L}_{\text{aspect}} + \mathcal{L}_{\text{sentiment}}
-    \end{equation}
-\end{enumerate}
-
-Tổng hàm mất mát liên hợp của CRAM-ABSA:
-\begin{equation}
+    \label{eq:total_loss}
     \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{gen}} + \beta_1 \mathcal{L}_{\text{CORN}} + \beta_2 \mathcal{L}_{\text{overlap}} + \beta_3 \mathcal{L}_{\text{aux}}
 \end{equation}
-với các hệ số cân bằng thực nghiệm $\beta_1 = 0.3$, $\beta_2 = 0.1$, $\beta_3 = 0.2$.
+trong đó:
+\begin{itemize}
+    \item $\mathcal{L}_{\text{gen}}$: Mất mát sinh ngôn ngữ tự hồi quy với kỹ thuật làm mịn nhãn (Label Smoothing $\epsilon = 0{,}1$).
+    \item $\mathcal{L}_{\text{CORN}}$: Mất mát thứ bậc điều kiện (Conditional Ordinal Regression) giải quyết hiện tượng sụt giảm độ chính xác trên các mức đánh giá 2--4 sao do mất cân bằng dữ liệu cực đoan (\textbf{RQ1}). Phương pháp phân rã bài toán 5 mức sao thành 4 phân loại nhị phân điều kiện, kết hợp trọng số phạt nghịch đảo tần suất lớp để ngăn chặn mô hình thiên vị về nhãn 5 sao.
+    \item $\mathcal{L}_{\text{overlap}}$: Hình phạt chồng lấn phân đoạn nhằm triệt tiêu rò rỉ căn cứ liên khía cạnh (\textbf{RQ2, RQ3}), áp đặt hình phạt lên tích vô hướng giữa các mặt nạ căn cứ của hai khía cạnh phân biệt nhằm ép các vùng bằng chứng phải tách biệt độc lập.
+    \item $\mathcal{L}_{\text{aux}}$: Mất mát phân loại phụ neo giữ không gian biểu diễn ẩn của khía cạnh và cảm xúc.
+    \item Các hệ số cân bằng thực nghiệm được thiết lập: $\beta_1 = 0{,}3$, $\beta_2 = 0{,}1$ và $\beta_3 = 0{,}2$.
+\end{itemize}
 
 \subsection{Thiết lập thực nghiệm - Experimental}
 \label{subsec:experimental}
@@ -549,20 +399,20 @@ Các tham số huấn luyện được cấu hình chi tiết theo Bảng~\ref{t
 \centering
 \caption{Cấu hình siêu tham số huấn luyện mô hình CRAM-ABSA trên Kaggle GPU.}
 \label{tab:hyperparameters}
-\begin{tabular}{ll}
+\begin{tabular}{p{0.34\textwidth}p{0.58\textwidth}}
 \hline
 \textbf{Siêu tham số (Hyperparameter)} & \textbf{Giá trị cấu hình (Configured Value)} \\
 \hline
-Kiến trúc mô hình nền (Backbone) & \texttt{bert-base-uncased} (CRAM-ABSA Seq2Seq với BERT Backbone) \\
-Số lượng đặc trưng dung hợp & 17 Dense Aspect Features \\
-Số lượng khía cạnh phân loại & 6 Canonical Aspects \\
+Kiến trúc mô hình nền (Backbone) & \texttt{bert-base-uncased} (Seq2Seq Transformer) \\
+Số lượng đặc trưng dung hợp & 17 đặc trưng định lượng (Dense Features) \\
+Số lượng khía cạnh phân loại & 6 khía cạnh chuẩn (Canonical Aspects) \\
 Độ dài chuỗi đầu vào tối đa ($L_{\text{src}}$) & 448 tokens \\
 Độ dài câu trả lời sinh ra tối đa ($L_{\text{tgt}}$) & 128 tokens \\
 Kích thước lô hiệu dụng (Effective Batch Size) & 32 (16 per step $\times$ 2 Gradient Accumulation) \\
 Tốc độ học tối đa (Peak Learning Rate) & $3 \times 10^{-5}$ \\
 Bộ tối ưu hóa (Optimizer) & AdamW ($\beta_1=0.9, \beta_2=0.999, \epsilon=10^{-8}$) \\
 Trọng số suy giảm (Weight Decay) & 0.01 \\
-Lịch trình điều chỉnh tốc độ học & Linear Warmup (10\% tổng số bước) + Cosine Decay \\
+Lịch trình điều chỉnh tốc độ học & Linear Warmup (10\%) + Cosine Decay \\
 Số lượng chu kỳ huấn luyện (Epochs) & 8 Epochs \\
 Hệ số làm mịn nhãn (Label Smoothing) & $\epsilon = 0.1$ \\
 Trọng số mất mát phụ ($\beta_3$) & 0.2 \\
@@ -647,7 +497,7 @@ Quy trình đánh giá thực nghiệm hoàn chỉnh đã được đóng gói t
 \section{Research Plan}
 \label{sec:plan}
 
-\begin{table*}[t]
+\begin{table}[htbp]
 \centering
 \caption{Research Schedule}
 \label{tab:researchplan}
@@ -711,7 +561,7 @@ Demo, Q\&A \\
 
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 %========================================================
 % REFERENCES
